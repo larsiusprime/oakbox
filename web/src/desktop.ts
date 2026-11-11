@@ -30,7 +30,7 @@ export const desktop = {
   /** Alt (+ a letter) opens the Windows menu bar; the web view keeps those keys otherwise. */
   hasMenuBar: () => Boolean(window.pywebview?.api?.menu_key),
   menuKey: (key: string) => void window.pywebview?.api?.menu_key?.(key),
-  /** A page from elsewhere (Street View, Zillow…) in one viewer window beside the app, reused; in a browser, one
+  /** A page from elsewhere (Street View, Zillow…) in the computer's web browser; in a browser, one
    * tab reused. */
   view: (url: string, title: string) => {
     const api = window.pywebview?.api;

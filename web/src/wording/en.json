@@ -1324,6 +1324,10 @@
     }
   },
   "tabs": {
+    "waitsOn": "This tab waits on {step}:",
+    "waitsStale": "something it depends on changed since it ran. What's here is from before.",
+    "waitsNotYet": "it hasn't been run, or Looks right pressed, yet.",
+    "goTo": "Go to {step}",
     "scrollLeft": "Tabs to the left",
     "scrollRight": "Tabs to the right",
     "metadata": "Metadata",
@@ -1375,6 +1379,10 @@
     "preview": "Report preview"
   },
   "step": {
+    "runAgain": "Run again",
+    "excludedSince": "{n, number} {n, plural, =1 {sale} other {sales}} excluded since this ran: left out from now on, but these results still have {n, plural, =1 {it} other {them}}.",
+    "excludedSinceCheck": "{n, number} {n, plural, =1 {sale} other {sales}} excluded since this ran: the steps after leave {n, plural, =1 {it} other {them}} out. Running again only refreshes the time trend and the other sales' flags.",
+    "railToggle": "Narrow or widen the list of steps",
     "next": "Next ›",
     "notRun": "Not run yet",
     "running": "Running · {elapsed} so far{left, select, null {} other {, about {left} left}}",
@@ -1392,6 +1400,7 @@
     "loading": "Loading this step"
   },
   "bringIn": {
+    "mapField": "Show {field} on the map",
     "steps": {
       "plan": "What runs",
       "run": "Bring in data",
@@ -1566,6 +1575,8 @@
     "showMap": "Show the map",
     "clickHint": "Click a parcel to inspect",
     "mapInstruction": "Click a parcel on the map to see which group it joins, and why",
+    "savedOnMap": "The groups as saved, on the map",
+    "savedOnMapSub": "Show on map shows one group alone; click a parcel for why it''s in its group.",
     "mapInstructionSub": "The map shows the groups as they are here, saved or not: by group, or by what moved.",
     "mapLabel": "Map of the parcels, coloured by model group",
     "loadingMap": "Drawing the parcels…",
@@ -1609,7 +1620,6 @@
     "modelItTip": "Model this group: values are worked out for its parcels. Proposed for groups with enough improved sales to model (15 or more); a group not modeled is shown greyed, as not modeled, in the steps after.",
     "notModeled": "Not modeled",
     "checksCol": "To look at",
-    "checkFix": "To change a group, go back to the builder.",
     "backToBuild": "Build the groups",
     "writeTitle": "Tag the parcels and write notebook 1''s output",
     "looksRightNext": "Looks right › Sales",
@@ -1934,6 +1944,12 @@
       },
       "apply": "What you decide applies when you check sales again (seconds).",
       "applyLater": "What you decide applies on the next Check sales.",
+      "mapStep": "Sales set aside",
+      "mapInstruction": "Click a sale on the map, or pick one in the list",
+      "mapInstructionSub": "Each sale set aside is a dot coloured by the check that flagged it; the one you pick is ringed with the sales it was compared with.",
+      "mapLabel": "Map of the sales set aside",
+      "mapComps": "compared with",
+      "mapFaint": "faint: decided",
       "lede": "Every sale here is out: the models don''t learn from it and the ratio studies leave it out, because a check flagged it. Look at each and decide. Put it back if it''s a real market sale (say why), or leave it out for good if it isn''t, so it stays out whatever the checks say later. A sale you don''t decide stays out for as long as a check flags it.",
       "nowUndecided": "Now: out, set aside by the checks. Not decided.",
       "nowKept": "Now: put back. It counts from the next Check sales.",
@@ -2076,7 +2092,7 @@
         "aerial": "Aerial",
         "zillow": "Zillow",
         "redfin": "Redfin",
-        "note": "Opens in a viewer window beside this one; the next sale''s opens in the same window."
+        "note": "Opens in your web browser."
       },
       "checkWhy": {
         "dupe_deed_date": "Sold on the same deed, the same day, as other sales: likely one sale of several parcels, its price for all of them.",
@@ -2115,12 +2131,12 @@
       ],
       "skip": [
         "Skip this step",
-        "Go straight to Models. You can come back to it."
+        "Go straight to Variables. You can come back to it."
       ],
       "sets": "Values to check",
       "groups": "Model groups",
       "shown": "Values shown",
-      "toValues": "Go to Models ›"
+      "toValues": "Go to Variables ›"
     },
     "steps": {
       "what": "What to check",
@@ -2130,7 +2146,6 @@
       "assign": "Which groups",
       "run": "Check my values",
       "summary": "Summary",
-      "groups": "By model group",
       "prices": "Across prices",
       "map": "On the map",
       "regions": "Neighbourhood price levels",
@@ -2243,6 +2258,7 @@
     "summary": {
       "share": "about {pct}%",
       "head": "{name}''s values are about {pct}% of what parcels sold for, {start} to {end}.",
+      "everyFigure": "Every figure, group by group (trimmed and not, the 90% range, PRD, MKI)",
       "levelAll": " That''s outside the {lo} to {hi} the standard asks for in every model group judged.",
       "levelNone": " Every model group judged is within the {lo} to {hi} the standard asks for.",
       "levelSome": " {n} of {of} model groups judged are within the {lo} to {hi} the standard asks for.",
@@ -2288,17 +2304,46 @@
         "insufficient": "too few sales"
       }
     },
+    "veiChart": {
+      "half": "Half",
+      "quartile": "Quartile",
+      "decile": "Decile",
+      "group": "Group",
+      "ratio": "Ratio",
+      "sample": "Sample",
+      "median": "Median",
+      "toggle": "click to show/hide:",
+      "boxes": "Box distribution",
+      "sampleMedian": "Sample median",
+      "ci": "90% CI (bounds)",
+      "ct": "Central tendency",
+      "view": "Show the groups",
+      "byGroup": "By group",
+      "byPrice": "By price",
+      "salePrice": "Sale price",
+      "dots": "Individual sales",
+      "trimmed": "Trimmed sales",
+      "target": "Standard''s range",
+      "targetTip": "The level the standard asks for: {low} to {high}",
+      "saleTip": "{group}: sold for {price}, ratio {ratio}",
+      "trimmedTip": "Trimmed: sold for {price}, ratio {ratio}",
+      "spanTip": "{group}: {n, number} sales, {low} to {high}\nmedian {median}",
+      "rangeHint": "Y range: drag a handle on the left, or click it to type a value. Double-click the track to reset.",
+      "top": "Highest ratio shown",
+      "bottom": "Lowest ratio shown",
+      "boxTip": "{group}: {n, number} sales\nupper fence {hi}\nq3 {q3}\nmedian {median}\nq1 {q1}\nlower fence {lo}",
+      "ciTip": "{group}\nMedian: {median}\n90% CI: [{low}, {high}]",
+      "ctTip": "{group}\nMedian: {median}"
+    },
     "prices": {
       "title": "Across prices: {name}",
-      "lede": "Each dot a sale: its ratio against its price. Black: the median ratio of each fifth of sales, by price. Green: the level the standard asks for.",
-      "fifth": "Sale price",
+      "lede": "Sales in the VEI''s groups, cheapest to dearest by value: each dot a sale, each box a group''s middle half. By price spreads the same sales along their prices.",
+      "fifth": "Sale prices",
       "flat": "Flat would be even: rising, dearer parcels are valued relatively higher; falling, lower.",
       "strata": "The VEI''s groups, by value",
-      "bySale": "By each sale''s price level",
       "stratum": "Group",
       "vei": "VEI {vei}, significance {sig}: {verdict}.",
-      "noVei": "Too few sales for the VEI (it needs 20).",
-      "trimmedDot": "Grey: trimmed."
+      "noVei": "Too few sales for the VEI (it needs 20)."
     },
     "similar": {
       "title": "Similar parcels, similar values?",
@@ -2306,6 +2351,18 @@
       "parcels": "Parcels",
       "clusters": "Groups of similar parcels",
       "chd": "Median spread (CHD)",
+      "mapInstruction": "See how alike similar parcels are valued, on the map",
+      "mapInstructionSub": "Every parcel in the colour of its group of similar parcels: green alike, amber some spread, red far apart. Hover one for its group's spread.",
+      "mapLabel": "Map of the parcels, coloured by their similar parcels' spread",
+      "mapTip": "Its {n} similar parcels: spread (CHD) {chd}",
+      "mapOne": "No similar parcels to compare with",
+      "mapOneShort": "a group of one",
+      "mapClick": "Click a parcel for its group",
+      "cardTitle": "{n, number} similar {n, plural, =1 {parcel} other {parcels}}",
+      "cardFigures": "median {median} · spread (CHD) {chd}",
+      "cardHint": "Dearest first. Click one to go to it.",
+      "cardClose": "Close the group",
+      "cardBlank": "no value",
       "reads": "Reads",
       "tight": "similar parcels valued alike",
       "some": "some spread",
@@ -2314,6 +2371,12 @@
     },
     "extreme": {
       "title": "Extreme ratios",
+      "mapInstruction": "Click an extreme sale on the map, or Show on map on its row",
+      "mapInstructionSub": "Every sale studied, faint, coloured by its ratio; the extreme ones bold. The one you pick is ringed and the map moves to it.",
+      "mapLabel": "Map of the sales studied, the extreme ratios bold",
+      "mapLow": "value far under the price",
+      "mapHigh": "value far over the price",
+      "mapRest": "faint: every other sale studied",
       "lede": "Ratios far from the rest are left out of the statistics and listed here: each is a sale to question, or a value to fix.",
       "none": "No ratio was far enough from the rest to leave out.",
       "address": "Sale",
@@ -2335,7 +2398,15 @@
       "lede": "Each sale where its parcel is, coloured by its ratio. Clusters of red or blue show where values are off; scattered colour is noise or invalid sales.",
       "label": "Map of sales by ratio",
       "instruction": "See where the ratios run high or low on the map",
-      "instructionSub": "Each sale is a dot coloured by its ratio; hover one for its price and value. Pick a group on the map.",
+      "instructionSub": "Each sale is a dot coloured by its ratio; hover one for its price and value. Show on map picks a group; so does the map''s own list.",
+      "allOnMap": "Every group on the map",
+      "pricesInstruction": "See where cheap and dear sales are valued high or low, on the map",
+      "pricesInstructionSub": "Each sale by its ratio; on the map, show the cheapest third, the middle or the dearest at a time.",
+      "band": "Prices",
+      "bandAll": "All",
+      "bandLow": "Cheapest third",
+      "bandMid": "Middle",
+      "bandHigh": "Dearest third",
       "none": "The sales have no coordinates: the parcel universe needs shapes or latitude and longitude.",
       "ratio": "Ratio",
       "price": "price",
@@ -2365,6 +2436,13 @@
       ]
     },
     "regions": {
+      "mapInstruction": "Each sale on the map is coloured by its neighbourhood's median ratio",
+      "mapInstructionSub": "Against the median of them all: blue, a neighbourhood valued lower than the rest; red, higher. Hover a sale for its neighbourhood. The model group is the one picked here.",
+      "mapLabel": "Map of the sales studied, coloured by their neighbourhood's median ratio",
+      "mapTip": "{region}: median ratio {median}, {n} sales",
+      "mapOf": "{regions} neighbourhoods, {sales} sales; median ratio {median}",
+      "mapLow": "valued lower than the rest",
+      "mapHigh": "valued higher than the rest",
       "lede": "Comparing ratios across sale prices can''t tell an over-assessed house in a poor neighbourhood from a sale at a low price that wasn''t a market sale. Here sales are grouped by how dear their whole neighbourhood is (its median price level), not by their own price. If low-priced neighbourhoods have higher ratios too, the inequity is real; if this is flat while the VEI by sale isn''t, invalid sales are the likelier cause.",
       "field": "Neighbourhoods by",
       "noField": "none",
@@ -2376,16 +2454,16 @@
       "compare": "By each sale''s own price, the VEI is {vei}.",
       "group": "Price level group",
       "regionsCol": "Neighbourhoods",
-      "byLevel": "By its neighbourhood''s price level",
-      "bySale": "By its own price level (the VEI)",
+      "chartTitle": "Vertical equity across neighbourhood price levels",
       "level": "Price level",
       "lowest": "Cheapest",
       "highest": "Dearest"
     },
-    "looksRight": "Looks right › Models",
-    "toValues": "Models ›"
+    "looksRight": "Looks right › Variables",
+    "toValues": "Variables ›"
   },
   "values": {
+    "toReport": "Report ›",
     "modelsKicker": "Step 6 of 7",
     "steps": {
       "fill": "Fill blanks",
@@ -2777,8 +2855,7 @@
       "engine": "Engine",
       "variables": "Variables",
       "list": "{name} · {n, number} {n, plural, =1 {variable} other {variables}}",
-      "change": "Change…",
-      "done": "Done",
+      "changeSettings": "Change the settings: {engine}",
       "remove": "Remove",
       "add": "Add a model",
       "addIt": "Add",
@@ -2816,6 +2893,17 @@
       "model": "Model",
       "salesCount2": "{n, number} {n, plural, =1 {sale} other {sales}}",
       "how": {
+        "mapStep": "How they did",
+        "mapItTip": "Show this model's ratios on the map",
+        "onMapTip": "This model's ratios are on the map",
+        "mapInstruction": "Map on a model's row shows its ratios",
+        "mapInstructionSub": "A set's sales, each coloured by the model's value over its price: the model and the set on the map are the row's whose Map was pressed (the ensemble on the holdout at first).",
+        "mapLabel": "Map of a set's sales, coloured by a model's ratio",
+        "mapOf": "{model}, {group}: {n} sales, {set}",
+        "mapNone": "No held-out sales with a place for this model.",
+        "mapTip": "Ratio {ratio} · sold {price} · valued {value}",
+        "mapLow": "valued under the price",
+        "mapHigh": "valued over the price",
         "which": "Figures",
         "iaao": "IAAO",
         "academic": "Academic",
@@ -3126,6 +3214,10 @@
     "count": "{n} of {of} match “{typed}”"
   },
   "nav": {
+    "backTo": "Back: {step}",
+    "nextTo": "Next: {step}",
+    "noBack": "No step before this one",
+    "noNext": "Nothing after this here",
     "label": "Where you are",
     "projects": "Projects",
     "newProject": "New project",
@@ -3342,10 +3434,32 @@
     "blank": "blank",
     "cell": "{n, number} {n, plural, =1 {parcel} other {parcels}} here{what, select, other { · {what}} none {}}",
     "mostly": "{share}% of them this",
-    "howShapes": "{n, number} parcels in view, drawn as shapes",
-    "howCells": "Zoomed out: squares of {size}, each coloured by its {sales, select, yes {sales} other {parcels}}; zoom in for the parcels",
     "follow": "Follow",
     "backToFollowing": "Back to following",
+    "permitsTitle": "Permits",
+    "hideOut": "Hide the rest",
+    "showPu": "🌐 Parcel universe",
+    "showSr": "💰 Sales record",
+    "per": {
+      "label": "Per size",
+      "asIs": "As-is",
+      "bldg": "per building {unit}",
+      "land": "per land {unit}",
+      "bldgShort": "per bldg {unit}",
+      "landShort": "per land {unit}",
+      "noBldg": "building size not loaded",
+      "noLand": "land size not loaded",
+      "unit": { "sqft": "sq ft", "sqm": "m²" },
+      "unsized": "{n, number} {what, select, sales {{n, plural, =1 {sale} other {sales}}} other {{n, plural, =1 {parcel} other {parcels}}}} with no {size, select, bldg {building} other {land}} size: blank"
+    },
+    "outsTitle": "From the steps",
+    "outSource": {
+      "universe": "As brought in (Inputs)",
+      "prepared": "As prepared (Variables)",
+      "modeled": "As the models saw them (Try them)",
+      "sales": "The sales as brought in: a parcel by its latest sale"
+    },
+    "hold": "Nothing on this step to map: still showing {shown}.",
     "following": "Following: {step}",
     "followIdle": "Following",
     "followOnTip": "The map shows what the step you''re on is about (its field), as you go. Choosing a field here, or this button, stops it.",
@@ -3355,22 +3469,25 @@
       "price": "Sale price",
       "year": "Sale date",
       "valid": "Valid sale (share valid)",
-      "vacant": "Vacant sale (share vacant)"
+      "vacant": "Vacant sale (share vacant)",
+      "deed": "Shares its deed (share sharing)"
     },
     "readingSales": "Reading the sales",
-    "salesPlaced": "{n, number} of {of, number} sales on the map: a sale is where its parcel is; one whose parcel isn''t in the 🌐 Parcel Universe has no place",
     "share0": {
       "valid": "none valid",
-      "vacant": "none vacant"
+      "vacant": "none vacant",
+      "deed": "each on its own deed"
     },
     "share1": {
       "valid": "all valid",
-      "vacant": "all vacant"
+      "vacant": "all vacant",
+      "deed": "all sharing a deed"
     },
     "cellSales": "{n, number} {n, plural, =1 {sale} other {sales}} on {parcels, number} {parcels, plural, =1 {parcel} other {parcels}} here",
     "validYes": "valid",
     "validNo": "not valid",
     "vacantYes": "vacant",
+    "deedShared": "its deed has other sales that day",
     "prTitle": "Problems: parcel IDs",
     "prBlankIds": "🌐 Parcels with no ID: {n, number} ({share})",
     "prRepeatedIds": "🌐 Parcels whose ID repeats: {n, number} ({share})",

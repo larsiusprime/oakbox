@@ -23,7 +23,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from oakbox.datafiles import BaseModel, DataFile
+from oakbox.datafiles import SQFT_PER, BaseModel, DataFile, small_unit
 from oakbox.errors import NotFound
 from oakbox.projects import Project
 from oakbox.steps import out_dir
@@ -169,6 +169,11 @@ class MapInfo(BaseModel):
     sales: list[str] = Field(
         default=[], description="What the 💰 Sales Record can colour by: price, year, valid, vacant (as it has them)."
     )
+    outs: list[MapField] = Field(default=[], description="The app's own outputs' columns (out:<source>:<column>).")
+    per: list[str] = Field(
+        default=[], description="The sizes a value can be shown per (bldg, land): the ones loaded on the parcels."
+    )
+    area_unit: str = Field(default="sqft", description="The project's small area unit, a size's: sqft or sqm.")
 
 
 def _short(name: str) -> str:
@@ -205,6 +210,143 @@ def _fields(project: Project, in_dir: Path) -> list[MapField]:
     return loaded + others
 
 
+# ---------- A value per size (SPEC §3.15): per building or land area, the project's small unit ----------
+
+PER = {"bldg": "bldg_area_finished_sqft", "land": "land_area_sqft"}
+
+
+def _size_source(project: Project, in_dir: Path, which: str) -> tuple[DataFile, str] | None:
+    """The 🌐 parcel file and column a size is loaded from, if it is."""
+    key = PER.get(which)
+    if key is None:
+        return None
+    for f in project.files:
+        spec = f.load.get(key)
+        if f.holds == "parcels" and spec and (in_dir / f.filename).is_file():
+            return f, spec[0]
+    return None
+
+
+def _size(project: Project, in_dir: Path, which: str):
+    """Each parcel's size (building or land), in the project's small unit (an acres column converted); NaN none."""
+    import numpy as np
+
+    src = _size_source(project, in_dir, which)
+    if src is None:
+        raise NotFound(f"per {which}")
+    f, col = src
+    c = column(project, in_dir, f"{f.name}:{col}")
+    if c.kind != "number":
+        raise NotFound(f"per {which}")
+    size = np.frombuffer(base64.b64decode(c.values), dtype="<f4").astype(float)
+    native = f.area_units.get(PER[which], small_unit(project.units))
+    return size * SQFT_PER[native] / SQFT_PER[small_unit(project.units)]
+
+
+def _numbers(arr) -> tuple[str, int, list[float], list[float]]:
+    """Numbers (NaN blank) as the map takes them: base64 float32, how many, the histogram's values and range."""
+    import numpy as np
+
+    from oakbox.wizard.money import quantiles_and_auto
+
+    ok = sorted(float(x) for x in arr[np.isfinite(arr)])
+    q, auto = quantiles_and_auto(ok) if ok else ([], [])
+    return base64.b64encode(np.asarray(arr, dtype="<f4").tobytes()).decode(), len(ok), q, auto
+
+
+def per_size(project: Project, in_dir: Path, c: MapColumn, which: str) -> MapColumn:
+    """A number column divided by each parcel's size; blank where it has none (or zero)."""
+    import numpy as np
+
+    if c.kind != "number":
+        raise NotFound(f"per {which}: not a number")
+    v = np.frombuffer(base64.b64decode(c.values), dtype="<f4").astype(float)
+    size = _size(project, in_dir, which)
+    sized = np.isfinite(size) & (size > 0)
+    out = np.where(sized, v / np.where(sized, size, 1.0), np.nan)
+    values, have, q, auto = _numbers(out)
+    unsized = int((np.isfinite(v) & ~sized).sum())
+    return c.model_copy(update={"values": values, "have": have, "quantiles": q, "auto": auto, "unsized": unsized})
+
+
+def sales_per_size(project: Project, in_dir: Path, d: MapSales, which: str) -> MapSales:
+    """The sales' prices, each divided by its parcel's size; blank where the parcel has none."""
+    import numpy as np
+
+    from oakbox.wizard.money import quantiles_and_auto
+
+    price = np.frombuffer(base64.b64decode(d.price), dtype="<f4").astype(float)
+    parcel = np.frombuffer(base64.b64decode(d.parcel), dtype="<i4")
+    size = _size(project, in_dir, which)
+    at = (
+        np.where(parcel >= 0, size[np.clip(parcel, 0, len(size) - 1)], np.nan)
+        if len(size)
+        else np.full(len(price), np.nan)
+    )
+    sized = np.isfinite(at) & (at > 0)
+    out = np.where(sized, price / np.where(sized, at, 1.0), np.nan)
+    ok = sorted(float(x) for x in out[(parcel >= 0) & np.isfinite(out)])
+    q, auto = quantiles_and_auto(ok) if ok else ([], [])
+    return d.model_copy(
+        update={
+            "price": base64.b64encode(out.astype("<f4").tobytes()).decode(),
+            "price_quantiles": q,
+            "price_auto": auto,
+            "unsized": int((np.isfinite(price) & (parcel >= 0) & ~sized).sum()),
+        }
+    )
+
+
+PERMITS = "permits"  # field ids permits:count, permits:type
+
+
+def _permit_fields(project: Project, in_dir: Path) -> list[MapField]:
+    """The permits file on the parcels: how many each has, and the kind most of its permits are (the type column)."""
+    from oakbox import projects
+
+    f = projects.permits_file(project)
+    if f is None or "key" not in f.load or not (in_dir / f.filename).is_file():
+        return []
+    out = [MapField(id=f"{PERMITS}:count", label="Number of permits", file=f.name, column="", field=None)]
+    if f.permits and f.permits.type:
+        out.append(
+            MapField(
+                id=f"{PERMITS}:type",
+                label=f"Kind of permit, most of them ({f.permits.type})",
+                file=f.name,
+                column=f.permits.type,
+                field=None,
+            )
+        )
+    return out
+
+
+def _permit_column(project: Project, in_dir: Path, which: str) -> MapColumn:
+    from collections import Counter
+
+    from oakbox import projects
+
+    files = Files(project, in_dir)
+    base = project.base_file()
+    f = projects.permits_file(project)
+    if base is None or f is None or which not in ("count", "type"):
+        raise NotFound(f"{PERMITS}:{which}")
+    ids = files.parcel_ids(f.name)
+    if which == "count":
+        n = Counter(i for i in ids if i)
+        by = {k: str(v) for k, v in n.items()}
+    else:
+        col = f.permits.type if f.permits else None
+        if not col or files.column(f.name, col) is None:
+            raise NotFound(f"{PERMITS}:{which}")
+        kinds: dict[str, Counter] = {}
+        for i, v in zip(ids, files.values(f.name, col), strict=False):
+            if i and v:
+                kinds.setdefault(i, Counter())[str(v)] += 1
+        by = {k: c.most_common(1)[0][0] for k, c in kinds.items()}
+    return _encode([by.get(i, "") for i in files.ids(base.name, "key")])
+
+
 def info(project: Project, project_dir: Path, in_dir: Path) -> MapInfo:
     base = project.base_file()
     if base is None or not (in_dir / base.filename).is_file():
@@ -224,8 +366,11 @@ def info(project: Project, project_dir: Path, in_dir: Path) -> MapInfo:
         parcels=made["parcels"],
         bounds=made["bounds"],
         stamp=f"{stamp[2]}-{int(stamp[1])}",
-        fields=_fields(project, in_dir),
+        fields=_fields(project, in_dir) + _permit_fields(project, in_dir),
         sales=_sales_has(project),
+        outs=out_fields(project),
+        per=[k for k in PER if _size_source(project, in_dir, k) is not None],
+        area_unit=small_unit(project.units),
     )
 
 
@@ -246,6 +391,12 @@ def _sales_has(project: Project) -> list[str]:
         rule = entry.rules.get(key)
         if entry.load.get(key) or (rule is not None and rule_complete(rule)):
             out.append(name)
+    from oakbox import projects
+
+    deed = projects.deed_field(project)
+    wanted = [] if deed is None else ["deed_id"] if deed == "deed_id" else ["deed_book", "deed_page"]
+    if wanted and all(entry.load.get(k) for k in [*wanted, "sale_date"]):
+        out.append("deed")
     return out
 
 
@@ -271,6 +422,7 @@ class MapColumn(BaseModel):
     counts: list[int] = Field(default=[], description="Parcels with each category, as categories.")
     quantiles: list[float] = Field(default=[], description="Numbers: the values at every 0.2% (the histogram's).")
     auto: list[float] = Field(default=[], description="Numbers: the automatic range, [low, high].")
+    unsized: int = Field(default=0, description="Per size: parcels with a value but no size (or zero), left blank.")
 
 
 def _as_number(text: str) -> float | None:
@@ -292,9 +444,6 @@ def _column(
     column: str,
     row_ids: tuple[str, ...] | None,
 ) -> MapColumn:
-    import numpy as np
-
-    from oakbox.wizard.money import quantiles_and_auto
 
     values = values_of(stamp, layer, column)
     if row_ids is None:  # the universe file itself: its rows are the parcels
@@ -305,6 +454,15 @@ def _column(
             if i and v and i not in first:
                 first[i] = v
         per = [first.get(i, "") for i in universe_ids]
+    return _encode(per)
+
+
+def _encode(per: list[str]) -> MapColumn:
+    """A value per parcel (text, '' blank) as the map takes it: numbers if most read as numbers, else categories."""
+    import numpy as np
+
+    from oakbox.wizard.money import quantiles_and_auto
+
     filled = [v for v in per if v]
     numbers = [_as_number(v) for v in per]
     read = sum(1 for n in numbers if n is not None)
@@ -336,11 +494,106 @@ def _column(
     )
 
 
+# ---------- The app's own outputs, as fields ----------
+
+# Where a step's parcels are written, as the map can colour by them (SPEC §3.15's plan): what Bring in data brought in
+# (enrichments among its columns), the parcels as Variables prepared them, and as the models' try saw them (the
+# nearby averages among them).
+OUTS: dict[str, tuple[str, ...]] = {
+    "universe": ("out", "oakbox", "bring_in", "universe.parquet"),
+    # The sales as brought in: a parcel takes its latest sale's value.
+    "sales": ("out", "oakbox", "bring_in", "sales.parquet"),
+    "prepared": ("out", "look", "2-clean-universe.parquet"),
+    "modeled": ("out", "models", "all_model_groups", "universe.parquet"),
+}
+SKIP = {
+    "key",
+    "key_sale",
+    "geometry",
+    "latitude",
+    "longitude",
+    "latitude_norm",
+    "longitude_norm",
+    "he_id",
+    "land_he_id",
+    "impr_he_id",
+}
+
+
+def _out_path(project: Project, source: str) -> Path | None:
+    from oakbox import projects
+
+    parts = OUTS.get(source)
+    if parts is None:
+        return None
+    path = projects.project_dir(project.id).joinpath(*parts)
+    return path if path.is_file() else None
+
+
+# What Bring in data kept, on the parcels (Inputs' The parcel universe and The sales): worked out, not a column.
+KEPT = {"@parcels": "Brought in or left out", "@sales": "Sales brought in or left out"}
+
+
+def out_fields(project: Project) -> list[MapField]:
+    """Every column of the outputs there are now, by source (file "out:<source>"); first, what Bring in data kept."""
+    import pyarrow.parquet as pq
+
+    out: list[MapField] = []
+    if _out_path(project, "universe") is not None:
+        out += [
+            MapField(id=f"out:universe:{k}", label=v, file="out:universe", column=k, field=None)
+            for k, v in KEPT.items()
+        ]
+    for source in OUTS:
+        path = _out_path(project, source)
+        if path is None:
+            continue
+        for c in pq.read_schema(path).names:
+            if c in SKIP or c.startswith("model_group"):
+                continue
+            out.append(MapField(id=f"out:{source}:{c}", label=c, file=f"out:{source}", column=c, field=None))
+    return out
+
+
+@lru_cache(maxsize=16)
+def _out_column(universe_ids: tuple[str, ...], stamp: tuple[str, float, int], column: str) -> MapColumn:
+    import pandas as pd
+    import pyarrow.parquet as pq
+
+    names = pq.read_schema(stamp[0]).names
+    dated = "sale_date" in names and column != "sale_date"
+    t = pd.read_parquet(stamp[0], columns=["key", column, *(["sale_date"] if dated else [])])
+    if dated or column == "sale_date":
+        # Sales, several to a parcel: the latest one's value is the parcel's (the last written wins below).
+        t = t.sort_values("sale_date", kind="stable")
+    keys = [str(k) for k in t["key"]]
+    vals = list(t[column])
+    by = {
+        k: (format(v, "g") if isinstance(v, float) else str(v))
+        for k, v in zip(keys, vals, strict=False)
+        if v is not None and v == v  # not blank, not NaN
+    }
+    return _encode([by.get(i, "") for i in universe_ids])
+
+
 def column(project: Project, in_dir: Path, field_id: str) -> MapColumn:
     """A field's value for every parcel, in the universe file's order (a parcel file joined on its ID)."""
     name, _, col = field_id.partition(":")
     files = Files(project, in_dir)
     base = project.base_file()
+    if name == PERMITS:
+        return _permit_column(project, in_dir, col).model_copy(update={"id": field_id})
+    if name == "out" and col in ("universe:@parcels", "universe:@sales"):
+        return _kept(project, in_dir, col.split(":")[1]).model_copy(update={"id": field_id})
+    if name == "out":
+        source, _, col = col.partition(":")
+        path = _out_path(project, source)
+        import pyarrow.parquet as pq
+
+        if base is None or path is None or col in SKIP or col not in pq.read_schema(path).names:
+            raise NotFound(field_id)
+        out = _out_column(files.ids(base.name, "key"), file_stamp(path), col)
+        return out.model_copy(update={"id": field_id})
     entry = project.file(name)
     if base is None or entry is None or entry.holds != "parcels" or files.column(name, col) is None:
         raise NotFound(field_id)
@@ -349,6 +602,40 @@ def column(project: Project, in_dir: Path, field_id: str) -> MapColumn:
     row_ids = None if entry.name == base.name else tuple(files.parcel_ids(entry.name))
     out = _column(base_stamp, base.layer, universe_ids, file_stamp(in_dir / entry.filename), entry.layer, col, row_ids)
     return out.model_copy(update={"id": field_id})
+
+
+def _kept(project: Project, in_dir: Path, which: str) -> MapColumn:
+    """Each parcel of the 🌐 Parcel Universe file: brought in or left out by Bring in data; or its sales (in the
+    sales file) all brought in, some left out, or all left out (counted against the sales record's, by parcel)."""
+    from collections import Counter
+
+    import pandas as pd
+
+    from oakbox.wizard.files import sales_file
+
+    base = project.base_file()
+    path = _out_path(project, "universe")
+    if base is None or path is None:
+        raise NotFound(f"out:universe:{which}")
+    files = Files(project, in_dir)
+    ids = files.ids(base.name, "key")
+    if which == "@parcels":
+        kept = set(pd.read_parquet(path, columns=["key"])["key"].astype(str))
+        return _encode(["Brought in" if i in kept else "Left out" if i else "" for i in ids])
+    entry = sales_file(project)
+    sales = path.with_name("sales.parquet")
+    if entry is None or not sales.is_file():
+        raise NotFound(f"out:universe:{which}")
+    given = Counter(k for k in files.parcel_ids(entry.name) if k)
+    kept_n = Counter(pd.read_parquet(sales, columns=["key"])["key"].astype(str))
+
+    def say(i: str) -> str:
+        n, k = given.get(i, 0), kept_n.get(i, 0)
+        if not n and not k:
+            return ""
+        return "All brought in" if k >= n else "All left out" if k == 0 else "Some left out"
+
+    return _encode([say(i) for i in ids])
 
 
 # ---------- The 💰 Sales Record, on the parcels ----------
@@ -368,11 +655,13 @@ class MapSales(BaseModel):
     year: str = Field(description="float32: the sale date as a year and its fraction (2023.5 mid-2023), NaN blank.")
     valid: str = Field(description="int8: 1 valid, 0 not, -1 unknown.")
     vacant: str = Field(description="int8: 1 vacant, 0 not, -1 unknown.")
+    deed: str = Field(default="", description="int8: 1 its deed has another sale that day, 0 alone, -1 no deed ID.")
     price_quantiles: list[float] = []
     price_auto: list[float] = []
     year_quantiles: list[float] = []
     year_auto: list[float] = []
-    has: list[str] = Field(description="Which of price, year, valid, vacant the sales file has.")
+    has: list[str] = Field(description="Which of price, year, valid, vacant, deed the sales file has.")
+    unsized: int = Field(default=0, description="Per size: sales with a price on a parcel with no size, left blank.")
 
 
 def _b64(a) -> str:
@@ -447,6 +736,12 @@ def sales(project: Project, in_dir: Path) -> MapSales:
         if f is not None:
             has.append(name)
         flags[name] = f if f is not None else np.full(n, -1, dtype="i1")
+    from oakbox.wizard.deeds_permits import deed_shared
+
+    deed = deed_shared(project, entry, in_dir)
+    if deed is not None and len(deed) == n:
+        has.append("deed")
+    flags["deed"] = deed if deed is not None and len(deed) == n else np.full(n, -1, dtype="i1")
 
     def spread(a):
         ok = sorted(float(x) for x in a[(parcel >= 0) & ~np.isnan(a)])
@@ -462,6 +757,7 @@ def sales(project: Project, in_dir: Path) -> MapSales:
         year=_b64(year),
         valid=_b64(flags["valid"]),
         vacant=_b64(flags["vacant"]),
+        deed=_b64(flags["deed"]),
         price_quantiles=pq,
         price_auto=pa,
         year_quantiles=yq,

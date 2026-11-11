@@ -46,6 +46,34 @@ def ratio_map(project_id: str, field: str, group: str = "") -> list[ratio.MapPoi
     return ratio.map_points(projects.project_dir(project_id), field, group or None)
 
 
+@router.get("/api/projects/{project_id}/ratio/boxes")
+def ratio_boxes(project_id: str, field: str, group: str = "", region: str = "") -> ratio.VeiBoxes:
+    """Each VEI group's ratios as a box, by sale and by the price level of the sale's region, for their charts."""
+    load_project(project_id)
+    return ratio.vei_boxes(projects.project_dir(project_id), field, group or None, region or None)
+
+
+@router.get("/api/projects/{project_id}/ratio/similar")
+def ratio_similar(project_id: str, field: str, group: str = "") -> ratio.SimilarPoints:
+    """Every parcel with its group of similar parcels' spread of values (CHD), for Similar parcels' map."""
+    load_project(project_id)
+    return ratio.similar_points(projects.project_dir(project_id), field, group or None)
+
+
+@router.get("/api/projects/{project_id}/ratio/regions")
+def ratio_regions(project_id: str, field: str, region: str, group: str = "") -> ratio.RegionPoints:
+    """Each sale studied by its region, and each region's median ratio, for Neighbourhood price levels' map."""
+    load_project(project_id)
+    return ratio.region_points(projects.project_dir(project_id), field, region, group or None)
+
+
+@router.get("/api/projects/{project_id}/ratio/similar/group")
+def ratio_similar_group(project_id: str, field: str, cluster: str) -> ratio.SimilarGroup:
+    """One group of similar parcels: each parcel's ID, place and value, for the card on Similar parcels' map."""
+    load_project(project_id)
+    return ratio.similar_group(projects.project_dir(project_id), field, cluster)
+
+
 @router.get("/api/projects/{project_id}/final/parcels")
 def final_parcels(project_id: str) -> final.ParcelPoints:
     """Every parcel's place, model value, roll value and finished area, as columns, for Model values' map."""
@@ -61,13 +89,6 @@ def final_sales(project_id: str, which: final.SetKey = "oof", group: str = "") -
     """Each sale a set of sales judges the model values on, with its place and ratio, for the map."""
     load_project(project_id)
     return final.sale_points(projects.project_dir(project_id), which, group or None)
-
-
-@router.get("/api/projects/{project_id}/ratio/points")
-def ratio_points(project_id: str, field: str, group: str = "") -> list[tuple[float, float, bool]]:
-    """Each sale studied: its price, its ratio, and whether it was trimmed."""
-    load_project(project_id)
-    return ratio.points(projects.project_dir(project_id), field, group or None)
 
 
 # ---------- Step 7, Report (SPEC §4) ----------

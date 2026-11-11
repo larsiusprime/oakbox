@@ -152,6 +152,24 @@ spec the runs' names often stand for their steps.
 | 6. Models | Splits, spatial lag, **Try** models (repeatable) → how they did → small groups → **Finalize** → the model values checked against the sales, beside the roll's (F9). Main models only (`run_vacant=False`) | No |
 | 7. Report | Export (CSV, GeoPackage, Excel, Shapefile, GeoParquet) and a printable HTML report of the model values (F10). Runs nothing | No |
 
+**Back and Next always in view** (2026-11-11). A project's page is the window's height: the lid (with the plate) and
+the tab row stay put, and only the folder under them scrolls, both ways. A step's foot (Back, its extras, Next) sticks
+to the folder's bottom while its sheet runs past it, a shadow over what's under it, and settles under the sheet at its
+end. The plate has ‹ › at its right, pressing the step's own Back and Next (disabled with them), named on hover by the
+step they go to.
+
+**A tab that waits** (2026-11-11) on an earlier step, out of date or not yet accepted, is greyed in the tab bar but
+still opens: its page dimmed under a bar that names the step it waits on and goes there. Nothing ever moves you off
+the tab you're on; that step's Looks right (or Next on) brings you back to the tab you came from.
+
+**An exclusion is a filter, not a reason to run again** (2026-11-11). A sale excluded by hand (Check sales' review,
+Outliers' "invalid sale") leaves Check sales up to date: it changes no fill or equity cluster, and the time trend and
+the other sales' flags only slightly. Everything after leaves it out as it reads the sales (the models through
+OpenAVMKit's `load_cleaned_data_for_modeling`, Evaluate as it runs). A step whose results still have it says so
+("3 sales excluded since this ran") with Run again offered, never asked; out of date it isn't. A keep (a sale scrutiny
+set aside, brought back) still needs Check sales to run again. The models' part of the ratio study settings
+(`study_set_predictions`, `outside_models`) is no part of Check sales' either.
+
 **What each step's receipt shows:**
 - **Step 1:** rows read from each file; each attachment's match rate, against the Stitch prediction; rows collapsed by
   several-rows rules; sales removed as office-invalid. Then Data health and Field profile (§3.9).
@@ -385,6 +403,40 @@ moves, a parcel is picked) and the screen's matching row updates with it.
 | Review, summaries, How they did | Summon | Any count with a place. |
 | Settings, Standards, Variables, Models, Report options | None | |
 
+**Every screen says what it does with the map** (planned 2026-11-10), so the user learns the map always follows where
+they are. A screen with nothing spatial holds the last view, and the map's header says so ("Nothing on this step to
+map: still showing …"). The steps' own outputs are on the map too, any column of them: Bring in data's parcels,
+Variables' prepared ones and the models' try (`out:<universe|prepared|modeled>:<column>`, by `key`; the map picker's
+**From the steps**). The plan, screen by screen (✓ built; **data**: needs data the server doesn't serve yet):
+
+| Tab | Screen | The map |
+|---|---|---|
+| Data | Overview, Review | What stops a run, by kind, worst first (Review's summon buttons ✓) |
+| Data | Sales Record (the file) | Its sales, found / not found in the parcel universe |
+| Data | More files, Add files, a file's part | That file's rows on the parcels, joined / not (**data**: per-file match) |
+| Data | Condo units | Condo parcels, units per parent; on The parcel they're on, units without one (**data**) |
+| Data | Deeds | Sales by whether their deed has other sales that day (likely several parcels sold together) ✓ |
+| Data | Permits | Parcels by the kind most of their permits are, else by how many (the picker's Permits) ✓ |
+| Data | Enrichments | Each enrichment's Map button: its column, from Bring in data's parcels ✓ |
+| Inputs | What runs, Bring in data | Hold; then the parcels loaded (**data**) |
+| Inputs | The parcel universe, The sales | Parcels brought in or left out; each parcel's sales all brought in, some or all left out ✓ (by reason: **data**) |
+| Inputs | Public data and checks | The public layers fetched (**data**) |
+| Model groups | How to start | Hold |
+| Model groups | Check them, Tag and write, What each group got | The groups as saved ✓; Check them's rows Show on map ✓ (unmodeled groups faded: not yet) |
+| Sales | Sales window, Time adjustment | Sales by date ✓ (in vs out of the window: **data**) |
+| Sales | The sales | Sales by price ✓ |
+| Sales | Fill blanks, Sales scrutiny, Rare categories, Check sales | Hold (what they'd change: **data**) |
+| Evaluate | What to check … The standards, Check my values | Hold |
+| Evaluate | Which groups | The model groups ✓ (the ones not checked faded: not yet) |
+| Evaluate | Across prices | Sales by ratio, a price band at a time (cheap / middle / dear) ✓ |
+| Evaluate | Neighbourhood price levels | Each sale by its neighbourhood's median ratio, against the median of them all (the page's model group) ✓ |
+| Variables | Fill blanks … What changed | Hold (what changed: **data**) |
+| Variables | Spatial average, Per area statistics | The nearby sale price; per area, its first statistic: from the models' try ✓ |
+| Variables | Test the variables … VIF | Each variable's Map button: the column, the models' try's first ✓ |
+| Models | Models | The group on the page |
+| Models | How they did | A set's sales by one model's ratio: Map on every model's row of every set (holdout, after the valuation date, study set; trimmed too; the roll), the ensemble on the holdout first ✓ |
+| Report | Export, Report | The final values map |
+
 What the map shows for a step is published by the step (`lib/groupmap.ts` first, for Build the groups; to be one
 contract for every step: a view, its tools and their instruction, take over or summoned), and reaches a popped-out map as
 the dock does. Phones: out of scope. **Built** (2026-11-10): the take-over (`lib/mapstep.ts`: `useTakeOver`, the banner, the
@@ -494,6 +546,21 @@ automatic range's top now 91% along, not 1%). And each histogram has an overflow
 apart: how many values are under and over the range shown (capped at the chart's height, a dashed top when it is). A row is read
 alone (the row group holding it, or the one feature), not column by column: 0.2 s a card on Guilford, the first after
 opening a few seconds (the sales' comparison, shared with the problems).
+
+**The legend and its controls** (2026-11-11) sit under the field picker, over the map: the histogram, its range,
+Reset and **Hide the rest** (the parcels or sales outside the range not drawn, nor counted in a cell, rather than drawn
+at the ramp's ends). **Per size**: a value field (a sale price, a value loaded, a value or prediction from the steps)
+gets a box after the picker: **As-is**, **per building sq ft**, **per land sq ft** (m² in a metric project), a size
+not loaded greyed with why. The division is the server's (each parcel's size in the project's unit, an acres column
+converted; a sale by its parcel's size today), so the histogram, range and Hide the rest work on it as on any number;
+no size, or zero, is blank, and the legend says how many. Chosen per field and kept; the box is blue while a size
+divides, so it's never read as the value itself. The parcel's card folds its 🌐 and 💰 sections (kept for the next one). **A Map button keeps Follow on** (2026-11-11): it's what the step follows now, remembered for that step (a
+step's own choice comes back on any step where nothing was picked); the button is pressed while it's the one shown.
+Only picking a field by hand in the map's picker turns Follow off. **The step list can be a thin rail** (2026-11-11): each step its number and mark,
+a part a dot until it has one, the name a tooltip; « at its top makes it thin, » full again (remembered). Left to
+itself it goes thin when the folder is too narrow for the full list beside the sheet's least width, so the sheet gets
+the room instead of the folder scrolling sideways. Inputs' field tables have a Map button on each row
+the map can show (the universe's columns as brought in; of the sales, price, date, valid and vacant).
 
 Then **full size and popping out** (2026-11-09). Full size (⤢): the map over the whole main window inside the frame,
 under the lid, the page behind it; the same button (⤡) docks it again. Pop out (⧉): the map moves to a window of its own

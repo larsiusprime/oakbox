@@ -19,6 +19,7 @@ import { newGroup } from "../lib/groups";
 import { useSettled } from "../lib/hooks";
 import { dockNow, setDock } from "../lib/mapdock";
 import { useTakeOver } from "../lib/mapstep";
+import { onward as goOnTo } from "../lib/returnto";
 import { navigate } from "../lib/route";
 import { offerUndo } from "../lib/undo";
 import { t } from "../wording";
@@ -26,7 +27,7 @@ import { AssembleResults, Formats } from "./Assemble";
 import { GroupChecks } from "./GroupChecks";
 import { GroupEditor } from "./GroupEditor";
 import { GroupFromField } from "./GroupFromField";
-import { Legend, usePreview } from "./GroupMap";
+import { Legend, SavedGroupsOnMap, usePreview } from "./GroupMap";
 
 const g = t.groups;
 
@@ -90,6 +91,12 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
   const v = state.data;
   const a = run.data;
   const saved = v?.groups ?? [];
+  // The one group shown alone on the map, if any (Check them's Show on map).
+  const gmNow = useGroupMap();
+  const hiddenNow = new Set(gmNow?.hidden ?? []);
+  const keys = [...saved.map((x) => x.id), ""];
+  const alone =
+    keys.filter((k) => !hiddenNow.has(k)).length === 1 ? (keys.find((k) => !hiddenNow.has(k)) ?? null) : null;
   const preview = usePreview(projectId, saved, !!v?.start && saved.length > 0);
   if (!v || !a) return <LoadingBar error={state.error} />;
   if (!v.ready) return <p className="bi-lede mg-pad">{g.notReady}</p>;
@@ -144,7 +151,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
   }));
   const prev = STEPS[STEPS.indexOf(current) - 1];
   const back = prev ? () => go(prev) : null;
-  const toSales = () => navigate({ name: "project", id: projectId, tab: "sales" });
+  const toSales = () => goOnTo(projectId, "sales");
   // Run, and open the results when it's done.
   const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("write") });
 
@@ -191,15 +198,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
                     </span>
                   </Radio>
                 </Radios>
-                <div className="form-actions">
-                  <Button
-                    className="button button-primary"
-                    isDisabled={!how || start.isPending}
-                    onPress={() => how && (saved.length ? setReplace(how) : start.mutate(how))}
-                  >
-                    {g.startButton}
-                  </Button>
-                </div>
+
                 {replace && (
                   <div className="bi-warn mg-replace" role="alert">
                     {g.replaceWarn({ n: saved.length })}{" "}
@@ -227,9 +226,18 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
               </p>
             )}
           </StepBody>
+          {/* Start at the foot, where Next is on every step: what's chosen above starts the groups. */}
           <StepFoot
-            next={v.start ? { label: t.step.next, onPress: () => go("build") } : null}
-            note={v.start ? null : g.pickStart}
+            next={
+              !have || again
+                ? {
+                    label: g.startButton,
+                    onPress: () => how && (saved.length ? setReplace(how) : start.mutate(how)),
+                    disabled: !how || start.isPending,
+                  }
+                : { label: t.step.next, onPress: () => go("build") }
+            }
+            note={!have && !how ? g.pickStart : null}
           />
         </>
       )}
@@ -239,14 +247,23 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
       {current === "check" && (
         <>
           <StepBody title={g.checkTitle} lede={g.checkLede}>
+            <SavedGroupsOnMap projectId={projectId} currency={currency} title={g.steps.check} />
             <GroupChecks
               groups={saved}
               preview={p}
               unassignedColor={v.unassigned_color}
-              edit={() => go("build")}
               setModeled={(id, modeled) =>
                 save.mutate(saved.map((x) => (x.id === id ? { ...x, modeled } : x)))
               }
+              onMap={{
+                shown: alone,
+                // A group (or Unassigned) alone on the map; pressed again, every group back.
+                show: (id) =>
+                  setGroupMap({
+                    hidden: alone === id ? [] : [...saved.map((x) => x.id), ""].filter((k) => k !== id),
+                    highlight: null,
+                  }),
+              }}
             />
             {save.error && (
               <p className="error" role="alert">
@@ -260,6 +277,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
       {current === "write" && (
         <>
           <StepBody title={g.writeTitle} lede={g.run.what}>
+            <SavedGroupsOnMap projectId={projectId} currency={currency} title={g.steps.write} />
             {running ? (
               <RunProgress job={a.job} lastSeconds={a.receipt?.seconds ?? null} />
             ) : (
@@ -314,6 +332,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
       {current === "results" && (
         <>
           <StepBody title={g.run.title}>
+            <SavedGroupsOnMap projectId={projectId} currency={currency} title={g.steps.results} />
             <AssembleResults projectId={projectId} view={a} groups={saved} />
           </StepBody>
           <StepFoot
@@ -403,6 +422,10 @@ function Builder({
   const ids = asked.map((x) => x.id);
   // Unassigned alone: every group off, unassigned on. Clicking it again (or the legend) brings them back.
   const onlyUnassigned = ids.length > 0 && ids.every((id) => hidden.has(id)) && !hidden.has("");
+  // The one group shown alone on the map (every other one, and Unassigned, switched off), if any.
+  const isolated =
+    ids.find((id) => !hidden.has(id) && hidden.has("") && ids.every((o) => o === id || hidden.has(o))) ??
+    null;
   const toggle = (key: string, on: boolean) => {
     const next = new Set(hidden);
     if (on) next.delete(key);
@@ -447,7 +470,13 @@ function Builder({
                 stats={statsFor(x.id)}
                 delta={delta(p, x.id)}
                 isSelected={x.id === selected}
-                onSelect={() => setSelected(x.id)}
+                onSelect={() => {
+                  // As Unassigned does: its parcels alone on the map; clicked again, every group back.
+                  setSelected(x.id);
+                  setHighlight(null);
+                  setHidden(isolated === x.id ? new Set() : new Set([...ids, ""].filter((k) => k !== x.id)));
+                  if (!dockNow().out) setDock({ open: true });
+                }}
                 onUp={i > 0 ? () => move(i, -1) : undefined}
                 onDown={i < draft.length - 1 ? () => move(i, 1) : undefined}
               />

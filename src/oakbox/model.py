@@ -946,6 +946,73 @@ class ModelReceipt(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+def _model_dir(project_dir: Path, group: str, model: str) -> Path | None:
+    """A model's folder of OpenAVMKit's outputs: named for the model (its "*" written "_star"), matched as written,
+    then ignoring case."""
+    base = project_dir / "out" / "models" / group / "main"
+    if not base.is_dir():
+        return None
+    for name in (model, model.replace("*", "_star")):
+        if (base / name).is_dir():
+            return base / name
+    low = model.replace("*", "_star").lower()
+    return next((d for d in base.iterdir() if d.is_dir() and d.name.lower() == low), None)
+
+
+def sale_points(
+    project_dir: Path, group: str, model: str, first: str | None = None, last: str | None = None, held_out: bool = True
+) -> list[ratio.MapPoint]:
+    """A model's prediction on each sale of a set (its dates, first to last), with its place and ratio: the held-out
+    predictions (OpenAVMKit's pred_test) for the holdout; for another set (after the valuation date, the study set)
+    any of its predictions, held out first. Placed by Check sales' parcels, by key."""
+    import pandas as pd
+
+    from oakbox import clean
+
+    if not re.fullmatch(r"[\w.*-]+", group) or not re.fullmatch(r"[\w.*-]+", model) or ".." in group + model:
+        return []
+    folder = _model_dir(project_dir, group, model)
+    where = clean.out_dir(project_dir) / clean.UNIVERSE_KEPT
+    if folder is None or not where.is_file():
+        return []
+    files = [folder / "pred_test.parquet"] + ([] if held_out else [folder / "pred_sales.parquet"])
+    cols = ["key_sale", "key", "prediction", "sale_price_time_adj", "sale_date"]
+    parts = []
+    for f in files:
+        if f.is_file():
+            import pyarrow.parquet as pq
+
+            have = [c for c in cols if c in pq.read_schema(f).names]
+            if {"key", "prediction", "sale_price_time_adj"} <= set(have):
+                parts.append(pd.read_parquet(f, columns=have))
+    if not parts:
+        return []
+    t = pd.concat(parts, ignore_index=True)
+    if "key_sale" in t:
+        t = t.drop_duplicates("key_sale", keep="first")
+    if (first or last) and "sale_date" in t:
+        d = pd.to_datetime(t["sale_date"], errors="coerce")
+        keep = pd.Series(True, index=t.index)
+        if first:
+            keep &= d >= pd.Timestamp(first)
+        if last:
+            keep &= d <= pd.Timestamp(last) + pd.Timedelta(days=1)
+        t = t[keep]
+    u = pd.read_parquet(where, columns=["key", "latitude", "longitude"])
+    u = u.assign(key=u["key"].astype(str)).drop_duplicates("key")
+    t = t.assign(key=t["key"].astype(str)).merge(u, on="key", how="inner")
+    price, value = cells.numbers(t, "sale_price_time_adj"), cells.numbers(t, "prediction")
+    lat, lon = cells.numbers(t, "latitude"), cells.numbers(t, "longitude")
+    ok = lat.notna() & lon.notna() & (price > 0) & value.notna()
+    keys = t["key_sale"].astype(str) if "key_sale" in t else t["key"]
+    return [
+        ratio.MapPoint(
+            lat=float(a), lon=float(b), ratio=float(v / p), price=float(p), value=float(v), trimmed=False, key_sale=k
+        )
+        for a, b, p, v, k in zip(lat[ok], lon[ok], price[ok], value[ok], keys[ok], strict=True)
+    ]
+
+
 NOT_MODELED = "Not modeled: unticked on Model groups › Check them"
 
 
@@ -1324,6 +1391,9 @@ def run(project_id: str) -> None:
     if not (steps.handoff(pdir, "2-clean")).is_file():
         raise RuntimeError("Prepare the fields first: the models start from what it writes.")
     tmp = steps.workdir(out_dir(pdir))
+    from oakbox import clean as _clean
+
+    steps.note_excluded(tmp, _clean.excluded(project))
     depends = STEP.now(project, pdir)  # what it starts from, before anything can change
     settings_text = (steps.settings_path(pdir)).read_text(encoding="utf-8")
     os.chdir(pdir)
@@ -1571,8 +1641,15 @@ def engines_used(project: Project, project_dir: Path) -> set[str]:
 
 def view(project: Project, project_dir: Path) -> ModelView:
     s = STEP.state(project, project_dir)
+    from oakbox import clean
+
     return ModelView(
-        status=s.status, job=s.job, receipt=s.receipt, stale=s.stale, blocked=blocked(project, project_dir)
+        status=s.status,
+        job=s.job,
+        receipt=s.receipt,
+        stale=s.stale,
+        blocked=blocked(project, project_dir),
+        excluded_since=steps.excluded_since(out_dir(project_dir), clean.excluded(project)) if s.receipt else 0,
     )
 
 

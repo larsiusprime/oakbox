@@ -1,6 +1,7 @@
 """Step 4, Check my values (SPEC F8): its calls, the window proposed, and the values checked on a small project."""
 
 import datetime as dt
+from typing import Any
 
 import pytest
 
@@ -99,3 +100,101 @@ def test_standards_the_iaaos_or_custom_and_the_groups_each_judges():
     # Back to the IAAO's.
     ratio.change(p, ratio.RatioPatch(reset_standards=True))
     assert p.ratio.source == "iaao" and p.ratio.standards is None
+
+
+def test_sales_by_their_neighbourhood_on_the_map(tmp_path):
+    """Neighbourhood price levels' map: each sale studied with a place, by its region; each region's median ratio
+    without the outlying (trimmed) ones, and the median of them all; a model group picked keeps only its sales."""
+    import pandas as pd
+
+    studies = ratio.out_dir(tmp_path) / "studies"
+    studies.mkdir(parents=True)
+    pd.DataFrame(
+        {
+            "latitude": [1.0, 1.0, 2.0, 2.0, None],
+            "longitude": [3.0, 3.0, 4.0, 4.0, 5.0],
+            "model_group": ["sf", "sf", "sf", "condo", "sf"],
+            "neighborhood": ["B", "B", "A", "A", "A"],
+            "ratio": [0.8, 5.0, 1.2, 1.0, 1.0],
+            "trimmed": [False, True, False, False, False],
+        }
+    ).to_parquet(studies / "v.sales.parquet")
+    got = ratio.region_points(tmp_path, "v", "neighborhood", None)
+    assert got.regions == ["A", "B"] and got.region == [1, 1, 0, 0]  # the one with no place left out
+    assert got.median == [1.1, 0.8] and got.sales == [2, 1] and got.overall == 1.0
+    sf = ratio.region_points(tmp_path, "v", "neighborhood", "sf")
+    assert sf.median == [1.2, 0.8] and len(sf.lon) == 3
+    assert ratio.region_points(tmp_path, "v", "zone", None).lon == []  # not a column of the study
+
+
+def test_a_group_of_similar_parcels(tmp_path):
+    """Similar parcels' map: each parcel's group (its model group and cluster) and that group's spread (CHD); a
+    group clicked, its parcels with their places and values, dearest first."""
+    import pandas as pd
+
+    from oakbox import clean
+
+    where = clean.out_dir(tmp_path)
+    where.mkdir(parents=True)
+    pd.DataFrame(
+        {
+            "key": ["a", "b", "c", "d"],
+            "latitude": [1.0, 1.1, 1.2, 2.0],
+            "longitude": [3.0, 3.1, 3.2, 4.0],
+            "model_group": ["sf", "sf", "sf", "condo"],
+            "he_id": ["0", "0", "0", "0"],  # numbered per model group: sf:0 and condo:0 are different groups
+            "v": [100.0, 200.0, 300.0, 50.0],
+        }
+    ).to_parquet(where / clean.UNIVERSE_KEPT)
+    pts = ratio.similar_points(tmp_path, "v", None)
+    assert pts.size == [3, 3, 3, 1] and pts.chd[3] is None
+    assert [pts.clusters[i] for i in pts.cluster] == ["sf:0", "sf:0", "sf:0", "condo:0"]
+    g = ratio.similar_group(tmp_path, "v", "sf:0")
+    assert [m.key for m in g.members] == ["c", "b", "a"] and g.median == 200.0
+    assert g.chd == round(100 * (100 + 0 + 100) / 3 / 200, 1)
+    assert ratio.similar_group(tmp_path, "v", "condo:0").members[0].key == "d"
+
+
+def test_vei_boxes_group_sales_as_the_engine_does(tmp_path):
+    """The VEI chart's boxes: the same groups, with the same medians, as the engine's VEI strata and neighbourhood
+    price levels; the trimmed left out."""
+    import numpy as np
+    import pandas as pd
+    from openavmkit.value_studies import _region_stats
+    from openavmkit.vertical_equity_study import get_vertical_equity_scores
+
+    rng = np.random.default_rng(3)
+    n = 120
+    price = rng.uniform(1e5, 9e5, n)
+    value = price * rng.normal(0.95, 0.12, n)
+    hood = rng.choice(["a", "b", "c", "d", "e"], n)
+    trimmed = np.zeros(n, dtype=bool)
+    trimmed[:5] = True
+    table = pd.DataFrame(
+        {
+            "model_group": "sf",
+            "sale_price": price,
+            "value": value,
+            "ratio": value / price,
+            "hood": hood,
+            "trimmed": trimmed,
+        }
+    )
+    studies = ratio.out_dir(tmp_path) / "studies"
+    studies.mkdir(parents=True)
+    table.to_parquet(studies / "v.sales.parquet")
+
+    got = ratio.vei_boxes(tmp_path, "v", "sf", "hood")
+    kept = pd.DataFrame(table[~trimmed]).rename(columns={"value": "v"})
+    want: Any = get_vertical_equity_scores(kept, "sale_price", "v")["group_stats"]
+    assert [b.n for b in got.by_sale] == want["n"].tolist()
+    assert [b.median for b in got.by_sale] == pytest.approx(want["ratio"].tolist())
+    regions = _region_stats(kept, "v", "hood")["strata"]
+    assert [b.n for b in got.by_region] == [x["n"] for x in regions]
+    assert [b.median for b in got.by_region] == pytest.approx([x["median"] for x in regions])
+    for b in got.by_sale + got.by_region:
+        assert b.lo <= b.q1 <= b.median <= b.q3 <= b.hi
+        assert all(o < b.lo or o > b.hi for o in b.outliers)
+        assert len(b.points) == b.n and all(b.price_low <= p <= b.price_high for p, _ in b.points)
+    assert sum(b.n for b in got.by_sale) == n - 5 and len(got.trimmed) == 5
+    assert ratio.vei_boxes(tmp_path, "missing", "", "").by_sale == []

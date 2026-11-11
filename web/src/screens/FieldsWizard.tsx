@@ -15,10 +15,11 @@ import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { Disclose } from "../components/Disclose";
 import { FileName } from "../components/FileEntry";
-import { LANDING_MARK, LandingPage, StepFoot, useFrame } from "../components/Steps";
+import { FootBar, LANDING_MARK, LandingPage, RailToggle, StepFoot, useFrame } from "../components/Steps";
 import { Loading } from "../components/Waiting";
 import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";
 import { navigate } from "../lib/route";
+import { railClass, useRail } from "../lib/stepsrail";
 import { say, t } from "../wording";
 import { AsSoldStep, AtSale, AtSaleTable, CapHead } from "./AsSold";
 import { CustomFields } from "./CustomFields";
@@ -326,10 +327,10 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
             )}
           </p>
         )}
-        <div className="wiz-foot">
+        <FootBar>
           <span className="wiz-grow" />
           {prev && (
-            <Button className="button" onPress={() => go(prev.key)}>
+            <Button className="button" onPress={() => go(prev.key)} data-nav="back">
               {w.back}
             </Button>
           )}
@@ -348,10 +349,11 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
             className={gated ? "button button-primary is-gated" : "button button-primary"}
             aria-disabled={gated}
             onPress={() => (gated ? setUnfinished(true) : onward())}
+            data-nav="next"
           >
             {next ? t.step.next : w.toBringIn}
           </Button>
-        </div>
+        </FootBar>
       </div>
       {unfinished && (
         <UnfinishedDialog
@@ -420,6 +422,7 @@ const STATUS_ICONS: Record<string, string | null> = {
 
 function StepList({ steps, current, go }: { steps: WizardStep[]; current: string; go: (k: string) => void }) {
   const tops = steps.filter((s) => !s.parent);
+  const rail = useRail();
   useFrame(
     [
       { key: OVERVIEW, title: t.landing.overview, status: "blank" },
@@ -434,18 +437,20 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
     go,
   );
   return (
-    <ol className="wiz-steps">
+    <ol className={railClass(rail)}>
+      <RailToggle />
       <li className={current === OVERVIEW ? "wiz-step now blank" : "wiz-step blank"}>
         <button
           type="button"
           onClick={() => go(OVERVIEW)}
           aria-current={current === OVERVIEW ? "step" : undefined}
+          title={t.landing.overview}
         >
           <span className="n" aria-hidden="true">
             {LANDING_MARK}
           </span>
           <span className="mark" />
-          {t.landing.overview}
+          <span className="t">{t.landing.overview}</span>
         </button>
       </li>
       {steps.map((s) => {
@@ -460,6 +465,7 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
               type="button"
               onClick={() => go(s.key)}
               aria-current={s.key === current ? "step" : undefined}
+              title={stepTitle(s)}
             >
               {!s.parent && (
                 <span className="n" aria-hidden="true">
@@ -469,7 +475,7 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
               <span className="mark" aria-hidden="true">
                 {icon && <img src={icon} alt="" className="wiz-step-icon" />}
               </span>
-              {stepTitle(s)}
+              <span className="t">{stepTitle(s)}</span>
             </button>
           </li>
         );
@@ -513,7 +519,7 @@ function FieldsStep({
               {/* Two fields on the step (Age): each pair under its field's name; one, the question says it. */}
               {hasSales && shown.length > 1 && <h3 className="wiz-group">{shortName(f)}</h3>}
               <div className="as-pair">
-                <div className={hasSales && f.sources.length > 0 ? "frame as-cap as-pu" : "as-today"}>
+                <CapPu paired={hasSales && f.sources.length > 0}>
                   {hasSales && f.sources.length > 0 && <CapHead kind="pu" />}
                   <div className="wiz-grid wiz-capsules">
                     <div className={hasSales && f.sources.length > 0 ? "wiz-capsule" : "frame wiz-capsule"}>
@@ -533,7 +539,7 @@ function FieldsStep({
                       </div>
                     )}
                   </div>
-                </div>
+                </CapPu>
                 {hasSales && f.sources.length > 0 && <AtSale projectId={project.id} field={f} />}
               </div>
             </div>
@@ -709,5 +715,54 @@ function ReviewStep({
         </tbody>
       </table>
     </>
+  );
+}
+
+/** The 🌐 capsule of a Big five field beside its 💰 one: where it's too narrow for the column, its unit and the
+ * values and Map buttons on one line (they ran past its edge), the buttons go under them (cap-narrow); back once the
+ * sheet is wider than when they went. Measured, not a container query: the capsule is as wide as what's in it. */
+function CapPu({ paired, children }: { paired: boolean; children: React.ReactNode }) {
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
+  const [narrowAt, setNarrowAt] = useState<number | null>(null);
+  useEffect(() => {
+    if (!el || !paired) return;
+    const sheet = el.closest(".wiz-body") ?? document.body;
+    let frame = 0;
+    const check = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const w = sheet.clientWidth;
+        if (narrowAt === null) {
+          // Past the capsule's edge, or over the column's picker beside them.
+          const tools = el.querySelector(".wiz-capsule > .wiz-samples");
+          const before = tools?.previousElementSibling;
+          // The buttons spill out of their cell (narrower than they are): any of them reaching back over the picker.
+          const edge = before?.getBoundingClientRect().right ?? Number.NEGATIVE_INFINITY;
+          const overlaps =
+            !!tools &&
+            [...tools.querySelectorAll("button")].some((c) => c.getBoundingClientRect().left < edge - 1);
+          if (el.scrollWidth > el.clientWidth + 1 || overlaps) setNarrowAt(w);
+        } else if (w > narrowAt + 24) setNarrowAt(null);
+      });
+    };
+    const ro = new ResizeObserver(check);
+    ro.observe(sheet);
+    ro.observe(el);
+    // The buttons arrive after the capsule (its column read): checked again as what's in it changes.
+    const mo = new MutationObserver(check);
+    mo.observe(el, { childList: true, subtree: true });
+    return () => {
+      ro.disconnect();
+      mo.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [el, paired, narrowAt]);
+  return (
+    <div
+      ref={setEl}
+      className={paired ? `frame as-cap as-pu${narrowAt !== null ? " cap-narrow" : ""}` : "as-today"}
+    >
+      {children}
+    </div>
   );
 }

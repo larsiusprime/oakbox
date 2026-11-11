@@ -1,4 +1,5 @@
 /** Check sales' review of the sales set aside: the list, one sale at a time, and why each was set aside. */
+
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Button, TextArea, TextField } from "react-aria-components";
@@ -12,12 +13,15 @@ import {
   unwrap,
 } from "../api/client";
 import { Choice } from "../components/Form";
+import { OnTheMap } from "../components/OnTheMap";
 import { Val } from "../components/Val";
 import { desktop } from "../desktop";
 import { CHART, SALE } from "../lib/colours";
 import { day, money, num, short } from "../lib/format";
 import { useWidth } from "../lib/hooks";
+import { setFocus, useFocus } from "../lib/mapfocus";
 import { say, t } from "../wording";
+import { ReviewMap } from "./ReviewMap";
 
 const s = t.sales;
 type Unit = "sqft" | "sqm";
@@ -144,6 +148,22 @@ export function Review({
           <span className="wiz-from">{s.review.applyLater}</span>
         )}
       </div>
+      {/* A take-over step (SPEC §3.15): every sale set aside on the map window, the picked one ringed with its comps. */}
+      {items.length > 0 && (
+        <OnTheMap
+          projectId={projectId}
+          step={s.review.mapStep}
+          title={s.review.mapInstruction}
+          sub={s.review.mapInstructionSub}
+        >
+          <ReviewMap
+            projectId={projectId}
+            points={page?.points ?? []}
+            picked={current?.key_sale ?? null}
+            pick={pick}
+          />
+        </OnTheMap>
+      )}
       {items.length === 0 ? (
         <p className="wiz-from">{s.review.empty}</p>
       ) : (
@@ -310,6 +330,7 @@ function SaleView({
   });
   const mark = useMarkSale(projectId);
   const d = detail.data;
+  const focused = useFocus(i.key_sale);
   const u = s.unit[unit];
   const decide = (action: "keep" | "exclude" | null) =>
     mark.mutate({ key: i.key_sale, action, note }, { onSuccess: () => action && next() });
@@ -348,11 +369,30 @@ function SaleView({
             </thead>
             <tbody>
               {d.members.map((m) => (
-                <tr key={m.key_sale} className={m.key_sale === i.key_sale ? "cs-self" : ""}>
-                  <td>{m.address ?? <Val v={m.key_sale} />}</td>
+                <tr
+                  key={m.key_sale}
+                  className={[
+                    m.key_sale === i.key_sale ? "cs-self" : "",
+                    m.key_sale === focused ? "cs-focus" : "",
+                  ].join(" ")}
+                >
+                  <td>
+                    {/* Clicked: the map rings it and moves to it. */}
+                    {m.latitude != null && m.longitude != null ? (
+                      <Button
+                        className="wiz-link"
+                        aria-pressed={m.key_sale === focused}
+                        onPress={() => setFocus(i.key_sale, m.key_sale === focused ? null : m.key_sale)}
+                      >
+                        {m.address ?? m.key_sale}
+                      </Button>
+                    ) : (
+                      (m.address ?? <Val v={m.key_sale} />)
+                    )}
+                  </td>
                   <td className="cs-n">{money(m.price_per_area, currency)}</td>
                   <td className="cs-n">{num(m.area)}</td>
-                  <td>{day(m.sale_date)}</td>
+                  <td className="cs-day">{day(m.sale_date)}</td>
                   <td>
                     {m.key_sale === i.key_sale ? (
                       <span className="pill pill-bad">{s.review.thisSale}</span>
@@ -566,7 +606,7 @@ function Diagnosis({ i }: { i: ReviewItem }) {
   );
 }
 
-/** Street View, the aerial, Zillow and Redfin, in a viewer window beside the app (a browser tab outside it). */
+/** Street View, the aerial, Zillow and Redfin, in the computer's web browser. */
 function Look({
   address,
   place,

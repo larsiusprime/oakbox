@@ -512,6 +512,33 @@ class RunView(BaseModel):
     job: Job | None
     stale: bool = Field(description="Something it depends on changed since it ran.")
     blocked: list[str] = Field(description="What stops it running.")
+    excluded_since: int = Field(
+        default=0,
+        description="Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results "
+        "still have them until it runs again. Never makes it out of date.",
+    )
+
+
+# The sales excluded when a step ran (a key_sale each), beside its receipt: what's been excluded since is said, never
+# made a reason to run again (SPEC F6: an exclusion is a filter downstream, 2026-11-11).
+EXCLUDED = "excluded.json"
+
+
+def note_excluded(folder: Path, keys: set[str]) -> None:
+    (folder / EXCLUDED).write_text(json.dumps(sorted(keys)), encoding="utf-8")
+
+
+def excluded_since(folder: Path, now: set[str]) -> int:
+    """How many of the sales excluded now weren't when the step in this folder ran (0 for a run from before this was
+    noted: it isn't known)."""
+    path = folder / EXCLUDED
+    if not path.is_file():
+        return 0
+    try:
+        then = set(json.loads(path.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return 0
+    return len(now - then)
 
 
 @dataclass

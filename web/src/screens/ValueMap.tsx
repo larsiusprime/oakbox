@@ -6,10 +6,13 @@ import { useMemo, useState } from "react";
 import { api, type FieldResult, type RatioSetup, unwrap } from "../api/client";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
-import { BY_LEVEL, BY_SALE, ratioColor, ratioStroke, TRIMMED } from "../lib/colours";
+import { OnTheMap } from "../components/OnTheMap";
+import { Seg } from "../components/Seg";
+import { ratioColor, ratioStroke, TRIMMED } from "../lib/colours";
 import { money, num, ratioText, signed } from "../lib/format";
 import { t } from "../wording";
-import { BandChart } from "./ValueCharts";
+import { RegionMap } from "./RegionMap";
+import { useVeiBoxes, VeiChart } from "./VeiChart";
 
 const r = t.ratio;
 
@@ -18,13 +21,24 @@ export function RatioMap({
   projectId,
   result,
   currency,
+  group,
+  setGroup,
+  bands = false,
 }: {
   projectId: string;
   result: FieldResult;
   currency: string;
+  /** The group shown ("" every group), when the step keeps it (its rows' Show on map); else the map's own. */
+  group?: string;
+  setGroup?: (id: string) => void;
+  /** Across prices: a price band at a time (the sales' cheapest, middle and dearest thirds). */
+  bands?: boolean;
 }) {
+  const [band, setBand] = useState<"" | "low" | "mid" | "high">("");
   const studied = result.groups.filter((g) => g.sales > 0);
-  const [gid, setGid] = useState("");
+  const [own, setOwn] = useState("");
+  const gid = group ?? own;
+  const setGid = setGroup ?? setOwn;
   const pts = useQuery({
     queryKey: ["ratio-map", projectId, result.field, gid],
     queryFn: async () =>
@@ -34,7 +48,20 @@ export function RatioMap({
         }),
       ),
   });
-  const data = pts.data;
+  // A band: the sales between its thirds of price (every sale shown, or only that band's).
+  const cuts = (() => {
+    const p = (pts.data ?? []).map((x) => x.price).sort((a, b) => a - b);
+    const at = (q: number) => p[Math.floor(q * p.length)] ?? 0;
+    return { low: at(1 / 3), high: at(2 / 3) };
+  })();
+  const inBand = (price: number) =>
+    !band ||
+    (band === "low"
+      ? price < cuts.low
+      : band === "high"
+        ? price >= cuts.high
+        : price >= cuts.low && price < cuts.high);
+  const data = pts.data?.filter((x) => inBand(x.price));
   const layers = useMemo(
     () =>
       data
@@ -71,6 +98,19 @@ export function RatioMap({
           ]}
           onChange={setGid}
         />
+        {bands && (
+          <Seg
+            label={mp.band}
+            value={band}
+            options={[
+              ["", mp.bandAll],
+              ["low", mp.bandLow],
+              ["mid", mp.bandMid],
+              ["high", mp.bandHigh],
+            ]}
+            onChange={setBand}
+          />
+        )}
         <span className="wiz-from">{mp.lede}</span>
       </div>
       {pts.data && pts.data.length === 0 ? (
@@ -108,12 +148,14 @@ export function RatioMap({
 /** The median ratio by the price level of the region each sale is in (openratiostudy.com's neighbourhood price
  * levels): it tells real vertical inequity from invalid sales at low prices in dear areas. */
 export function Regions({
+  projectId,
   result,
   setup,
   currency,
   choose,
   busy,
 }: {
+  projectId: string;
   result: FieldResult;
   setup: RatioSetup | undefined;
   currency: string;
@@ -124,6 +166,7 @@ export function Regions({
   const [gid, setGid] = useState("");
   const g = result.groups.find((x) => x.id === gid) ?? result.overall;
   const rg = g.regions;
+  const boxes = useVeiBoxes(projectId, result.field, gid, rg?.field ?? "");
   const rr = r.regions;
   return (
     <div className="rv-cards">
@@ -151,6 +194,16 @@ export function Regions({
           onChange={setGid}
         />
       </div>
+      {rg && (
+        <OnTheMap
+          projectId={projectId}
+          step={r.steps.regions}
+          title={rr.mapInstruction}
+          sub={rr.mapInstructionSub}
+        >
+          <RegionMap projectId={projectId} field={result.field} region={rg.field} group={gid} />
+        </OnTheMap>
+      )}
       {!rg ? (
         <p className="wiz-from">
           {setup?.region ? rr.notRun : setup && setup.regions.length === 0 ? rr.noLocations : rr.choose}
@@ -167,11 +220,11 @@ export function Regions({
               verdict: r.table.verdicts[rg.vei_verdict] ?? rg.vei_verdict,
             })}
           </p>
-          <BandChart
-            series={[
-              { label: rr.byLevel, color: BY_LEVEL, bands: rg.strata },
-              ...(g.strata.length ? [{ label: rr.bySale, color: BY_SALE, bands: g.strata }] : []),
-            ]}
+          <VeiChart
+            boxes={boxes.data?.by_region.length === rg.strata.length ? boxes.data.by_region : []}
+            bands={rg.strata}
+            median={g.median}
+            label={rr.chartTitle}
           />
           <table className="tbl">
             <thead>

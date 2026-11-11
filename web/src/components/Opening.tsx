@@ -2,9 +2,10 @@
  * manila sheet: Opening Project "<name>"…, a loading bar, the time elapsed, and Cancel.
  * Nothing else to press until it's open: no tabs, no map, no settings. Cancel stops the reading here and goes back to
  * Projects (the server finishes what it's in the middle of on its own; its copies are kept for next time). */
-import { hashKey, useQueryClient } from "@tanstack/react-query";
+import { hashKey, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Button } from "react-aria-components";
+import { api, unwrap } from "../api/client";
 import { clock } from "../lib/format";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
@@ -14,8 +15,15 @@ import { useReadings } from "./Reading";
 
 const o = t.opening;
 
-export function Opening({ projectId, name }: { projectId: string; name: string | null }) {
+export function Opening({ projectId, name: loaded }: { projectId: string; name: string | null }) {
   const qc = useQueryClient();
+  // Its name at once: the Projects list (already read on the screen it was opened from; else a quick read of the
+  // list), not waiting for the project itself.
+  const projects = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => unwrap(await api.GET("/api/projects")),
+  });
+  const name = loaded ?? projects.data?.find((p) => p.id === projectId)?.name ?? null;
   const readings = useReadings(projectId).data ?? [];
   const going = readings.filter((x) => x.state === "reading" || x.state === "waiting");
   const fraction = going.length ? going.reduce((a, x) => a + x.fraction, 0) / going.length : 0;

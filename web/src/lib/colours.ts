@@ -15,10 +15,6 @@ export const CHART = {
 /** A sale trimmed from the ratio study (an outlier): on its map, in its chart and their keys. */
 export const TRIMMED = { fill: "#d0d0d0", line: "#9a9a9a" };
 
-/** A ratio study's two series: by sale, and by price level. */
-export const BY_SALE = "#d4566f";
-export const BY_LEVEL = "#2f5d9b";
-
 /** What's picked or found on a map (--link). */
 export const PICKED = "#1d5bb8";
 /** A boundary that's wrong on a map (--bad). */
@@ -51,3 +47,18 @@ export function ratioColor(q: number): string {
 export function ratioStroke(q: number): string {
   return q < 0.9 ? "#1d4ed8" : q > 1.1 ? "#b91c1c" : "#475569";
 }
+
+/** openratiostudy.com's VEI chart (its Plotly colours): blue boxes, a red sample median, dark interval bars. */
+export const ORS = {
+  boxFill: "rgba(59,130,246,0.35)",
+  boxLine: "#1d4ed8",
+  boxMarker: "#3b82f6",
+  boxDot: "#4285F4",
+  median: "#dc2626",
+  ci: "rgba(15,23,42,0.95)",
+  ciDot: "#0f172a",
+  grid: "#e2e8f0",
+  ink: "#1f2937",
+  span: "#1e3a8a", // By price: a group's median across the prices it spans
+  target: "#4caf6e", // the standard's range (CHART.band, as a key's dot)
+};

@@ -139,9 +139,8 @@ the map and in a small table beside it, the sale's own data (to spot a wrong siz
 - **Related sales:** the same deed; the same day within 500 ft; the same day to the same buyer; the same buyer within a
   year (with how far away, and whether set aside too): a sale of several parcels, or an investor's.
 - **Look at it:** **Street View** and **Aerial** (Google Maps at its coordinates), **Zillow** (by address) and
-  **Redfin** (no address link: the first Redfin search result), in one viewer window beside the app, reused from sale to
-  sale (a browser tab outside the desktop app). Those sites refuse to be shown inside another page, so they can't share
-  one window.
+  **Redfin** (no address link: the first Redfin search result), in the computer's own web browser (revised 2026-11-10:
+  the app's viewer window couldn't show them; outside the desktop app, one browser tab reused).
 - **Keep** (a note required): it counts after all. **Exclude** any sale, set aside or not (a note optional). Each says
   that it applies on the next **Check sales** run (seconds).
 - **What it writes:** kept sales go in a keep-list (engine A6: `analysis.sales_scrutiny.keep_file`, a CSV of

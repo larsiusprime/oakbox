@@ -5,6 +5,7 @@ import { Button, Dialog, DialogTrigger, Heading, Input, Popover, TextField } fro
 import { api, type EnrichAddField, type Enrichments, type EnrichView, unwrap } from "../api/client";
 import { CensusKey } from "../components/CensusKey";
 import { Choice, Tick } from "../components/Form";
+import { MapVariable } from "../components/ShowOnMap";
 import { useAtOnce } from "../lib/hooks";
 import { say, t } from "../wording";
 
@@ -263,7 +264,11 @@ function Picks({
         </Popover>
       </DialogTrigger>
       {on.length ? (
-        <span className="en-sub mono">{on.map((f) => f.name).join(", ")}</span>
+        <>
+          <span className="en-sub mono">{on.map((f) => f.name).join(", ")}</span>
+          {/* Once Inputs has brought it in: its first field on the map. */}
+          {on[0] && <MapVariable column={on[0].key} />}
+        </>
       ) : (
         <span className="wiz-warn">{e.noneTicked}</span>
       )}

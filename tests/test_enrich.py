@@ -305,6 +305,14 @@ def test_deed_book_and_page_become_the_deed_id_sales_scrutiny_reads(client, tmp_
         "deed_page": [{"file": "sales", "column": "PAGE"}],
     }
     assert (w["deeds"]["deeds"], w["deeds"]["sales"], w["deeds"]["blank"]) == (1, 2, 1)
+    # The map's 💰 sales: each flagged by its deed (shared, alone, none), as Deeds follows them.
+    import base64
+
+    import numpy as np
+
+    d = client.get(f"/api/projects/{pid}/map/sales").json()
+    assert "deed" in d["has"]
+    assert np.frombuffer(base64.b64decode(d["deed"]), dtype="i1").tolist() == [1, 1, 0, -1]
     s = read_settings(pid)
     assert s["analysis"]["sales_scrutiny"]["deed_id"] == "deed_book_and_page"
 

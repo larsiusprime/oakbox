@@ -189,7 +189,6 @@ class _Picker:
         self._window: Any = None
         self._controller: Any = None
         self._menu: Any = None
-        self._viewer: Any = None
         self._map: Any = None
 
     def set_context(self, title: str, project_id: str | None) -> None:
@@ -203,23 +202,10 @@ class _Picker:
             self._menu.menu_key(key)
 
     def view_url(self, url: str, title: str) -> None:
-        """A page from elsewhere (Street View, the aerial, Zillow, Redfin) in one viewer window beside the app,
-        reused from sale to sale; opened again if it was closed. Only web addresses."""
-        import webview
-
-        if not url.startswith("https://"):
-            return
-        if self._viewer is not None:
-            try:
-                self._viewer.load_url(url)
-                self._viewer.set_title(title)
-                return
-            except Exception:  # noqa: BLE001 - closed since: open a new one
-                self._viewer = None
-        viewer = webview.create_window(title, url, width=1100, height=800)
-        if viewer is not None:
-            viewer.events.closed += lambda: setattr(self, "_viewer", None)
-        self._viewer = viewer
+        """A page from elsewhere (Street View, the aerial, Zillow, Redfin) in the computer's own web browser: the
+        app's own viewer window couldn't show Google's pages. Only web addresses."""
+        if url.startswith("https://"):
+            webbrowser.open(url)
 
     def open_map(self, url: str, title: str) -> None:
         """The map window popped out (SPEC §3.15): the app's own page (#/map/<project>) in a window of its own,

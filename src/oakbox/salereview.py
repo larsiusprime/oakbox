@@ -55,10 +55,23 @@ class ReviewItem(BaseModel):
     second_look: bool = Field(description="Found once the sale that hid it was set aside.")
     status: Literal["undecided", "kept", "excluded"]
     note: str
+    latitude: float | None = Field(default=None, description="Where it is, for the map.")
+    longitude: float | None = None
+
+
+class ReviewPoint(BaseModel):
+    key_sale: str
+    latitude: float
+    longitude: float
+    checks: list[str]
+    status: Literal["undecided", "kept", "excluded"]
 
 
 class ReviewPage(BaseModel):
     items: list[ReviewItem]
+    points: list[ReviewPoint] = Field(
+        default_factory=list, description="Every sale matching the filters (not just this page), for the map."
+    )
     total: int = Field(description="Matching the filters.")
     all: int = Field(description="Every sale set aside.")
     undecided: int
@@ -194,6 +207,8 @@ def _items(project: Project, project_dir: Path) -> list[ReviewItem]:
                 second_look=bool(len(cluster) and cells.number(c.get("scrutiny_pass")) == 2),
                 status="kept" if mark and mark.action == "keep" else "excluded" if mark else "undecided",
                 note=mark.note if mark else "",
+                latitude=cells.number(first.get("latitude")),
+                longitude=cells.number(first.get("longitude")),
             )
         )
     # Furthest from their group first; then the rest.
@@ -224,6 +239,13 @@ def review(
     v = clean.view(project, project_dir)
     return ReviewPage(
         items=picked[offset : offset + limit],
+        points=[
+            ReviewPoint(
+                key_sale=i.key_sale, latitude=i.latitude, longitude=i.longitude, checks=i.checks, status=i.status
+            )
+            for i in picked
+            if i.latitude is not None and i.longitude is not None
+        ],
         total=len(picked),
         all=len(items),
         undecided=sum(1 for i in items if i.status == "undecided"),

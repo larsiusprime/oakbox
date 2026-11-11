@@ -24,7 +24,19 @@ export type Dock = {
   cardPinned: boolean;
   /** The colour picker's sections folded away (pu, sr, problems, differences, columns). */
   folded: string[];
+  /** The parcels (or sales) outside the histogram's range not drawn, rather than drawn at its ends. */
+  hideOut: boolean;
+  /** A value field shown per a size (SPEC §3.15): field id -> bldg or land; missing, as it is. */
+  per: Record<string, Per>;
+  /** What a step's Map button picked to follow there (SPEC §3.15): step (project/tab/step) -> field. Follow shows
+   * it on that step instead of the step's own choice. */
+  picks: Record<string, string>;
+  /** What's drawn (SPEC §3.15): the parcel universe (off: only parcels with a sale) and the sales record. */
+  showPu: boolean;
+  showSr: boolean;
 };
+
+export type Per = "bldg" | "land";
 
 const KEY = "oakbox.mapDock";
 const ROUTE = "oakbox.mapRoute";
@@ -41,6 +53,11 @@ const START: Dock = {
   out: false,
   cardPinned: true,
   folded: ["columns"],
+  hideOut: false,
+  per: {},
+  picks: {},
+  showPu: true,
+  showSr: true,
 };
 
 function load<T>(key: string, fallback: T): T {
@@ -133,8 +150,16 @@ export function onGo(g: (w: Where) => void): () => void {
 /** The dock as it is now, read outside React (an effect deciding whether to open the map). */
 export const dockNow = (): Dock => dock;
 
-/** 🗺 Show on map from a screen that doesn't take the map over (SPEC §3.15, summon): the map opens (a popped-out one
- * stays out) on exactly that layer, Follow off, so the next step doesn't wipe it; Back to following in its header. */
-export function summonMap(field: string) {
-  setDock(dock.out ? { follow: false, field } : { open: true, follow: false, field });
+/** 🗺 Map from a screen that doesn't take the map over (SPEC §3.15, summon): the map opens (a popped-out one stays
+ * out) on exactly that field, Follow on: it's what this step follows now (remembered for the step), the step's own
+ * choice when the step is left and come back to only if nothing was picked there. Without a step, as chosen by hand. */
+export function summonMap(field: string, step?: string | null) {
+  const open = dock.out ? {} : { open: true };
+  if (!step) setDock({ ...open, follow: false, field });
+  else setDock({ ...open, follow: true, field, picks: { ...(dock.picks ?? {}), [step]: field } });
+}
+
+/** The step on screen, as the map keys its picks: project/tab/step. */
+export function stepKey(projectId: string, tab: string | null, step: string | null): string | null {
+  return tab && step ? `${projectId}/${tab}/${step}` : null;
 }

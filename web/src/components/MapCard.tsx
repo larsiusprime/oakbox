@@ -37,6 +37,25 @@ export function tidy(v: string): string {
 }
 type Card = components["schemas"]["ParcelCard"];
 
+/** The card's sections folded away: kept for the next parcel picked (this viewer only). */
+type Part = "pu" | "sr";
+const FOLDED = "oakbox.mapCardFolded";
+function loadFolded(): Part[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(FOLDED) ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is Part => x === "pu" || x === "sr") : [];
+  } catch {
+    return [];
+  }
+}
+function saveFolded(v: Part[]) {
+  try {
+    localStorage.setItem(FOLDED, JSON.stringify(v));
+  } catch {
+    // this time only
+  }
+}
+
 export function MapCard({
   projectId,
   index,
@@ -104,6 +123,13 @@ export function MapCard({
     placeholderData: keepPreviousData,
   });
   const [more, setMore] = useState(false);
+  const [folded, setFolded] = useState<Part[]>(loadFolded);
+  const fold = (k: Part) => {
+    const next = folded.includes(k) ? folded.filter((x) => x !== k) : [...folded, k];
+    setFolded(next);
+    saveFolded(next);
+  };
+  const open = (k: Part) => !folded.includes(k);
   // Esc closes it.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -146,8 +172,12 @@ export function MapCard({
         <Waiting doing={w.loading} />
       ) : (
         <div className="mapcard-body">
-          <h3 className="mapcard-h">{w.pu}</h3>
-          {loaded.length === 0 ? (
+          <h3 className="mapcard-h">
+            <Disclose open={open("pu")} onPress={() => fold("pu")} className="mapcard-fold">
+              {w.pu}
+            </Disclose>
+          </h3>
+          {!open("pu") ? null : loaded.length === 0 ? (
             <p className="mapcard-dim">{w.noFields}</p>
           ) : (
             <table className="mapcard-tbl">
@@ -179,13 +209,13 @@ export function MapCard({
               </tbody>
             </table>
           )}
-          {several.length > 0 && (
+          {open("pu") && several.length > 0 && (
             <p className="mapcard-dim">{several.map(([file, n]) => w.rows({ file, n })).join(" ")}</p>
           )}
-          {missing.length > 0 && (
+          {open("pu") && missing.length > 0 && (
             <p className="mapcard-dim">{w.notIn({ files: missing.map(([f]) => f).join(", ") })}</p>
           )}
-          {others.length > 0 && (
+          {open("pu") && others.length > 0 && (
             <>
               <Disclose open={more} onPress={() => setMore(!more)} className="mapcard-more">
                 {w.more({ n: others.length })}
@@ -208,9 +238,13 @@ export function MapCard({
               )}
             </>
           )}
-          <h3 className="mapcard-h">{w.sr({ n: c.sales.length })}</h3>
-          {c.sales.length === 0 && <p className="mapcard-dim">{w.noSales}</p>}
-          {c.sales.map((s) => (
+          <h3 className="mapcard-h">
+            <Disclose open={open("sr")} onPress={() => fold("sr")} className="mapcard-fold">
+              {w.sr({ n: c.sales.length })}
+            </Disclose>
+          </h3>
+          {open("sr") && c.sales.length === 0 && <p className="mapcard-dim">{w.noSales}</p>}
+          {(open("sr") ? c.sales : []).map((s) => (
             <div key={s.row} className="mapcard-sale">
               <div className="mapcard-sale-head">
                 <b>{s.date || w.noDate}</b>
@@ -253,7 +287,7 @@ export function MapCard({
               )}
             </div>
           ))}
-          {c.sales.some((s) => s.compared.length > 0) && (
+          {open("sr") && c.sales.some((s) => s.compared.length > 0) && (
             <Button className="wiz-link mapcard-link" onPress={() => go("as_sold")}>
               {w.toAsSold}
             </Button>

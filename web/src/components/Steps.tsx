@@ -6,6 +6,7 @@ import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { clock } from "../lib/format";
 import { currentWhere, type FrameStep, markSeen, OVERVIEW, publishFrame, seen } from "../lib/place";
+import { railClass, setRail, useRail } from "../lib/stepsrail";
 import { type Landing, say, t } from "../wording";
 
 /** A step's mark, as on Data (SPEC F3d): ✅ done, ⚠ to look at, ❌ blocks it; blank shows its number. */
@@ -67,9 +68,11 @@ export function StepFrame({
   const page = landing ? t.landing.pages[landing] : undefined;
   // Start goes to the next item in the list, the first step (not the one open, or the first not done).
   const first = steps.find((s) => !s.disabled);
+  const rail = useRail();
   return (
     <div className={wide && !showing ? "wiz wiz-wide" : "wiz"}>
-      <ol className="wiz-steps">
+      <ol className={railClass(rail)}>
+        <RailToggle />
         {listed.map((s) => {
           if (s.parent && s.parent !== open) return null;
           const icon = ICONS[s.status];
@@ -83,6 +86,7 @@ export function StepFrame({
                 disabled={s.disabled}
                 onClick={() => goTo(s.key)}
                 aria-current={s.key === now ? "step" : undefined}
+                title={s.title}
               >
                 {!s.parent && (
                   <span className="n" aria-hidden="true">
@@ -93,7 +97,7 @@ export function StepFrame({
                 <span className="mark" aria-hidden="true">
                   {icon && s.key !== OVERVIEW && <img src={icon} alt="" className="wiz-step-icon" />}
                 </span>
-                {s.title}
+                <span className="t">{s.title}</span>
               </button>
             </li>
           );
@@ -183,11 +187,11 @@ export function StepFoot({
   note?: React.ReactNode;
 }) {
   return (
-    <div className="wiz-foot">
+    <FootBar>
       {note && <span className="wiz-foot-note">{note}</span>}
       <span className="wiz-grow" />
       {back && (
-        <Button className="button" onPress={back}>
+        <Button className="button" onPress={back} data-nav="back">
           {t.wizard.back}
         </Button>
       )}
@@ -206,10 +210,21 @@ export function StepFoot({
           className={next.primary === false ? "button" : "button button-primary"}
           isDisabled={!!next.disabled}
           onPress={next.onPress}
+          data-nav="next"
         >
           {next.label}
         </Button>
       )}
+    </FootBar>
+  );
+}
+
+/** A step's foot: Back, its extras, Next; sticking to the bottom of the folder while the sheet runs past it. */
+export function FootBar({ children }: { children: React.ReactNode }) {
+  const ref = useStuck();
+  return (
+    <div className="wiz-foot" ref={ref}>
+      {children}
     </div>
   );
 }
@@ -322,4 +337,63 @@ export function useFrame(steps: FrameStep[], current: string, go: (key: string) 
     publishFrame({ steps: shown, current: now, go: (k) => goRef.current(k) }, me);
   }, [sig, me]);
   useEffect(() => () => publishFrame(null, me), [me]);
+}
+
+/** At the top of a step list: « makes it a thin rail (numbers and marks), » the full list again. Which it shows is
+ * the stylesheet's (auto goes thin when the folder is narrow): read from it when pressed. */
+export function RailToggle() {
+  const rail = useRail();
+  return (
+    <li className="wiz-rail-toggle">
+      <button
+        type="button"
+        onClick={(e) => {
+          const list = e.currentTarget.closest(".wiz-steps");
+          const thin = !!list && getComputedStyle(list).getPropertyValue("--rail-thin").trim() === "1";
+          setRail(thin ? "wide" : "thin");
+        }}
+        aria-label={t.step.railToggle}
+        title={t.step.railToggle}
+        data-mode={rail}
+      >
+        <span className="rail-to-thin" aria-hidden="true">
+          «
+        </span>
+        <span className="rail-to-wide" aria-hidden="true">
+          »
+        </span>
+      </button>
+    </li>
+  );
+}
+
+/** A step's foot sticks to the bottom of the folder while its sheet runs past it (SPEC D, 2026-11-11): marked stuck
+ * (its shadow) until the sheet's end comes into view and it settles under it. */
+export function useStuck() {
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!el) return;
+    const scroller = el.closest(".folder-panel");
+    const sheet = el.parentElement;
+    if (!scroller || !sheet) return;
+    let frame = 0;
+    const check = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const stuck = sheet.getBoundingClientRect().bottom > scroller.getBoundingClientRect().bottom + 1;
+        el.classList.toggle("stuck", stuck);
+      });
+    };
+    check();
+    scroller.addEventListener("scroll", check, { passive: true });
+    const ro = new ResizeObserver(check);
+    ro.observe(scroller);
+    ro.observe(sheet);
+    return () => {
+      scroller.removeEventListener("scroll", check);
+      ro.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [el]);
+  return setEl;
 }

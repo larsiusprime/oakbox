@@ -717,6 +717,8 @@ def run(project_id: str) -> None:
     s: RatioState = project.ratio
     start, end, _ = window(project, project_dir=pdir)
     tmp = steps.workdir(out_dir(pdir))
+    gone = clean.excluded(project)
+    steps.note_excluded(tmp, gone)
     depends = STEP.now(project, pdir)  # what it starts from, before anything can change
     os.chdir(pdir)
     from openavmkit import pipeline as pl
@@ -729,6 +731,11 @@ def run(project_id: str) -> None:
         warnings.simplefilter("always")
         steps.emit(step="load", fraction=0.0, message="Reading Check sales' hand-off")
         sup = cast(SalesUniversePair, pd.read_pickle(src))
+        if gone:  # excluded since Check sales ran (its review, Outliers): left out, as the models leave them
+            sup = SalesUniversePair(
+                sales=cast(pd.DataFrame, sup.sales[~sup.sales["key_sale"].astype(str).isin(sorted(gone))]),
+                universe=sup.universe,
+            )
         chosen = [g.id for g in checked_groups(project)]
         if len(chosen) < len(project.groups):  # only the groups chosen, overall too
             # The sales carry their parcel's key, not its group: kept by the parcels kept.
@@ -858,6 +865,7 @@ def view(project: Project, project_dir: Path) -> RatioView:
         accepted=s.accepted,
         has_values=bool(loaded_value_sets(project)),
         skipped=project.ratio.check is False,
+        excluded_since=steps.excluded_since(out_dir(project_dir), clean.excluded(project)) if s.receipt else 0,
     )
 
 
@@ -964,19 +972,6 @@ def _checked(stds: list[Standard]) -> list[Standard]:
     ]
 
 
-def points(project_dir: Path, field: str, group: str | None) -> list[tuple[float, float, bool]]:
-    """Each sale studied: (price, ratio, trimmed), for the chart."""
-    import pandas as pd
-
-    path = out_dir(project_dir) / "studies" / f"{field}.sales.parquet"
-    if not path.is_file():
-        return []
-    t = pd.read_parquet(path)
-    if group:
-        t = t[t["model_group"].astype(str) == group]
-    return [(float(p), float(r), bool(x)) for p, r, x in zip(t["sale_price"], t["ratio"], t["trimmed"], strict=True)]
-
-
 class MapPoint(BaseModel):
     lat: float
     lon: float
@@ -984,6 +979,7 @@ class MapPoint(BaseModel):
     price: float
     value: float
     trimmed: bool
+    key_sale: str | None = Field(default=None, description="The sale: Extreme ratios picks it on the map.")
 
 
 def map_points(project_dir: Path, field: str, group: str | None) -> list[MapPoint]:
@@ -1000,13 +996,285 @@ def map_points(project_dir: Path, field: str, group: str | None) -> list[MapPoin
         t = t[t["model_group"].astype(str) == group]
     lat, lon = cells.numbers(t, "latitude"), cells.numbers(t, "longitude")
     t = t[lat.notna() & lon.notna()]
+    keys = t["key_sale"].astype(str) if "key_sale" in t else [None] * len(t)
     return [
-        MapPoint(lat=float(a), lon=float(b), ratio=float(r), price=float(p), value=float(v), trimmed=bool(x))
-        for a, b, r, p, v, x in zip(
-            t["latitude"], t["longitude"], t["ratio"], t["sale_price"], t["value"], t["trimmed"], strict=True
+        MapPoint(
+            lat=float(a), lon=float(b), ratio=float(r), price=float(p), value=float(v), trimmed=bool(x), key_sale=k
+        )
+        for a, b, r, p, v, x, k in zip(
+            t["latitude"], t["longitude"], t["ratio"], t["sale_price"], t["value"], t["trimmed"], keys, strict=True
         )
     ]
 
 
+class RegionPoints(BaseModel):
+    """Each sale studied with a place, by its region (neighbourhood), as columns, for Neighbourhood price levels'
+    map: each coloured by its region's median ratio (the outlying ratios left out of it, as in the statistics)."""
+
+    lon: list[float]
+    lat: list[float]
+    region: list[int] = Field(description="Index into regions.")
+    regions: list[str]
+    median: list[float | None] = Field(description="Each region's median ratio.")
+    sales: list[int] = Field(description="Each region's sales counted in its median.")
+    overall: float | None = Field(default=None, description="The median ratio of all of them, the same way.")
+
+
+def region_points(project_dir: Path, field: str, region: str, group: str | None) -> RegionPoints:
+    import numpy as np
+    import pandas as pd
+
+    empty = RegionPoints(lon=[], lat=[], region=[], regions=[], median=[], sales=[], overall=None)
+    path = out_dir(project_dir) / "studies" / f"{field}.sales.parquet"
+    if not region or not path.is_file():
+        return empty
+    t = pd.read_parquet(path)
+    if any(c not in t for c in ("latitude", "longitude", "ratio", region)):
+        return empty
+    if group:
+        t = cast(pd.DataFrame, t[t["model_group"].astype(str) == group])
+    t = t.assign(
+        la=cells.numbers(t, "latitude"),
+        lo=cells.numbers(t, "longitude"),
+        r=cells.numbers(t, "ratio"),
+        g=t[region].astype("string").fillna(""),
+    )
+    t = cast(pd.DataFrame, t[t["la"].notna() & t["lo"].notna() & (t["g"] != "")])
+    kept = t[~t["trimmed"].astype(bool)] if "trimmed" in t else t
+    by = kept.groupby("g")["r"]
+    med = {str(k): float(v) for k, v in by.median().items()}
+    n = {str(k): int(v) for k, v in by.count().items()}
+    names = sorted(str(g) for g in t["g"].unique())
+    rs = np.asarray(kept["r"], dtype=float)
+    rs = rs[np.isfinite(rs)]
+    at = {g: i for i, g in enumerate(names)}
+    return RegionPoints(
+        lon=np.round(np.asarray(t["lo"], dtype=float), 6).tolist(),
+        lat=np.round(np.asarray(t["la"], dtype=float), 6).tolist(),
+        region=[at[g] for g in t["g"]],
+        regions=[str(g) for g in names],
+        median=[round(med[g], 4) if g in med and np.isfinite(med[g]) else None for g in names],
+        sales=[n.get(g, 0) for g in names],
+        overall=round(float(np.median(rs)), 4) if len(rs) else None,
+    )
+
+
+class SimilarPoints(BaseModel):
+    """Every parcel with a place and a group of similar parcels, as columns, for Similar parcels' map: each coloured by
+    how far apart its group's values are (its CHD)."""
+
+    lon: list[float]
+    lat: list[float]
+    chd: list[float | None] = Field(description="Its group of similar parcels' CHD; null: a group of one.")
+    size: list[int] = Field(description="Parcels in its group of similar parcels.")
+    cluster: list[int] = Field(default=[], description="Index into clusters: its group of similar parcels.")
+    clusters: list[str] = Field(default=[], description="Each group's id (model group:cluster), for its members.")
+
+
+class SimilarMember(BaseModel):
+    key: str
+    lat: float
+    lon: float
+    value: float | None
+
+
+class SimilarGroup(BaseModel):
+    """One group of similar parcels: each parcel's ID, place and value (the field studied), dearest first."""
+
+    cluster: str
+    chd: float | None
+    median: float | None
+    members: list[SimilarMember]
+
+
+def similar_group(project_dir: Path, field: str, cluster: str) -> SimilarGroup:
+    import numpy as np
+    import pandas as pd
+
+    path = clean.out_dir(project_dir) / clean.UNIVERSE_KEPT
+    group, _, he = cluster.partition(":")
+    cols = ["key", "latitude", "longitude", "model_group", "he_id", field]
+    empty = SimilarGroup(cluster=cluster, chd=None, median=None, members=[])
+    if not path.is_file():
+        return empty
+    u = pd.read_parquet(path)
+    if any(c not in u for c in cols):
+        return empty
+    u = cast(pd.DataFrame, u[cols])
+    u = cast(pd.DataFrame, u[(u["model_group"].astype(str) == group) & (u["he_id"].astype(str) == he)])
+    v = cells.numbers(u, field)
+    la, lo = cells.numbers(u, "latitude"), cells.numbers(u, "longitude")
+    ok = la.notna() & lo.notna()
+    valued = np.asarray(v.where(v > 0).dropna(), dtype=float)
+    med = float(np.median(valued)) if len(valued) else None
+    chd = round(float(100 * np.mean(np.abs(valued - med)) / med), 1) if med and len(valued) >= 2 else None
+    members = [
+        SimilarMember(key=str(k), lat=float(a), lon=float(b), value=None if pd.isna(x) else float(x))
+        for k, a, b, x in zip(u["key"][ok], la[ok], lo[ok], v[ok], strict=True)
+    ]
+    members.sort(key=lambda m: -(m.value if m.value is not None else float("-inf")))
+    return SimilarGroup(cluster=cluster, chd=chd, median=med, members=members)
+
+
+def similar_points(project_dir: Path, field: str, group: str | None) -> SimilarPoints:
+    """Each parcel's group of similar parcels (the equity clusters, he_id) and that group's spread of `field`'s
+    values: the CHD, 100 x the mean absolute difference from the group's median over the median."""
+    import numpy as np
+    import pandas as pd
+
+    empty = SimilarPoints(lon=[], lat=[], chd=[], size=[], cluster=[], clusters=[])
+    path = clean.out_dir(project_dir) / clean.UNIVERSE_KEPT
+    if not path.is_file():
+        return empty
+    cols = ["latitude", "longitude", "model_group", "he_id", field]
+    u = pd.read_parquet(path)
+    if any(c not in u for c in cols):
+        return empty
+    u = cast(pd.DataFrame, u[cols])
+    if group:
+        u = cast(pd.DataFrame, u[u["model_group"].astype(str) == group])
+    u = u.assign(v=cells.numbers(u, field), la=cells.numbers(u, "latitude"), lo=cells.numbers(u, "longitude"))
+    u = cast(pd.DataFrame, u[u["la"].notna() & u["lo"].notna()])
+    # Each cluster within its model group: the ids are numbered per group.
+    key = u["model_group"].astype(str) + ":" + u["he_id"].astype(str)
+    valued = u["v"].where(u["v"] > 0)
+    med = cast(pd.Series, valued.groupby(key).transform("median"))
+    dev = cast(pd.Series, (valued - med).abs().groupby(key).transform("mean"))
+    n = cast(pd.Series, valued.groupby(key).transform("count"))
+    chd = (100 * dev / med).where((n >= 2) & (med > 0))
+    codes, uniques = pd.factorize(key)
+    return SimilarPoints(
+        lon=np.round(np.asarray(u["lo"], dtype=float), 6).tolist(),
+        lat=np.round(np.asarray(u["la"], dtype=float), 6).tolist(),
+        chd=[None if not np.isfinite(x) else round(float(x), 1) for x in np.asarray(chd, dtype=float)],
+        size=[int(x) for x in key.map(key.value_counts())],
+        cluster=[int(x) for x in codes],
+        clusters=[str(x) for x in uniques],
+    )
+
+
 if __name__ == "__main__":
     steps.main(run)
+
+
+class Box(BaseModel):
+    """One VEI group's ratios as a box plot (openratiostudy.com's chart): the quartiles, the whiskers (the furthest
+    ratios within 1.5 IQR of the box) and the ratios past them; and every sale in it, for its dots."""
+
+    n: int
+    q1: float
+    median: float
+    q3: float
+    lo: float
+    hi: float
+    outliers: list[float] = Field(description="Past the whiskers; at most POINTS, the furthest kept.")
+    price_low: float = Field(description="The group's cheapest sale.")
+    price_high: float = Field(description="Its dearest.")
+    points: list[tuple[float, float]] = Field(
+        description="Each sale's (price, ratio); at most POINTS, an even sample of them when there are more."
+    )
+
+
+class VeiBoxes(BaseModel):
+    by_sale: list[Box] = Field(description="The VEI's percentile groups, by each sale's market value proxy.")
+    by_region: list[Box] = Field(description="The same groups by the price level of each sale's region.")
+    trimmed: list[tuple[float, float]] = Field(
+        default_factory=list, description="The sales trimmed (price, ratio): in no group, drawn grey by price."
+    )
+
+
+POINTS = 1500
+
+
+def _sample(n: int):
+    """At most POINTS of n rows, evenly spread (the same every time)."""
+    import numpy as np
+
+    return np.arange(n) if n <= POINTS else np.linspace(0, n - 1, POINTS).round().astype(int)
+
+
+def _pairs(price, ratio) -> list[tuple[float, float]]:
+    return [(round(float(p), 2), round(float(r), 4)) for p, r in zip(price, ratio, strict=True)]
+
+
+def _box(r, price) -> Box:
+    import numpy as np
+
+    order = np.argsort(np.asarray(r, dtype=float), kind="stable")
+    r = np.asarray(r, dtype=float)[order]
+    price = np.asarray(price, dtype=float)[order]
+    q1, med, q3 = (float(x) for x in np.quantile(r, [0.25, 0.5, 0.75]))
+    iqr = q3 - q1
+    inside = r[(r >= q1 - 1.5 * iqr) & (r <= q3 + 1.5 * iqr)]
+    lo, hi = (float(inside[0]), float(inside[-1])) if len(inside) else (q1, q3)
+    out = r[(r < lo) | (r > hi)]
+    if len(out) > POINTS:  # the furthest from the box, both ends
+        out = out[np.argsort(-np.maximum(q1 - out, out - q3))[:POINTS]]
+    keep = _sample(len(r))
+    return Box(
+        n=len(r),
+        q1=q1,
+        median=med,
+        q3=q3,
+        lo=lo,
+        hi=hi,
+        outliers=[round(float(x), 4) for x in out],
+        price_low=round(float(price.min()), 2),
+        price_high=round(float(price.max()), 2),
+        points=_pairs(price[keep], r[keep]),
+    )
+
+
+def _vei_groups(n: int) -> int:
+    return 0 if n < 20 else 2 if n <= 50 else 4 if n <= 500 else 10
+
+
+def vei_boxes(project_dir: Path, field: str, group: str | None, region: str | None) -> VeiBoxes:
+    """Each VEI group's ratios, grouped as the engine groups them for its VEI and its neighbourhood price levels:
+    the sales studied (the trimmed left out), by market value proxy, half the price and half the value at the
+    median ratio."""
+    import numpy as np
+    import pandas as pd
+    from openavmkit.value_studies import _group_by_sort_key
+
+    empty = VeiBoxes(by_sale=[], by_region=[])
+    path = out_dir(project_dir) / "studies" / f"{field}.sales.parquet"
+    if not path.is_file():
+        return empty
+    t = pd.read_parquet(path)
+    if group:
+        t = t[t["model_group"].astype(str) == group]
+    gone: list[tuple[float, float]] = []
+    if "trimmed" in t:
+        cut = t["trimmed"].astype(bool)
+        out = t[cut]
+        out_price = cells.numbers(out, "sale_price").to_numpy(dtype=float)
+        out_ratio = cells.numbers(out, "value").to_numpy(dtype=float) / out_price
+        ok = np.isfinite(out_ratio) & (out_price > 0)
+        keep = _sample(int(ok.sum()))
+        gone = _pairs(out_price[ok][keep], out_ratio[ok][keep])
+        t = t[~cut]
+    price = cells.numbers(t, "sale_price").to_numpy(dtype=float)
+    value = cells.numbers(t, "value").to_numpy(dtype=float)
+    ratio = value / price
+    if len(t) < 20 or not np.isfinite(ratio).any():
+        return VeiBoxes(by_sale=[], by_region=[], trimmed=gone)
+    median = float(np.nanmedian(ratio))
+    proxy = 0.5 * price + 0.5 * value / median
+    by_sale: list[Box] = []
+    k = _vei_groups(len(t))
+    if pd.Series(proxy).nunique() >= k:
+        bins = np.asarray(pd.qcut(proxy, q=k, labels=False))
+        by_sale = [_box(ratio[bins == g], price[bins == g]) for g in range(k) if bool((bins == g).any())]
+    by_region: list[Box] = []
+    if region and region in t:
+        name = cast(pd.Series, t[region]).astype("string").str.strip()
+        has = (name.notna() & name.ne("")).to_numpy()
+        if has.sum() >= 20 and name[has].nunique() >= 2:
+            level = pd.Series(proxy[has]).groupby(name[has].to_numpy()).median()
+            key = name[has].map(level).to_numpy(dtype=float)
+            by_region = [
+                _box(ratio[has][rows], price[has][rows])
+                for rows in _group_by_sort_key(key, _vei_groups(int(has.sum())))
+            ]
+    return VeiBoxes(by_sale=by_sale, by_region=by_region, trimmed=gone)

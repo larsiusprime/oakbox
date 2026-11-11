@@ -1,6 +1,7 @@
 import { Button } from "react-aria-components";
 import type { GroupsPreview, ModelGroup } from "../api/client";
 import { Tick } from "../components/Form";
+import { ShowOnMapButton } from "../components/ShowOnMap";
 import { InfoTip } from "../components/Tip";
 import { LoadingBar } from "../components/Waiting";
 import { num } from "../lib/format";
@@ -13,14 +14,15 @@ export function GroupChecks({
   groups,
   preview: p,
   unassignedColor,
-  edit,
   setModeled,
+  onMap,
 }: {
   groups: ModelGroup[];
   preview: GroupsPreview | undefined;
   unassignedColor: string;
-  edit: () => void;
   setModeled: (id: string, modeled: boolean) => void;
+  /** The group shown alone on the map ("" Unassigned, null every group), and showing one. */
+  onMap?: { shown: string | null; show: (id: string) => void };
 }) {
   if (!p) return <LoadingBar />;
   const rows = [
@@ -40,6 +42,7 @@ export function GroupChecks({
             <th className="cs-n">{g.run.sales}</th>
             <th className="cs-n">{g.run.vacantSales}</th>
             <th>{g.checksCol}</th>
+            {onMap && <th />}
           </tr>
         </thead>
         <tbody>
@@ -77,17 +80,16 @@ export function GroupChecks({
                     ))
                   )}
                 </td>
+                {onMap && (
+                  <td className="rv-onmap">
+                    <ShowOnMapButton compact shown={onMap.shown === id} onPress={() => onMap.show(id)} />
+                  </td>
+                )}
               </tr>
             );
           })}
         </tbody>
       </table>
-      <p className="wiz-from">
-        {g.checkFix}{" "}
-        <Button className="button button-small" onPress={edit}>
-          {g.backToBuild}
-        </Button>
-      </p>
     </>
   );
 }

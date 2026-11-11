@@ -143,3 +143,126 @@ def test_a_parcels_card(client, pid):
     assert [s["date"] for s in c["sales"]] == ["2024-11-02", "2023-03-14"]
     assert [s["price"] for s in c["sales"]] == ["210000", "185000"]
     assert client.get(f"/api/projects/{pid}/map/parcel/99").status_code == 404
+
+
+def test_a_column_from_the_steps_outputs(client, pid):
+    """The app's own outputs (a nearby average the models' try made), on the parcels by "key"; listed under outs."""
+    import pandas as pd
+    from helpers import IDS
+
+    from oakbox import projects
+
+    client.put(f"/api/projects/{pid}/wizard/files/shapes", json={"universe": True, "id_column": "PARCEL_ID"})
+    _ready(client, pid)
+    out = projects.project_dir(pid) / "out" / "models" / "all_model_groups"
+    out.mkdir(parents=True)
+    lag = [100.0, 200.0, None, 400.0]  # the last two parcels aren't in the output at all
+    pd.DataFrame({"key": IDS[:4], "spatial_lag_x": lag, "geometry": ["g"] * 4}).to_parquet(out / "universe.parquet")
+    ids = {f["id"] for f in client.get(f"/api/projects/{pid}/map").json()["outs"]}
+    assert ids == {"out:modeled:spatial_lag_x"}  # the key and shapes aren't something to colour by
+    c = client.get(f"/api/projects/{pid}/map/column", params={"field": "out:modeled:spatial_lag_x"}).json()
+    assert c["kind"] == "number" and c["have"] == 3
+    v = np.frombuffer(base64.b64decode(c["values"]), dtype="<f4")
+    assert v[[0, 1, 3]].tolist() == [100, 200, 400] and np.isnan(v[[2, 4, 5]]).all()
+    for bad in ("out:modeled:nope", "out:modeled:key", "out:nowhere:spatial_lag_x"):
+        assert client.get(f"/api/projects/{pid}/map/column", params={"field": bad}).status_code == 404
+
+
+def test_permits_on_the_parcels(client, pid, tmp_path):
+    """The permits file on the map: how many permits each parcel has (blank: none)."""
+    client.put(f"/api/projects/{pid}/wizard/files/shapes", json={"universe": True, "id_column": "PARCEL_ID"})
+    body = {"path": str(tmp_path / "permits.csv"), "mode": "copy", "name": "permits"}
+    assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    r = client.put(f"/api/projects/{pid}/wizard/files/permits", json={"holds": "permits", "id_column": "PROP_ID"})
+    assert r.status_code == 200
+    m = _ready(client, pid)
+    assert "permits:count" in {f["id"] for f in m["fields"]}
+    c = client.get(f"/api/projects/{pid}/map/column", params={"field": "permits:count"}).json()
+    v = np.frombuffer(base64.b64decode(c["values"]), dtype="<f4")
+    assert c["kind"] == "number" and v[:2].tolist() == [2, 1] and np.isnan(v[2:]).all()
+
+
+def test_what_bring_in_data_kept(client, pid):
+    """Inputs on the map: each parcel brought in or left out, and its sales, from Bring in data's outputs (by key)."""
+    import pandas as pd
+    from helpers import IDS
+
+    from oakbox import projects
+
+    start_wizard(client, pid)
+    _ready(client, pid)
+    out = projects.project_dir(pid) / "out" / "oakbox" / "bring_in"
+    out.mkdir(parents=True)
+    pd.DataFrame({"key": IDS[:5]}).to_parquet(out / "universe.parquet")  # the last parcel left out
+    pd.DataFrame({"key": [IDS[0], IDS[3]]}).to_parquet(out / "sales.parquet")  # sales on 0 (two), 2 and 3
+    assert {"out:universe:@parcels", "out:universe:@sales"} <= {f["id"] for f in _ready(client, pid)["outs"]}
+
+    def read(field):
+        c = client.get(f"/api/projects/{pid}/map/column", params={"field": field}).json()
+        codes = np.frombuffer(base64.b64decode(c["values"]), dtype="<u2").tolist()
+        return [c["categories"][k] if k < len(c["categories"]) else "" for k in codes]
+
+    assert read("out:universe:@parcels") == ["Brought in"] * 5 + ["Left out"]
+    assert read("out:universe:@sales") == ["Some left out", "", "All left out", "All brought in", "", ""]
+
+
+def test_a_value_per_size(client, pid):
+    """A number per each parcel's building size (here the area itself: 1 each), blank where a parcel has none; the
+    sales' prices per their parcel's size; the sizes there are listed."""
+    start_wizard(client, pid)
+    client.put(f"/api/projects/{pid}/wizard/files/cama", json={"holds": "parcels", "id_column": "PROP_ID"})
+    r = client.put(
+        f"/api/projects/{pid}/wizard/fields/bldg_area_finished_sqft",
+        json={"file": "cama", "column": "LIVING_AREA", "area_unit": "sqft"},
+    )
+    assert r.status_code == 200
+    m = _ready(client, pid)
+    loaded = {f["field"]: f["id"] for f in m["fields"] if f["field"]}
+    assert "bldg" in m["per"] and m["area_unit"] == "sqft"
+    area = loaded["bldg_area_finished_sqft"]
+    c = client.get(f"/api/projects/{pid}/map/column", params={"field": area, "per": "bldg"}).json()
+    v = np.frombuffer(base64.b64decode(c["values"]), dtype="<f4")
+    assert v[:5].tolist() == [1.0] * 5 and np.isnan(v[5]) and c["have"] == 5 and c["unsized"] == 0
+    d = client.get(f"/api/projects/{pid}/map/sales", params={"per": "bldg"}).json()
+    price = np.frombuffer(base64.b64decode(d["price"]), dtype="<f4")
+    # Sales on parcels 0, 0, 2, 3: areas 1500, 1500, 980, 1750.
+    assert np.allclose(price, [185000 / 1500, 210000 / 1500, 92500 / 980, 240000 / 1750])
+    assert client.get(f"/api/projects/{pid}/map/column", params={"field": area, "per": "nope"}).status_code == 404
+    # A land size loaded in acres is divided by in square feet (here YR_BLT read as acres, for a number to hand).
+    r = client.put(
+        f"/api/projects/{pid}/wizard/fields/land_area_sqft",
+        json={"file": "cama", "column": "YR_BLT", "area_unit": "acres"},
+    )
+    assert r.status_code == 200, r.text
+    c = client.get(f"/api/projects/{pid}/map/column", params={"field": area, "per": "land"}).json()
+    v = np.frombuffer(base64.b64decode(c["values"]), dtype="<f4")
+    want = np.array([1500, 2200, 980, 1750, 3100]) / (np.array([1987, 2003, 1954, 1968, 2011]) * 43_560)
+    assert np.allclose(v[:5], want)
+
+
+def test_a_sales_column_by_the_latest_sale(client, pid):
+    """The sales as brought in, on the parcels: each parcel by its latest sale's value; one with none, blank."""
+    import pandas as pd
+    from helpers import IDS
+
+    from oakbox import projects
+
+    start_wizard(client, pid)
+    _ready(client, pid)
+    out = projects.project_dir(pid) / "out" / "oakbox" / "bring_in"
+    out.mkdir(parents=True)
+    pd.DataFrame({"key": IDS}).to_parquet(out / "universe.parquet")
+    pd.DataFrame(
+        {
+            "key": [IDS[0], IDS[0], IDS[2]],
+            "key_sale": ["a", "b", "c"],
+            "sale_date": pd.to_datetime(["2024-05-01", "2021-01-01", "2023-03-03"]),
+            "deed_type": ["WD", "QC", "WD"],
+        }
+    ).to_parquet(out / "sales.parquet")
+    ids = {f["id"] for f in _ready(client, pid)["outs"]}
+    assert "out:sales:deed_type" in ids and "out:sales:key_sale" not in ids
+    c = client.get(f"/api/projects/{pid}/map/column", params={"field": "out:sales:deed_type"}).json()
+    codes = np.frombuffer(base64.b64decode(c["values"]), dtype="<u2").tolist()
+    got = [c["categories"][k] if k < len(c["categories"]) else "" for k in codes]
+    assert got == ["WD", "", "WD", "", "", ""]  # parcel 0's latest sale (2024) was a WD, not the 2021 QC

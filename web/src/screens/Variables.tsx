@@ -3,6 +3,7 @@ import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { LoadingBar } from "../components/Waiting";
 import { short, when } from "../lib/format";
+import { onward as goOnTo } from "../lib/returnto";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
 import { AreaStep } from "./AreaStep";
@@ -302,7 +303,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
             back={back}
             next={{
               label: m.toModels,
-              onPress: () => navigate({ name: "project", id: projectId, tab: "values" }),
+              onPress: () => goOnTo(projectId, "values"),
             }}
           />
         </>

@@ -2420,6 +2420,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/model/sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Model Sales
+         * @description A model's prediction on each sale of a set (held out, or any; its dates), with its place and ratio, for the
+         *     map.
+         */
+        get: operations["model_sales_api_projects__project_id__model_sales_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/model/small": {
         parameters: {
             query?: never;
@@ -2498,6 +2519,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/ratio/boxes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ratio Boxes
+         * @description Each VEI group's ratios as a box, by sale and by the price level of the sale's region, for their charts.
+         */
+        get: operations["ratio_boxes_api_projects__project_id__ratio_boxes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/ratio/similar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ratio Similar
+         * @description Every parcel with its group of similar parcels' spread of values (CHD), for Similar parcels' map.
+         */
+        get: operations["ratio_similar_api_projects__project_id__ratio_similar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/ratio/regions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ratio Regions
+         * @description Each sale studied by its region, and each region's median ratio, for Neighbourhood price levels' map.
+         */
+        get: operations["ratio_regions_api_projects__project_id__ratio_regions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/ratio/similar/group": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ratio Similar Group
+         * @description One group of similar parcels: each parcel's ID, place and value, for the card on Similar parcels' map.
+         */
+        get: operations["ratio_similar_group_api_projects__project_id__ratio_similar_group_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/final/parcels": {
         parameters: {
             query?: never;
@@ -2530,26 +2631,6 @@ export interface paths {
          * @description Each sale a set of sales judges the model values on, with its place and ratio, for the map.
          */
         get: operations["final_sales_api_projects__project_id__final_sales_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects/{project_id}/ratio/points": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Ratio Points
-         * @description Each sale studied: its price, its ratio, and whether it was trimmed.
-         */
-        get: operations["ratio_points_api_projects__project_id__ratio_points_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2911,7 +2992,8 @@ export interface paths {
         };
         /**
          * Map Column
-         * @description A field's value for each parcel (field: file:column, from the map's field list).
+         * @description A field's value for each parcel (field: file:column, from the map's field list); per: divided by each
+         *     parcel's building or land size (bldg, land).
          */
         get: operations["map_column_api_projects__project_id__map_column_get"];
         put?: never;
@@ -2931,7 +3013,8 @@ export interface paths {
         };
         /**
          * Map Sales
-         * @description Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say).
+         * @description Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say);
+         *     per: its price divided by its parcel's building or land size (bldg, land).
          */
         get: operations["map_sales_api_projects__project_id__map_sales_get"];
         put?: never;
@@ -3476,6 +3559,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["AssembleReceipt"] | null;
             /** Exports */
             exports: ("gpkg" | "shp" | "csv")[];
@@ -3532,6 +3621,48 @@ export interface components {
              * @description The group whose time adjustment it uses; null: its own.
              */
             source: string | null;
+        };
+        /**
+         * Box
+         * @description One VEI group's ratios as a box plot (openratiostudy.com's chart): the quartiles, the whiskers (the furthest
+         *     ratios within 1.5 IQR of the box) and the ratios past them; and every sale in it, for its dots.
+         */
+        Box: {
+            /** N */
+            n: number;
+            /** Q1 */
+            q1: number;
+            /** Median */
+            median: number;
+            /** Q3 */
+            q3: number;
+            /** Lo */
+            lo: number;
+            /** Hi */
+            hi: number;
+            /**
+             * Outliers
+             * @description Past the whiskers; at most POINTS, the furthest kept.
+             */
+            outliers: number[];
+            /**
+             * Price Low
+             * @description The group's cheapest sale.
+             */
+            price_low: number;
+            /**
+             * Price High
+             * @description Its dearest.
+             */
+            price_high: number;
+            /**
+             * Points
+             * @description Each sale's (price, ratio); at most POINTS, an even sample of them when there are more.
+             */
+            points: [
+                number,
+                number
+            ][];
         };
         /**
          * ByHand
@@ -4036,6 +4167,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["CleanReceipt"] | null;
             /** Accepted */
             accepted: boolean;
@@ -5340,6 +5477,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["FinalReceipt"] | null;
             /** Accepted */
             accepted: boolean;
@@ -6435,6 +6578,12 @@ export interface components {
              * @default []
              */
             auto: number[];
+            /**
+             * Unsized
+             * @description Per size: parcels with a value but no size (or zero), left blank.
+             * @default 0
+             */
+            unsized: number;
         };
         /** MapField */
         MapField: {
@@ -6497,6 +6646,24 @@ export interface components {
              * @default []
              */
             sales: string[];
+            /**
+             * Outs
+             * @description The app's own outputs' columns (out:<source>:<column>).
+             * @default []
+             */
+            outs: components["schemas"]["MapField"][];
+            /**
+             * Per
+             * @description The sizes a value can be shown per (bldg, land): the ones loaded on the parcels.
+             * @default []
+             */
+            per: string[];
+            /**
+             * Area Unit
+             * @description The project's small area unit, a size's: sqft or sqm.
+             * @default sqft
+             */
+            area_unit: string;
         };
         /** MapPoint */
         MapPoint: {
@@ -6512,6 +6679,11 @@ export interface components {
             value: number;
             /** Trimmed */
             trimmed: boolean;
+            /**
+             * Key Sale
+             * @description The sale: Extreme ratios picks it on the map.
+             */
+            key_sale: string | null;
         };
         /** MapProblem */
         MapProblem: {
@@ -6601,6 +6773,12 @@ export interface components {
              */
             vacant: string;
             /**
+             * Deed
+             * @description int8: 1 its deed has another sale that day, 0 alone, -1 no deed ID.
+             * @default
+             */
+            deed: string;
+            /**
              * Price Quantiles
              * @default []
              */
@@ -6622,9 +6800,15 @@ export interface components {
             year_auto: number[];
             /**
              * Has
-             * @description Which of price, year, valid, vacant the sales file has.
+             * @description Which of price, year, valid, vacant, deed the sales file has.
              */
             has: string[];
+            /**
+             * Unsized
+             * @description Per size: sales with a price on a parcel with no size, left blank.
+             * @default 0
+             */
+            unsized: number;
         };
         /**
          * MapView
@@ -7153,6 +7337,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["ModelReceipt"] | null;
         };
         /** NameFormat */
@@ -8562,6 +8752,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["PrepareReceipt"] | null;
             /** Accepted */
             accepted: boolean;
@@ -8958,6 +9154,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["RatioReceipt"] | null;
             /** Accepted */
             accepted: boolean;
@@ -9105,6 +9307,39 @@ export interface components {
             code: string;
             /** Name */
             name: string;
+        };
+        /**
+         * RegionPoints
+         * @description Each sale studied with a place, by its region (neighbourhood), as columns, for Neighbourhood price levels'
+         *     map: each coloured by its region's median ratio (the outlying ratios left out of it, as in the statistics).
+         */
+        RegionPoints: {
+            /** Lon */
+            lon: number[];
+            /** Lat */
+            lat: number[];
+            /**
+             * Region
+             * @description Index into regions.
+             */
+            region: number[];
+            /** Regions */
+            regions: string[];
+            /**
+             * Median
+             * @description Each region's median ratio.
+             */
+            median: (number | null)[];
+            /**
+             * Sales
+             * @description Each region's sales counted in its median.
+             */
+            sales: number[];
+            /**
+             * Overall
+             * @description The median ratio of all of them, the same way.
+             */
+            overall: number | null;
         };
         /**
          * RegionStats
@@ -9451,11 +9686,23 @@ export interface components {
             status: "undecided" | "kept" | "excluded";
             /** Note */
             note: string;
+            /**
+             * Latitude
+             * @description Where it is, for the map.
+             */
+            latitude: number | null;
+            /** Longitude */
+            longitude: number | null;
         };
         /** ReviewPage */
         ReviewPage: {
             /** Items */
             items: components["schemas"]["ReviewItem"][];
+            /**
+             * Points
+             * @description Every sale matching the filters (not just this page), for the map.
+             */
+            points: components["schemas"]["ReviewPoint"][];
             /**
              * Total
              * @description Matching the filters.
@@ -9485,6 +9732,22 @@ export interface components {
              * @enum {string}
              */
             unit: "sqft" | "sqm";
+        };
+        /** ReviewPoint */
+        ReviewPoint: {
+            /** Key Sale */
+            key_sale: string;
+            /** Latitude */
+            latitude: number;
+            /** Longitude */
+            longitude: number;
+            /** Checks */
+            checks: string[];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "undecided" | "kept" | "excluded";
         };
         /** RowField */
         RowField: {
@@ -10041,6 +10304,64 @@ export interface components {
         ShowBody: {
             /** Path */
             path: string;
+        };
+        /**
+         * SimilarGroup
+         * @description One group of similar parcels: each parcel's ID, place and value (the field studied), dearest first.
+         */
+        SimilarGroup: {
+            /** Cluster */
+            cluster: string;
+            /** Chd */
+            chd: number | null;
+            /** Median */
+            median: number | null;
+            /** Members */
+            members: components["schemas"]["SimilarMember"][];
+        };
+        /** SimilarMember */
+        SimilarMember: {
+            /** Key */
+            key: string;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Value */
+            value: number | null;
+        };
+        /**
+         * SimilarPoints
+         * @description Every parcel with a place and a group of similar parcels, as columns, for Similar parcels' map: each coloured by
+         *     how far apart its group's values are (its CHD).
+         */
+        SimilarPoints: {
+            /** Lon */
+            lon: number[];
+            /** Lat */
+            lat: number[];
+            /**
+             * Chd
+             * @description Its group of similar parcels' CHD; null: a group of one.
+             */
+            chd: (number | null)[];
+            /**
+             * Size
+             * @description Parcels in its group of similar parcels.
+             */
+            size: number[];
+            /**
+             * Cluster
+             * @description Index into clusters: its group of similar parcels.
+             * @default []
+             */
+            cluster: number[];
+            /**
+             * Clusters
+             * @description Each group's id (model group:cluster), for its members.
+             * @default []
+             */
+            clusters: string[];
         };
         /** SkipBody */
         SkipBody: {
@@ -11379,6 +11700,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["VarTestReceipt"] | null;
         };
         /** Variable */
@@ -11414,6 +11741,27 @@ export interface components {
              * @description A category's values: each becomes a column of its own to the models (one-hot), which slows them.
              */
             values: number | null;
+        };
+        /** VeiBoxes */
+        VeiBoxes: {
+            /**
+             * By Sale
+             * @description The VEI's percentile groups, by each sale's market value proxy.
+             */
+            by_sale: components["schemas"]["Box"][];
+            /**
+             * By Region
+             * @description The same groups by the price level of each sale's region.
+             */
+            by_region: components["schemas"]["Box"][];
+            /**
+             * Trimmed
+             * @description The sales trimmed (price, ratio): in no group, drawn grey by price.
+             */
+            trimmed: [
+                number,
+                number
+            ][];
         };
         /**
          * Verdict
@@ -11472,6 +11820,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["Receipt"] | null;
             /**
              * Changed
@@ -16487,6 +16841,43 @@ export interface operations {
             };
         };
     };
+    model_sales_api_projects__project_id__model_sales_get: {
+        parameters: {
+            query: {
+                group: string;
+                model: string;
+                first?: string;
+                last?: string;
+                held_out?: boolean;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapPoint"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     model_small_api_projects__project_id__model_small_get: {
         parameters: {
             query?: never;
@@ -16654,6 +17045,144 @@ export interface operations {
             };
         };
     };
+    ratio_boxes_api_projects__project_id__ratio_boxes_get: {
+        parameters: {
+            query: {
+                field: string;
+                group?: string;
+                region?: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VeiBoxes"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_similar_api_projects__project_id__ratio_similar_get: {
+        parameters: {
+            query: {
+                field: string;
+                group?: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimilarPoints"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_regions_api_projects__project_id__ratio_regions_get: {
+        parameters: {
+            query: {
+                field: string;
+                region: string;
+                group?: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegionPoints"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_similar_group_api_projects__project_id__ratio_similar_group_get: {
+        parameters: {
+            query: {
+                field: string;
+                cluster: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimilarGroup"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     final_parcels_api_projects__project_id__final_parcels_get: {
         parameters: {
             query?: never;
@@ -16706,44 +17235,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MapPoint"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    ratio_points_api_projects__project_id__ratio_points_get: {
-        parameters: {
-            query: {
-                field: string;
-                group?: string;
-            };
-            header?: never;
-            path: {
-                project_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": [
-                        number,
-                        number,
-                        boolean
-                    ][];
                 };
             };
             /** @description Validation Error */
@@ -17377,6 +17868,7 @@ export interface operations {
         parameters: {
             query: {
                 field: string;
+                per?: string;
             };
             header?: never;
             path: {
@@ -17408,7 +17900,9 @@ export interface operations {
     };
     map_sales_api_projects__project_id__map_sales_get: {
         parameters: {
-            query?: never;
+            query?: {
+                per?: string;
+            };
             header?: never;
             path: {
                 project_id: string;

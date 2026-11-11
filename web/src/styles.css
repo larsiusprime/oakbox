@@ -1837,6 +1837,10 @@ a.row-title:hover {
 .wiz-main {
   display: flex;
   flex-direction: column;
+  /* As tall as what's in it (never stretched to a long step list's height, which put Next below the window), at
+     least the frame's own least height. */
+  align-self: start;
+  min-height: 25rem;
   min-width: 0;
   background: var(--paper);
   border: 1px solid var(--paper-edge);
@@ -2263,7 +2267,8 @@ like the wizard's Next {
 
 .rc-cols {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  /* Side by side where two fit; else one under the other, never wider than the sheet. */
+  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
   gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
 }
 
@@ -2486,8 +2491,18 @@ like the wizard's Next {
 }
 
 /* A location field: removable on its own, so its own box, its ✕ at the right. */
+/* A location field's row: where it's narrow, its buttons go under it (at the right), the name never split. */
+.wiz-loc > .mono {
+  flex: none;
+}
+/* Its column and file give way first (they wrap), so the buttons stay on the row together. */
+.wiz-loc > .wiz-from {
+  flex: 1 1 6rem;
+  min-width: 0;
+}
 .wiz-loc {
   display: flex;
+  flex-wrap: wrap;
   gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   align-items: center;
   min-width: 0;
@@ -2501,6 +2516,8 @@ like the wizard's Next {
 
 .wiz-loc-add {
   display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   margin-top: calc(0.4 * var(--sp));
@@ -2605,6 +2622,7 @@ like the wizard's Next {
 }
 .bi-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
 }
@@ -3415,10 +3433,14 @@ ul.mg-checks {
 
 /* Your own fields (Land use & building type): one table, the add row last. */
 .cf-tbl {
+  /* As wide as what's in it: no spare width spread into the columns (not stretched by the section around it). */
+  align-self: flex-start;
+  justify-self: start;
+  width: auto;
   font-size: 0.9rem;
 }
 .cf-th {
-  padding: calc(0.15 * var(--sp)) calc(0.5 * var(--sp)) calc(0.25 * var(--sp)) 0;
+  padding: calc(0.15 * var(--sp)) calc(0.3 * var(--sp)) calc(0.25 * var(--sp));
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 600;
@@ -3426,7 +3448,7 @@ ul.mg-checks {
   border-bottom: 1px solid var(--rule);
 }
 .cf-td {
-  padding: calc(0.25 * var(--sp)) calc(0.5 * var(--sp)) calc(0.25 * var(--sp)) 0;
+  padding: calc(0.25 * var(--sp)) calc(0.3 * var(--sp));
   vertical-align: middle;
   border-bottom: 1px solid var(--cell-line);
 }
@@ -3435,7 +3457,7 @@ ul.mg-checks {
   border-bottom: 0;
 }
 .cf-td .choice {
-  min-width: 9.5rem;
+  min-width: 6.5rem;
 }
 .cf-vals {
   display: inline-flex;
@@ -3443,7 +3465,7 @@ ul.mg-checks {
   align-items: center;
 }
 .cf-name-input {
-  width: 10rem;
+  width: 7.5rem;
 }
 .ly-body,
 .ly-inline {
@@ -4327,7 +4349,8 @@ tr.bi-kept > td {
 }
 .cs-split {
   display: grid;
-  grid-template-columns: minmax(16rem, 22rem) 1fr;
+  /* The list and the one picked side by side; one under the other where the detail would have under 22rem. */
+  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
   gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: start;
 }
@@ -4468,6 +4491,8 @@ tr.bi-kept > td {
 }
 .cs-step {
   display: grid;
+  /* Never wider than the sheet: what's in it gives way (a wide table scrolls in its own box). */
+  grid-template-columns: minmax(0, 1fr);
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   margin: 0 0 calc(1 * var(--sp));
 }
@@ -5211,7 +5236,7 @@ under what it's about; a file appended as rows {
 .fv {
   overflow-x: auto;
 }
-.fv .rv-score-cell > :last-child {
+.rv-score .rv-score-cell > :last-child {
   white-space: nowrap;
 }
 .fv .rv-score th:first-child {
@@ -5253,6 +5278,12 @@ under what it's about; a file appended as rows {
 /* Over the dots: deck.gl draws in a corner control box, above MapLibre's markers unless they're lifted. */
 .map-view .maplibregl-marker:has(> .wiz-pin),
 .map-view .maplibregl-marker.wiz-pin {
+  /* Over deck.gl's drawing, which MapLibre's control corner (z-index 2) holds; never drawn into the map's canvas
+     (interleaved), which loses the dots when the street map is switched. */
+  z-index: 10;
+}
+/* The zoom buttons over the dots too: their corner comes before deck.gl's (top right) at the same z-index. */
+.map-view .maplibregl-ctrl-top-left {
   z-index: 3;
 }
 .wiz-pin {
@@ -5918,21 +5949,47 @@ under what it's about; a file appended as rows {
 /* In a narrow card (a field's two capsules side by side), the values button goes under the reading, never past
    the card's edge. */
 .as-cap .field-tools {
-  display: inline-flex;
-  flex-wrap: wrap;
+  /* In a capsule: the reading on the left; the values and Map buttons stacked at the right, one width. */
+  display: inline-grid;
+  grid-template-columns: minmax(0, 11rem) auto;
+  column-gap: 0.5rem;
+  row-gap: 0.3rem;
+}
+.as-cap .field-tools > :first-child {
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+.as-cap .field-tools > .vals-button,
+.as-cap .field-tools > .show-on-map {
+  grid-column: 2;
+  justify-self: end;
+  justify-content: center;
+  width: 8.5rem;
 }
 /* Only where the sheet is near its narrowest (a map docked beside it): the values button under the reading. */
 .wiz-body {
   container-type: inline-size;
 }
-@container (max-width: 44rem) {
+/* Before the row runs past its box (the reading, values and Map need about 50rem with the field's label and choice):
+   the buttons wrap under the reading, kept at the right edge. */
+@container (max-width: 52rem) {
   .field-tools {
-    display: inline-flex;
+    display: flex;
     flex-wrap: wrap;
+    justify-content: flex-end;
   }
+  /* The reading and buttons on a line of their own under the column, at the right (the column they had is too narrow
+     to hold them). */
+  .wiz-grid > .wiz-samples:has(> .field-tools) {
+    grid-column: 2 / -1;
+    justify-self: end;
+  }
+  /* The reading keeps its width (never cut short); the buttons go together beside or under it. */
   .field-tools > :first-child {
-    width: 11rem;
-    max-width: 100%;
+    flex: 0 0 11rem;
+  }
+  .field-tools > :not(:first-child) {
+    flex: none;
   }
 }
 .field-tools > .button.button-small {
@@ -6138,7 +6195,9 @@ under what it's about; a file appended as rows {
 }
 .rl-conds {
   display: grid;
-  grid-template-columns: 12rem 10rem 16rem max-content;
+  /* Each column gives way before the row runs past the sheet (a map docked beside it). */
+  grid-template-columns: minmax(0, 12rem) minmax(0, 10rem) minmax(0, 16rem) max-content;
+  max-width: 100%;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -6214,7 +6273,9 @@ under what it's about; a file appended as rows {
 
 /* Sales' IDs: the parcel ID and the sale ID rows on one grid. */
 .wiz-grid.frame.ids-box {
-  grid-template-columns: max-content minmax(16rem, max-content) max-content;
+  /* The note after each choice wraps before the box runs past the sheet. */
+  grid-template-columns: max-content minmax(min(16rem, 100%), max-content) minmax(0, max-content);
+  max-width: 100%;
 }
 .ids-box > .wiz-grid {
   display: contents;
@@ -6327,6 +6388,8 @@ under what it's about; a file appended as rows {
 }
 .loc-side {
   display: grid;
+  /* Never wider than the side itself: its rows give way rather than run past the sheet. */
+  grid-template-columns: minmax(0, max-content);
   flex: none;
   align-content: start;
   gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
@@ -6341,10 +6404,11 @@ under what it's about; a file appended as rows {
   grid-template-columns: minmax(0, 1fr) max-content;
   margin-top: 0;
 }
-.wiz-fill > .loc-side > .wiz-loc-add > .choice {
+.loc-side > .wiz-loc-add > .choice {
+  /* A row of its own, the name and Add under it: side by side they ran past the sheet. */
   grid-column: 1 / -1;
   width: 100%;
-  min-width: 14rem;
+  min-width: 0;
 }
 .loc-side > .wiz-loc-add .input.rl-input {
   width: 100%;
@@ -6563,9 +6627,11 @@ html[data-map="top"] .oak-nav {
 .mapwin-title {
   white-space: nowrap;
 }
+/* Starts small and grows to fill the line (to 22rem): the per box and Follow fit beside it before anything wraps. */
 .mapwin-field {
   min-width: 0;
-  flex: 0 1 22rem;
+  flex: 1 1 9rem;
+  max-width: 22rem;
 }
 .mapwin-field .combo-input {
   width: 100%;
@@ -6690,7 +6756,7 @@ html[data-map="top"] .oak-nav {
   display: grid;
   gap: 0.25rem;
   padding: 0.35rem 0.6rem 0.45rem;
-  border-top: 1px solid var(--line, #c9ccc4);
+  border-bottom: 1px solid var(--line, #c9ccc4);
   font-size: 0.85rem;
   max-height: 40%;
   overflow: auto;
@@ -6819,6 +6885,14 @@ html[data-map="top"] .oak-nav {
 .mapcard-h {
   margin: 0.5rem 0 0.25rem;
   font-size: 0.85rem;
+}
+/* A section's heading: pressed, it folds the section away or unfolds it. */
+.mapcard-h .mapcard-fold {
+  width: 100%;
+  font: inherit;
+  font-weight: 650;
+  color: inherit;
+  text-align: left;
 }
 .mapcard-tbl {
   width: 100%;
@@ -7288,7 +7362,10 @@ div.map-wait-ask small {
 }
 .ol-detail {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  /* The sale and how it's unlike the others side by side, each half the sheet; one under the other where they'd be
+     squeezed (below). Two columns, not auto-fit: Why is it off? spans the row, and auto-fit made a third, empty column
+     for it beside a map. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: max(var(--sp), min(1rem, var(--gap-min)));
   border-top: 2px solid var(--rule);
   padding-top: max(var(--sp), min(1rem, var(--gap-min)));
@@ -7410,7 +7487,12 @@ div.map-wait-ask small {
   font-weight: 600;
 }
 @media (max-width: 1100px) {
-  .ol-top,
+  .ol-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* By the sheet's own width (a map docked beside it narrows it): side by side from about 42rem. */
+@container (max-width: 42rem) {
   .ol-detail {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -7649,11 +7731,15 @@ section.wiz-section:has(> .cf-tbl),
    spread right under; the sales record's comparison below a dotted line. */
 .as-cap {
   display: grid;
+  /* One column, the capsule's whole width: its header band runs edge to edge, whatever's under it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: calc(0.5 * var(--sp));
   align-content: start;
   padding-top: 0;
 }
 .as-cap > .as-head {
+  /* Wider than the column by its negative margins: out to the capsule's edges (a cap of 100% stopped it short). */
+  max-width: none;
   margin: 0 calc(-0.7 * var(--sp));
   padding: 0.35rem calc(0.7 * var(--sp));
   border-bottom: 1px solid var(--entry-head);
@@ -8115,4 +8201,754 @@ section.wiz-section:has(> .cf-tbl),
   display: inline-flex;
   gap: 0.4rem;
   margin-left: 0.5rem;
+}
+/* Location fields: every field's row as wide as the widest, its buttons at the right edge, lined up row to row. */
+.loc-side > .entry-list {
+  display: grid;
+  width: max-content;
+  max-width: 100%;
+}
+.wiz-loc > .vals-button {
+  margin-left: auto;
+}
+.wiz-loc > .show-on-map {
+  min-width: 8.5rem;
+  justify-content: center;
+}
+/* Your own fields: the remove button centred in its cell. */
+.cf-td.cf-remove {
+  text-align: center;
+}
+.cf-td.cf-remove > * {
+  margin: 0 auto;
+  vertical-align: middle;
+}
+/* A capsule's values and Map buttons (a field read in its own box): stacked at the right, one width. */
+.wiz-capsule > .wiz-samples:has(> .show-on-map) {
+  display: inline-grid;
+  justify-items: stretch;
+  gap: 0.3rem;
+}
+.wiz-capsule > .wiz-samples > :is(.vals-button, .show-on-map) {
+  justify-content: center;
+  width: 8.5rem;
+  margin-left: 0;
+}
+/* Your own fields: the add row's column picker takes the column's width (its fields' names), not the longest name
+   it offers, so the table stays as narrow as what's in it. */
+.cf-add-td:first-child .choice {
+  min-width: 0;
+  width: 100%;
+}
+.cf-add-td:first-child .combo-field {
+  width: 100%;
+}
+.cf-add-td:first-child .combo-input {
+  width: 0;
+  min-width: 6.5rem;
+  flex: 1;
+}
+/* Your own fields: the values and Map buttons stacked in one narrow column. */
+.cf-vals:has(> .show-on-map) {
+  display: inline-grid;
+  gap: 0.25rem;
+}
+.cf-vals > :is(.vals-button, .show-on-map) {
+  justify-content: center;
+  margin-left: 0;
+}
+.cf-td .choice-value {
+  white-space: nowrap;
+}
+/* Evaluate's Summary: Show on map at the end of each group's row, and one for every group above the table. */
+.rv-score td.rv-onmap {
+  white-space: nowrap;
+}
+.rv-onmap-all {
+  display: flex;
+  justify-content: flex-end;
+}
+/* A table in its own scroll (tbl-wrap): as wide as its figures and words read, never squeezed into the page. */
+:is(.rv-cards .tbl-wrap, .tbl-natural) > table {
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+}
+:is(.rv-cards .tbl-wrap, .tbl-natural) > table td {
+  white-space: nowrap;
+}
+tr.rv-picked > td {
+  background: var(--head);
+}
+.mapwin-banner.mapwin-hold {
+  color: var(--muted);
+  background: #f3f3f0;
+  border-bottom-color: var(--rule);
+}
+
+/* How they did: a model's name, its Map at the cell's right. */
+.md-model {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.md-model > :last-child {
+  margin-left: auto;
+}
+.show-on-map-icon {
+  padding-inline: 0.35rem;
+}
+
+/* Per size, after the field picker: compact; blue once a size divides the value, so it's never read as the value. */
+.mapwin-per,
+.mapwin-head .mapwin-per {
+  flex: none;
+  width: max-content;
+  min-width: 0;
+}
+.mapwin-per .choice-button {
+  width: max-content;
+  min-width: 0;
+  white-space: nowrap;
+}
+.mapwin-per.on .choice-button {
+  border-color: #1f4b8e;
+  background: #dbe7f7;
+  color: #1f4b8e;
+  font-weight: 600;
+}
+.mapwin-per .choice-item[data-disabled] {
+  color: var(--muted, #5f6159);
+}
+
+/* A field's capsule beside another (Big five, the 🌐 and 💰 side by side): too narrow for the column, its unit and
+   the values and Map buttons on one line, the buttons go under them, at the right, side by side, never past the
+   capsule's edge. */
+.as-cap.cap-narrow .wiz-capsules > .wiz-capsule > .wiz-samples {
+  grid-column: 1 / -1;
+  justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  width: auto;
+}
+
+/* Inputs' field table: the field's name, its Map button at the cell's right. */
+.bi-field {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.bi-field > .show-on-map {
+  margin-left: auto;
+}
+
+/* The step list as a thin rail (SPEC D): each step its number and mark only, its name a tooltip; a part, its mark.
+   Chosen (rail-thin) or, left to itself, when the folder is too narrow for the full list beside the sheet's least
+   width (13rem + 36rem and the gaps): the sheet gets the room instead of the folder scrolling sideways. */
+.folder-panel {
+  container: folder / inline-size;
+}
+.wiz-rail-toggle {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0.3rem 0.2rem;
+}
+.wiz-rail-toggle button {
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0.1rem 0.4rem;
+  color: var(--muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.wiz-rail-toggle button:hover {
+  border-color: var(--paper-edge);
+  background: var(--paper);
+  color: var(--text);
+}
+.wiz-steps .rail-to-wide {
+  display: none;
+}
+.wiz:has(> .wiz-steps.rail-thin) {
+  grid-template-columns: 3.6rem minmax(var(--sheet-min), 1fr);
+}
+.wiz-steps.rail-thin {
+  --rail-thin: 1;
+}
+.wiz-steps.rail-thin .rail-to-thin {
+  display: none;
+}
+.wiz-steps.rail-thin .rail-to-wide {
+  display: inline;
+}
+.wiz-steps.rail-thin .wiz-rail-toggle {
+  justify-content: center;
+}
+.wiz-steps.rail-thin .wiz-step .t {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.wiz-steps.rail-thin .wiz-step button,
+.wiz-steps.rail-thin .wiz-step.sub button {
+  justify-content: center;
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
+}
+.wiz-steps.rail-thin .wiz-step.sub .mark {
+  margin-left: 0;
+  text-align: center;
+}
+/* A part with no mark yet: a dot, a row as tall as the others, so it can be pressed. */
+.wiz-steps.rail-thin .wiz-step.sub .mark:empty::before {
+  content: "·";
+  color: var(--muted);
+}
+.wiz-steps.rail-thin .wiz-step button {
+  min-height: 1.35rem;
+  align-items: center;
+}
+@container folder (max-width: 51rem) {
+  .wiz:has(> .wiz-steps:not(.rail-wide)) {
+    grid-template-columns: 3.6rem minmax(var(--sheet-min), 1fr);
+  }
+  .wiz-steps:not(.rail-wide) {
+    --rail-thin: 1;
+  }
+  .wiz-steps:not(.rail-wide) .rail-to-thin {
+    display: none;
+  }
+  .wiz-steps:not(.rail-wide) .rail-to-wide {
+    display: inline;
+  }
+  .wiz-steps:not(.rail-wide) .wiz-rail-toggle {
+    justify-content: center;
+  }
+  .wiz-steps:not(.rail-wide) .wiz-step .t {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .wiz-steps:not(.rail-wide) .wiz-step button,
+  .wiz-steps:not(.rail-wide) .wiz-step.sub button {
+    justify-content: center;
+    padding-left: 0.2rem;
+    padding-right: 0.2rem;
+  }
+  .wiz-steps:not(.rail-wide) .wiz-step.sub .mark {
+    margin-left: 0;
+    text-align: center;
+  }
+  /* A part with no mark yet: a dot, a row as tall as the others, so it can be pressed. */
+  .wiz-steps:not(.rail-wide) .wiz-step.sub .mark:empty::before {
+    content: "·";
+    color: var(--muted);
+  }
+  .wiz-steps:not(.rail-wide) .wiz-step button {
+    min-height: 1.35rem;
+    align-items: center;
+  }
+}
+
+/* Location fields' add row: the column picker gives way (it's sized to its longest option) before the row runs past
+   the sheet. */
+.wiz-loc-add > .choice {
+  flex: 0 1 auto;
+  min-width: 10rem;
+  max-width: 100%;
+}
+.wiz-loc-add > .choice .combo-input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Outliers: how the sale is unlike the others, a table that scrolls in its own box if it must. */
+.ol-unlike {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+/* The rail (SPEC D): two columns, numbers then marks; a part's mark under its step's, a guide line beside the parts
+   (mock B, 2026-11-11). */
+.wiz-steps.rail-thin .wiz-step button,
+.wiz-steps.rail-thin .wiz-step.sub button {
+  display: grid;
+  grid-template-columns: 1.5rem 1.1rem;
+  column-gap: 3px;
+  justify-content: center;
+  align-items: center;
+}
+.wiz-steps.rail-thin .wiz-step .n {
+  grid-column: 1;
+  width: auto;
+}
+.wiz-steps.rail-thin .wiz-step .mark,
+.wiz-steps.rail-thin .wiz-step.sub .mark {
+  grid-column: 2;
+  grid-row: 1;
+  width: auto;
+  margin-left: 0;
+  text-align: center;
+}
+/* A step's parts: a guide line down the number column beside them. */
+.wiz-steps.rail-thin .wiz-step.sub button::before {
+  content: "";
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: end;
+  align-self: stretch;
+  width: 2px;
+  margin-right: 5px;
+  /* Through the row's padding: one line down the parts, unbroken. */
+  margin-block: calc(-0.16 * var(--sp) - 1px);
+  background: var(--paper-edge, #d9cfae);
+}
+@container folder (max-width: 51rem) {
+  .wiz-steps:not(.rail-wide) .wiz-step button,
+  .wiz-steps:not(.rail-wide) .wiz-step.sub button {
+    display: grid;
+    grid-template-columns: 1.5rem 1.1rem;
+    column-gap: 3px;
+    justify-content: center;
+    align-items: center;
+  }
+  .wiz-steps:not(.rail-wide) .wiz-step .n {
+    grid-column: 1;
+    width: auto;
+  }
+  .wiz-steps:not(.rail-wide) .wiz-step .mark,
+  .wiz-steps:not(.rail-wide) .wiz-step.sub .mark {
+    grid-column: 2;
+    grid-row: 1;
+    width: auto;
+    margin-left: 0;
+    text-align: center;
+  }
+  /* A step's parts: a guide line down the number column beside them. */
+  .wiz-steps:not(.rail-wide) .wiz-step.sub button::before {
+    content: "";
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: end;
+    align-self: stretch;
+    width: 2px;
+    margin-right: 5px;
+    margin-block: calc(-0.16 * var(--sp) - 1px);
+    background: var(--paper-edge, #d9cfae);
+  }
+}
+
+/* A values button's count alone, and a Map button's icon alone, where there's no room for their words. */
+.vals-button .vals-short {
+  display: none;
+}
+.as-cap.cap-narrow .vals-button .vals-long,
+.as-cap.cap-narrow .show-on-map .som-label {
+  display: none;
+}
+.as-cap.cap-narrow .vals-button .vals-short {
+  display: inline;
+}
+.as-cap.cap-narrow .wiz-samples > .button.vals-button,
+.as-cap.cap-narrow .wiz-samples > .show-on-map {
+  width: auto;
+  min-width: 0;
+}
+.as-cap.cap-narrow .wiz-samples > .show-on-map {
+  padding-inline: 0.4rem;
+}
+
+/* Narrow: the column's picker takes what's left of its row (never more); under it, the reading at the left and the
+   short buttons at the right, on one line. */
+.as-cap.cap-narrow .wiz-grid.wiz-capsules {
+  grid-template-columns: max-content minmax(0, 1fr);
+  width: 100%;
+}
+.as-cap.cap-narrow .wiz-capsules > .wiz-capsule > .wiz-samples {
+  justify-self: stretch;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+.as-cap.cap-narrow .wiz-capsules > .wiz-capsule > .wiz-samples > :first-child:not(button) {
+  margin-right: auto;
+}
+.as-cap.cap-narrow .wiz-capsule > .wiz-samples > :is(.vals-button, .show-on-map),
+.as-cap.cap-narrow .wiz-capsule > .wiz-samples :is(.vals-button, .show-on-map) {
+  width: auto;
+  min-width: 0;
+}
+/* … the reading, then the two short buttons side by side at the right. */
+.as-cap.cap-narrow .wiz-samples > .field-tools {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.4rem;
+}
+.as-cap.cap-narrow .wiz-samples > .field-tools > :first-child {
+  flex: 1 1 auto;
+  width: auto;
+  margin-right: auto;
+}
+.as-cap.cap-narrow .field-tools > :is(.vals-button, .show-on-map) {
+  width: auto;
+}
+
+/* What the map draws: the parcel universe and the sales record, each on or off. */
+.mapwin-show {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.9rem;
+  font-size: 0.85rem;
+}
+.mapwin-show label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+/* "Every group on the map" in the header cell above the rows' Show on map. */
+th.rv-onmap {
+  white-space: nowrap;
+  font-weight: normal;
+  text-transform: none;
+}
+
+/* Similar parcels: a clicked parcel's group, a card over the map: each parcel's ID (go to it) and value. */
+.sim-card {
+  position: absolute;
+  top: 0.5rem;
+  left: 3rem;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  width: 15rem;
+  max-height: calc(100% - 1rem);
+  padding: 0.4rem 0.5rem;
+  background: var(--paper, #fff);
+  border: 1px solid var(--frame, #c9c2b0);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  font-size: 0.85rem;
+}
+.sim-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+.sim-card p {
+  margin: 0.15rem 0;
+}
+.sim-hint,
+.sim-figs {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.sim-list {
+  overflow: auto;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sim-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.05rem 0.25rem;
+}
+.sim-list li.on {
+  background: var(--info-tint, #eef4fc);
+  font-weight: 600;
+}
+.sim-val {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sales set aside: a sale of the group picked to look at on the map. */
+tr.cs-focus > td {
+  background: #dbe7f7;
+  font-weight: 600;
+}
+/* A sale's ID or address, never split across lines. */
+tr > td > .wiz-link[aria-pressed] {
+  white-space: nowrap;
+}
+td.cs-day {
+  white-space: nowrap;
+}
+
+/* A tab that waits on an earlier step (SPEC D, 2026-11-11): never moved off; greyed in the tab bar, still opened; its
+   page dimmed under a bar that says what it waits on and goes there. */
+.folder-tab-waits:not([data-selected]) {
+  background: #e9dcb4;
+  color: #8a7650;
+}
+.wait-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.8rem;
+  margin-bottom: calc(0.6 * var(--sp));
+  padding: 0.45rem 0.7rem;
+  background: var(--warn-tint, #fff4e0);
+  border: 1px solid var(--warn-edge, #f0c78a);
+  border-radius: 3px;
+  font-size: 0.92rem;
+}
+.folder-panel.waits > :not(.wait-bar) {
+  opacity: 0.6;
+}
+
+/* A project's page (SPEC D, 2026-11-11): the window's height, the lid and the tab row pinned; only the folder under
+   the tabs scrolls (both ways), so a step's foot can stick to its bottom. Other screens scroll as a page. */
+.content:has(> .project) {
+  box-sizing: border-box;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* The lid at the window's top; the folder flush with the frame's sides and bottom, no wood between (2026-11-11). A
+     docked map's own padding (html[data-map]) still makes its room. */
+  padding: 0 var(--rim) var(--rim);
+}
+.content > .project > .oak-nav {
+  position: relative;
+  margin-top: 0;
+  /* the tabs right under the lid: no wood between (2026-11-11) */
+  margin-bottom: 0;
+}
+.content > .project {
+  gap: 0;
+}
+/* Out to the window's edges; over a map docked on a side, its own rule reaches across it. */
+html:not([data-map="left"]) .content > .project > .oak-nav {
+  margin-left: calc(-1 * var(--rim));
+}
+html:not([data-map="right"]) .content > .project > .oak-nav {
+  margin-right: calc(-1 * var(--rim));
+}
+.content > .project {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.project > .folder-tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.project > .folder-tabs > .folder-panel {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+/* The step's foot: stuck to the folder's bottom while its sheet runs past it (a shadow says so), settling under the
+   sheet at its end. */
+.folder-panel .wiz-foot {
+  position: sticky;
+  /* down through the folder's padding to its edge: nothing shows under it */
+  bottom: calc(-1 * var(--pad));
+  z-index: 3;
+}
+.folder-panel .wiz-foot.stuck {
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.16);
+}
+/* ‹ › on the plate's right: the step's Back and Next, always in view. */
+.plate-nav {
+  display: flex;
+  gap: 0.3rem;
+  margin-left: auto;
+  flex: none;
+}
+.plate-nav .oak-btn {
+  min-width: 2rem;
+  justify-content: center;
+  font-weight: 700;
+}
+
+/* A project's page and a docked map: the folder flush with the map's oak divider, no wood between (2026-11-11). */
+html:has(.content > .project) {
+  --map-gap: var(--rim);
+}
+html[data-map="bottom"] .content:has(> .project) {
+  padding-bottom: calc(var(--map-h) + 2 * var(--rim));
+}
+
+/* Variables' test tables: each variable's map button in a narrow column of its own, the icon alone. */
+td.vt-map,
+th.vt-map {
+  width: 1%;
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
+  text-align: center;
+  white-space: nowrap;
+}
+/* Outliers: the sale's facts and its comparable sales, beside how it's unlike the others: each column gives way and
+   scrolls its own wide table, never running over the other. */
+.ol-detail > * {
+  min-width: 0;
+}
+.ol-facts {
+  overflow-x: auto;
+}
+/* The standards' headings wrap to two lines, so the columns are as narrow as their figures. */
+.rv-standards > thead th {
+  vertical-align: bottom;
+}
+.rv-standards > thead .info-tip {
+  display: inline-block;
+  max-width: 6.5rem;
+}
+.rv-standards > thead .info-tip-icon {
+  margin-left: 0.25em;
+  vertical-align: -0.1em;
+}
+
+/* ---------- The VEI's chart, as openratiostudy.com draws it ---------- */
+.vei {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+}
+.vei-plot {
+  flex: 1;
+  min-width: 0;
+  display: block;
+}
+.vei-slider {
+  flex: 0 0 64px;
+  align-self: stretch;
+  height: 420px;
+  padding-right: 8px;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+}
+.vei-track {
+  position: relative;
+  width: 6px;
+  height: 100%;
+  background: #e2e8f0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.vei-fill {
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  background: #bfdbfe;
+  border-radius: 4px;
+}
+.vei-handle {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  min-width: 0;
+  max-width: none;
+  height: 22px;
+  background: #fff;
+  border: 2px solid #3b82f6;
+  border-radius: 5px;
+  font: inherit;
+  font-size: 11px;
+  color: #1e3a8a;
+  text-align: center;
+  padding: 0;
+  box-sizing: border-box;
+  outline: none;
+  touch-action: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  z-index: 2;
+}
+.vei-handle.vei-hi {
+  z-index: 3;
+}
+.vei-handle:focus {
+  z-index: 4;
+  box-shadow: 0 0 0 2px #bfdbfe;
+}
+.vei-keys {
+  flex: 0 0 148px;
+  padding-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vei-keys-head {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.vei-key {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 6px 9px;
+  border-radius: 7px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #94a3b8;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.vei-key.on {
+  border-color: #3b82f6;
+  color: #1e3a8a;
+}
+.vei-key:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+}
+.vei-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.vei-keys-note {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+/* Narrow: the buttons go under the chart, in a row. */
+@container (max-width: 34rem) {
+  .vei {
+    flex-wrap: wrap;
+  }
+  .vei-keys {
+    flex: 1 0 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 8px 0 0 64px !important;
+  }
+  .vei-key {
+    width: auto;
+  }
+}
+/* Models' Configuration cell: the pencil first, the summary beside it, wrapping under its own start. */
+.mt-config {
+  display: inline-flex;
+  align-items: center;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
 }

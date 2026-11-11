@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useStep, useStepAct, useStepNav, useStepSetup, useStepSkip } from "../api/steps";
+import { ExcludedSince } from "../components/ExcludedSince";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { LoadingBar } from "../components/Waiting";
 import { when } from "../lib/format";
+import { onward as goOnTo } from "../lib/returnto";
 import { say, t } from "../wording";
 import { FinalValues } from "./FinalValues";
 import { HowTheyDid } from "./HowTheyDid";
@@ -62,11 +64,13 @@ export function ValuesTab({
   const modeled = (mSetup.data?.groups ?? []).filter((g) => g.modeled);
   const gi = Math.min(groupAt, Math.max(modeled.length - 1, 0));
   const group = modeled[gi];
-  // Groups a model of which still has no list (or an empty one): Next waits for them.
+  // Groups a model of which still has no list (or an empty one): Next waits for them. A group not modeled (Don't
+  // model it) waits for nothing.
   const unlisted = modeled.filter(
     (g) =>
-      g.models.length === 0 ||
-      g.models.some((e) => e.warnings.some((w) => w.code === "no_list" || w.code === "list_empty")),
+      !g.skipped &&
+      (g.models.length === 0 ||
+        g.models.some((e) => e.warnings.some((w) => w.code === "no_list" || w.code === "list_empty"))),
   );
   const statusOf = (key: MvStep): StepStatus => {
     switch (key) {
@@ -158,6 +162,7 @@ export function ValuesTab({
                   </p>
                 )}
                 {mv.stale && <p className="wiz-warn">{m.model.stale}</p>}
+                <ExcludedSince n={mv.excluded_since} run={tryIt} />
                 {mFresh && mr && (
                   <p className="wiz-ok">{m.model.ran({ when: when(mr.ran_at), seconds: mr.seconds })}</p>
                 )}
@@ -221,6 +226,7 @@ export function ValuesTab({
                   </p>
                 )}
                 {fv?.stale && <p className="wiz-warn">{f.stale}</p>}
+                <ExcludedSince n={fv?.excluded_since} run={finalize} />
                 {fFresh && fr && (
                   <p className="wiz-ok">{say.values.final.ran(when(fr.ran_at), fr.seconds)}</p>
                 )}
@@ -250,16 +256,22 @@ export function ValuesTab({
         <>
           <StepBody title={m.steps.values} lede={f.valuesLede}>
             {fv?.stale && <p className="wiz-warn">{f.stale}</p>}
+            <ExcludedSince n={fv?.excluded_since} run={finalize} />
             <FinalValues projectId={projectId} receipt={fr} currency={currency} units={units} />
             {errors}
           </StepBody>
           <StepFoot
             back={back}
-            next={{
-              label: f.looksRight,
-              disabled: !!fv?.stale || !!fv?.accepted || fAct.isPending,
-              onPress: () => fAct.mutate("accept"),
-            }}
+            // Looks right accepts the model values and goes on, to Outliers; accepted already, Next goes there.
+            next={
+              fv?.accepted
+                ? { label: t.step.next, onPress: () => go("outliers") }
+                : {
+                    label: f.looksRight,
+                    disabled: !!fv?.stale || fAct.isPending,
+                    onPress: () => fAct.mutate("accept", { onSuccess: () => go("outliers") }),
+                  }
+            }
           />
         </>
       )}
@@ -267,9 +279,11 @@ export function ValuesTab({
         <>
           <StepBody title={m.steps.outliers} lede={m.outliers.lede}>
             {fv?.stale && <p className="wiz-warn">{f.stale}</p>}
+            <ExcludedSince n={fv?.excluded_since} run={finalize} />
             <Outliers projectId={projectId} currency={currency} />
           </StepBody>
-          <StepFoot back={back} next={null} />
+          {/* The tab's last step: Next on to the next tab, Report. */}
+          <StepFoot back={back} next={{ label: m.toReport, onPress: () => goOnTo(projectId, "report") }} />
         </>
       )}
     </StepFrame>

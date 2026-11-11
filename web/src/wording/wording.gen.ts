@@ -944,6 +944,10 @@ export type Wording = {
     };
   };
   tabs: {
+    waitsOn: (a: { step: string | number }) => string;
+    waitsStale: string;
+    waitsNotYet: string;
+    goTo: (a: { step: string | number }) => string;
     scrollLeft: string;
     scrollRight: string;
     metadata: string;
@@ -991,6 +995,10 @@ export type Wording = {
     preview: string;
   };
   step: {
+    runAgain: string;
+    excludedSince: (a: { n: number }) => string;
+    excludedSinceCheck: (a: { n: number }) => string;
+    railToggle: string;
     next: string;
     notRun: string;
     running: (a: { elapsed: string | number; left: string | number | null }) => string;
@@ -1008,6 +1016,7 @@ export type Wording = {
     loading: string;
   };
   bringIn: {
+    mapField: (a: { field: string | number }) => string;
     steps: {
       plan: string;
       run: string;
@@ -1172,6 +1181,8 @@ export type Wording = {
     showMap: string;
     clickHint: string;
     mapInstruction: string;
+    savedOnMap: string;
+    savedOnMapSub: string;
     mapInstructionSub: string;
     mapLabel: string;
     loadingMap: string;
@@ -1215,7 +1226,6 @@ export type Wording = {
     modelItTip: string;
     notModeled: string;
     checksCol: string;
-    checkFix: string;
     backToBuild: string;
     writeTitle: string;
     looksRightNext: string;
@@ -1519,6 +1529,12 @@ export type Wording = {
       checkNames: Record<string, string>;
       apply: string;
       applyLater: string;
+      mapStep: string;
+      mapInstruction: string;
+      mapInstructionSub: string;
+      mapLabel: string;
+      mapComps: string;
+      mapFaint: string;
       lede: string;
       nowUndecided: string;
       nowKept: string;
@@ -1649,7 +1665,6 @@ export type Wording = {
       assign: string;
       run: string;
       summary: string;
-      groups: string;
       prices: string;
       map: string;
       regions: string;
@@ -1756,6 +1771,7 @@ export type Wording = {
     summary: {
       share: (a: { pct: string | number }) => string;
       head: (a: { name: string | number; pct: string | number; start: string | number; end: string | number }) => string;
+      everyFigure: string;
       levelAll: (a: { lo: string | number; hi: string | number }) => string;
       levelNone: (a: { lo: string | number; hi: string | number }) => string;
       levelSome: (a: { n: string | number; of: string | number; lo: string | number; hi: string | number }) => string;
@@ -1795,17 +1811,46 @@ export type Wording = {
       trimmedWhy: string;
       verdicts: Record<string, string>;
     };
+    veiChart: {
+      half: string;
+      quartile: string;
+      decile: string;
+      group: string;
+      ratio: string;
+      sample: string;
+      median: string;
+      toggle: string;
+      boxes: string;
+      sampleMedian: string;
+      ci: string;
+      ct: string;
+      view: string;
+      byGroup: string;
+      byPrice: string;
+      salePrice: string;
+      dots: string;
+      trimmed: string;
+      target: string;
+      targetTip: (a: { low: string | number; high: string | number }) => string;
+      saleTip: (a: { group: string | number; price: string | number; ratio: string | number }) => string;
+      trimmedTip: (a: { price: string | number; ratio: string | number }) => string;
+      spanTip: (a: { group: string | number; n: number; low: string | number; high: string | number; median: string | number }) => string;
+      rangeHint: string;
+      top: string;
+      bottom: string;
+      boxTip: (a: { group: string | number; n: number; hi: string | number; q3: string | number; median: string | number; q1: string | number; lo: string | number }) => string;
+      ciTip: (a: { group: string | number; median: string | number; low: string | number; high: string | number }) => string;
+      ctTip: (a: { group: string | number; median: string | number }) => string;
+    };
     prices: {
       title: (a: { name: string | number }) => string;
       lede: string;
       fifth: string;
       flat: string;
       strata: string;
-      bySale: string;
       stratum: string;
       vei: (a: { vei: string | number; sig: string | number; verdict: string | number }) => string;
       noVei: string;
-      trimmedDot: string;
     };
     similar: {
       title: string;
@@ -1813,6 +1858,18 @@ export type Wording = {
       parcels: string;
       clusters: string;
       chd: string;
+      mapInstruction: string;
+      mapInstructionSub: string;
+      mapLabel: string;
+      mapTip: (a: { n: string | number; chd: string | number }) => string;
+      mapOne: string;
+      mapOneShort: string;
+      mapClick: string;
+      cardTitle: (a: { n: number }) => string;
+      cardFigures: (a: { median: string | number; chd: string | number }) => string;
+      cardHint: string;
+      cardClose: string;
+      cardBlank: string;
       reads: string;
       tight: string;
       some: string;
@@ -1821,6 +1878,12 @@ export type Wording = {
     };
     extreme: {
       title: string;
+      mapInstruction: string;
+      mapInstructionSub: string;
+      mapLabel: string;
+      mapLow: string;
+      mapHigh: string;
+      mapRest: string;
       lede: string;
       none: string;
       address: string;
@@ -1843,6 +1906,14 @@ export type Wording = {
       label: string;
       instruction: string;
       instructionSub: string;
+      allOnMap: string;
+      pricesInstruction: string;
+      pricesInstructionSub: string;
+      band: string;
+      bandAll: string;
+      bandLow: string;
+      bandMid: string;
+      bandHigh: string;
       none: string;
       ratio: string;
       price: string;
@@ -1851,6 +1922,13 @@ export type Wording = {
       legend: [[number, string], [number, string], [number, string], [number, string], [number, string]];
     };
     regions: {
+      mapInstruction: string;
+      mapInstructionSub: string;
+      mapLabel: string;
+      mapTip: (a: { region: string | number; median: string | number; n: string | number }) => string;
+      mapOf: (a: { regions: string | number; sales: string | number; median: string | number }) => string;
+      mapLow: string;
+      mapHigh: string;
       lede: string;
       field: string;
       noField: string;
@@ -1862,8 +1940,7 @@ export type Wording = {
       compare: (a: { vei: string | number }) => string;
       group: string;
       regionsCol: string;
-      byLevel: string;
-      bySale: string;
+      chartTitle: string;
       level: string;
       lowest: string;
       highest: string;
@@ -1872,6 +1949,7 @@ export type Wording = {
     toValues: string;
   };
   values: {
+    toReport: string;
     modelsKicker: string;
     steps: {
       fill: string;
@@ -2185,8 +2263,7 @@ export type Wording = {
       engine: string;
       variables: string;
       list: (a: { name: string | number; n: number }) => string;
-      change: string;
-      done: string;
+      changeSettings: (a: { engine: string | number }) => string;
       remove: string;
       add: string;
       addIt: string;
@@ -2224,6 +2301,17 @@ export type Wording = {
       model: string;
       salesCount2: (a: { n: number }) => string;
       how: {
+        mapStep: string;
+        mapItTip: string;
+        onMapTip: string;
+        mapInstruction: string;
+        mapInstructionSub: string;
+        mapLabel: string;
+        mapOf: (a: { model: string | number; group: string | number; n: string | number; set: string | number }) => string;
+        mapNone: string;
+        mapTip: (a: { ratio: string | number; price: string | number; value: string | number }) => string;
+        mapLow: string;
+        mapHigh: string;
         which: string;
         iaao: string;
         academic: string;
@@ -2487,6 +2575,10 @@ export type Wording = {
     count: (a: { n: string | number; of: string | number; typed: string | number }) => string;
   };
   nav: {
+    backTo: (a: { step: string | number }) => string;
+    nextTo: (a: { step: string | number }) => string;
+    noBack: string;
+    noNext: string;
     label: string;
     projects: string;
     newProject: string;
@@ -2703,10 +2795,35 @@ export type Wording = {
     blank: string;
     cell: (a: { n: number; what: string | number }) => string;
     mostly: (a: { share: string | number }) => string;
-    howShapes: (a: { n: number }) => string;
-    howCells: (a: { size: string | number; sales: string | number }) => string;
     follow: string;
     backToFollowing: string;
+    permitsTitle: string;
+    hideOut: string;
+    showPu: string;
+    showSr: string;
+    per: {
+      label: string;
+      asIs: string;
+      bldg: (a: { unit: string | number }) => string;
+      land: (a: { unit: string | number }) => string;
+      bldgShort: (a: { unit: string | number }) => string;
+      landShort: (a: { unit: string | number }) => string;
+      noBldg: string;
+      noLand: string;
+      unit: {
+        sqft: string;
+        sqm: string;
+      };
+      unsized: (a: { n: number; what: string | number; size: string | number }) => string;
+    };
+    outsTitle: string;
+    outSource: {
+      universe: string;
+      prepared: string;
+      modeled: string;
+      sales: string;
+    };
+    hold: (a: { shown: string | number }) => string;
     following: (a: { step: string | number }) => string;
     followIdle: string;
     followOnTip: string;
@@ -2717,21 +2834,24 @@ export type Wording = {
       year: string;
       valid: string;
       vacant: string;
+      deed: string;
     };
     readingSales: string;
-    salesPlaced: (a: { n: number; of: number }) => string;
     share0: {
       valid: string;
       vacant: string;
+      deed: string;
     };
     share1: {
       valid: string;
       vacant: string;
+      deed: string;
     };
     cellSales: (a: { n: number; parcels: number }) => string;
     validYes: string;
     validNo: string;
     vacantYes: string;
+    deedShared: string;
     prTitle: string;
     prBlankIds: (a: { n: number; share: string | number }) => string;
     prRepeatedIds: (a: { n: number; share: string | number }) => string;

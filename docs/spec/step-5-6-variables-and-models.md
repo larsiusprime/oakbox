@@ -230,10 +230,11 @@ ticked variables is gone: each model takes a variable list.
   group's models (then the roll and the other value sets), `ensemble.models` the models, and `skip.<group>` the models a
   group hasn't (every one for a group not modeled). The results show each model by its name.
 - **Configuration** (settled 2026-10-31; `ModelOptions.tsx`): a model's own settings, as OpenAVMKit reads them from its
-  entry. Its cell: a one-line summary ("log price · intercept · no interactions", "Locations: School district ›
-  Neighborhood · …", "50 tuning trials"), what differs from the default in bold, then **Change…**; GWR has "No settings
-  of its own" but for interactions, which it has. **Change…** opens them in a panel under the row, one at a time
-  (**Done**), each saved as it changes: **Fit on log price** (MRA, Multi-MRA; on; `log`), **Intercept** (MRA, Multi-MRA;
+  entry. Its cell: a ✎ button first (so every row's line up on the left; "Change the settings: <engine>" on hover),
+  then a one-line summary ("log price · intercept · no interactions", "Locations: School district › Neighborhood · …",
+  "50 tuning trials"), what differs from the default in bold; GWR has "No settings of its own" but for interactions,
+  which it has. ✎ opens them in a panel under the row, one at a time, and stays pressed in while it's open (press it
+  again to close), each saved as it changes: **Fit on log price** (MRA, Multi-MRA; on; `log`), **Intercept** (MRA, Multi-MRA;
   on; `intercept`), **Interactions** None / Categories × size (MRA, Multi-MRA, GWR; None; `interactions: {"default":
   …}`: each land category times land area, each building category times finished area), **Trim variables in each area**
   (Multi-MRA; off; `optimize_vars`), **Tuning trials** (LightGBM, XGBoost, CatBoost; 50, 1 to 500; `n_trials`), **Use

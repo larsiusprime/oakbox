@@ -15,11 +15,13 @@ import { Callout } from "../components/Callout";
 import { ExternalLink } from "../components/ExternalLink";
 import { FieldDetail, openRow } from "../components/FieldDetail";
 import { FileLine, fileFacts, NamesFile } from "../components/FileEntry";
+import { MapIfThere } from "../components/ShowOnMap";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
 import { LoadingBar } from "../components/Waiting";
 import { band, num, pct, when } from "../lib/format";
+import { onward as goOnTo } from "../lib/returnto";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
 
@@ -63,7 +65,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
   const current = nav.current(v.status, fallback, "universe");
   const go = nav.go;
   const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("run") });
-  const toGroups = () => navigate({ name: "project", id: projectId, tab: "groups" });
+  const toGroups = () => goOnTo(projectId, "groups");
   const statusOf = (key: BiStep): StepStatus => {
     switch (key) {
       case "plan":
@@ -446,50 +448,80 @@ function Section({
           </div>
         ))}
       </div>
-      <table className="tbl fd-tbl">
-        <thead>
-          <tr>
-            <th>
-              <InfoTip label={b.field} text={b.fieldTip} />
-            </th>
-            <th>{b.has}</th>
-            <th>{b.summary}</th>
-            <th>{b.from}</th>
-            <th>{b.notes}</th>
-          </tr>
-        </thead>
-        {groups.map(([g, list]) =>
-          list.length === 0 ? null : (
-            <tbody key={g}>
-              <tr className="bi-grp">
-                <td colSpan={5}>{b.groups[g]}</td>
-              </tr>
-              {list.map((f) => (
-                <tr key={f.field} onClick={openRow}>
-                  <td className="mono">
-                    <FieldDetail
-                      projectId={projectId}
-                      set={set === "sales" ? "sales" : "universe"}
-                      field={f.field}
-                    />
-                  </td>
-                  <td className="bi-has">
-                    <span className="bi-bar">
-                      <i style={{ width: `${Math.round(100 * f.share)}%` }} />
-                    </span>
-                    {num(f.filled)} · {pct(f.share)}
-                  </td>
-                  <td>{f.summary}</td>
-                  <td className="mono bi-src">{f.source}</td>
-                  <td>{f.note}</td>
+      {/* Wider than the sheet (a map docked beside it): it scrolls on its own, the page doesn't. */}
+      <div className="tbl-wrap">
+        <table className="tbl fd-tbl">
+          <thead>
+            <tr>
+              <th>
+                <InfoTip label={b.field} text={b.fieldTip} />
+              </th>
+              <th className="vt-map" aria-label={t.mapWindow.step.showOnMap} />
+              <th>{b.has}</th>
+              <th>{b.summary}</th>
+              <th>{b.from}</th>
+              <th>{b.notes}</th>
+            </tr>
+          </thead>
+          {groups.map(([g, list]) =>
+            list.length === 0 ? null : (
+              <tbody key={g}>
+                <tr className="bi-grp">
+                  <td colSpan={6}>{b.groups[g]}</td>
                 </tr>
-              ))}
-            </tbody>
-          ),
-        )}
-      </table>
+                {list.map((f) => (
+                  <tr key={f.field} onClick={openRow}>
+                    <td className="mono">
+                      <span className="bi-field">
+                        <FieldDetail
+                          projectId={projectId}
+                          set={set === "sales" ? "sales" : "universe"}
+                          field={f.field}
+                        />
+                      </span>
+                    </td>
+                    <td className="vt-map">
+                      {mapOf(set, f.field) && (
+                        <MapIfThere
+                          field={mapOf(set, f.field) ?? ""}
+                          label={b.mapField({ field: f.field })}
+                          compact
+                        />
+                      )}
+                    </td>
+                    <td className="bi-has">
+                      <span className="bi-bar">
+                        <i style={{ width: `${Math.round(100 * f.share)}%` }} />
+                      </span>
+                      {num(f.filled)} · {pct(f.share)}
+                    </td>
+                    <td>{f.summary}</td>
+                    <td className="mono bi-src">{f.source}</td>
+                    <td>{f.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            ),
+          )}
+        </table>
+      </div>
     </section>
   );
+}
+
+// What a field's Map button shows: the parcel universe's as Bring in data brought it in; of the sales, the ones the
+// 💰 sales layer has (each sale at its parcel). The parcel ID and shapes have nothing to colour by.
+const SALES_ON_MAP: Record<string, string> = {
+  sale_price: "sr:price",
+  sale_price_time_adj: "sr:price",
+  sale_date: "sr:year",
+  valid_sale: "sr:valid",
+  vacant_sale: "sr:vacant",
+};
+function mapOf(set: string, field: string): string | null {
+  // Of the sales: the 💰 layer's own (each sale at its parcel), else each parcel by its latest sale's value.
+  if (set === "sales") return SALES_ON_MAP[field] ?? (field === "key" ? null : `out:sales:${field}`);
+  return ["key", "geometry", "latitude", "longitude"].includes(field) ? null : `out:universe:${field}`;
 }
 
 const PAGE = 50;

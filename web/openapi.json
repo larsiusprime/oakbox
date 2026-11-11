@@ -6303,6 +6303,98 @@
     }
    }
   },
+  "/api/projects/{project_id}/model/sales": {
+   "get": {
+    "summary": "Model Sales",
+    "description": "A model's prediction on each sale of a set (held out, or any; its dates), with its place and ratio, for the\nmap.",
+    "operationId": "model_sales_api_projects__project_id__model_sales_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "group",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Group"
+      }
+     },
+     {
+      "name": "model",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Model"
+      }
+     },
+     {
+      "name": "first",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "First"
+      }
+     },
+     {
+      "name": "last",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Last"
+      }
+     },
+     {
+      "name": "held_out",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": true,
+       "title": "Held Out"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/MapPoint"
+         },
+         "title": "Response Model Sales Api Projects  Project Id  Model Sales Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/model/small": {
    "get": {
     "summary": "Model Small",
@@ -6551,6 +6643,260 @@
     }
    }
   },
+  "/api/projects/{project_id}/ratio/boxes": {
+   "get": {
+    "summary": "Ratio Boxes",
+    "description": "Each VEI group's ratios as a box, by sale and by the price level of the sale's region, for their charts.",
+    "operationId": "ratio_boxes_api_projects__project_id__ratio_boxes_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "field",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Field"
+      }
+     },
+     {
+      "name": "group",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Group"
+      }
+     },
+     {
+      "name": "region",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Region"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VeiBoxes"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/ratio/similar": {
+   "get": {
+    "summary": "Ratio Similar",
+    "description": "Every parcel with its group of similar parcels' spread of values (CHD), for Similar parcels' map.",
+    "operationId": "ratio_similar_api_projects__project_id__ratio_similar_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "field",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Field"
+      }
+     },
+     {
+      "name": "group",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Group"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SimilarPoints"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/ratio/regions": {
+   "get": {
+    "summary": "Ratio Regions",
+    "description": "Each sale studied by its region, and each region's median ratio, for Neighbourhood price levels' map.",
+    "operationId": "ratio_regions_api_projects__project_id__ratio_regions_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "field",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Field"
+      }
+     },
+     {
+      "name": "region",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Region"
+      }
+     },
+     {
+      "name": "group",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Group"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RegionPoints"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/ratio/similar/group": {
+   "get": {
+    "summary": "Ratio Similar Group",
+    "description": "One group of similar parcels: each parcel's ID, place and value, for the card on Similar parcels' map.",
+    "operationId": "ratio_similar_group_api_projects__project_id__ratio_similar_group_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "field",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Field"
+      }
+     },
+     {
+      "name": "cluster",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Cluster"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SimilarGroup"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/final/parcels": {
    "get": {
     "summary": "Final Parcels",
@@ -6643,82 +6989,6 @@
           "$ref": "#/components/schemas/MapPoint"
          },
          "title": "Response Final Sales Api Projects  Project Id  Final Sales Get"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/ratio/points": {
-   "get": {
-    "summary": "Ratio Points",
-    "description": "Each sale studied: its price, its ratio, and whether it was trimmed.",
-    "operationId": "ratio_points_api_projects__project_id__ratio_points_get",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     },
-     {
-      "name": "field",
-      "in": "query",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Field"
-      }
-     },
-     {
-      "name": "group",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "type": "string",
-       "default": "",
-       "title": "Group"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "type": "array",
-         "items": {
-          "type": "array",
-          "prefixItems": [
-           {
-            "type": "number"
-           },
-           {
-            "type": "number"
-           },
-           {
-            "type": "boolean"
-           }
-          ],
-          "minItems": 3,
-          "maxItems": 3
-         },
-         "title": "Response Ratio Points Api Projects  Project Id  Ratio Points Get"
         }
        }
       }
@@ -7605,7 +7875,7 @@
   "/api/projects/{project_id}/map/column": {
    "get": {
     "summary": "Map Column",
-    "description": "A field's value for each parcel (field: file:column, from the map's field list).",
+    "description": "A field's value for each parcel (field: file:column, from the map's field list); per: divided by each\nparcel's building or land size (bldg, land).",
     "operationId": "map_column_api_projects__project_id__map_column_get",
     "parameters": [
      {
@@ -7624,6 +7894,16 @@
       "schema": {
        "type": "string",
        "title": "Field"
+      }
+     },
+     {
+      "name": "per",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Per"
       }
      }
     ],
@@ -7654,7 +7934,7 @@
   "/api/projects/{project_id}/map/sales": {
    "get": {
     "summary": "Map Sales",
-    "description": "Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say).",
+    "description": "Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say);\nper: its price divided by its parcel's building or land size (bldg, land).",
     "operationId": "map_sales_api_projects__project_id__map_sales_get",
     "parameters": [
      {
@@ -7664,6 +7944,16 @@
       "schema": {
        "type": "string",
        "title": "Project Id"
+      }
+     },
+     {
+      "name": "per",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Per"
       }
      }
     ],
@@ -8918,6 +9208,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -8951,6 +9247,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt",
      "exports",
      "accepted"
@@ -9087,6 +9384,85 @@
      "source"
     ],
     "title": "BorrowBody"
+   },
+   "Box": {
+    "properties": {
+     "n": {
+      "type": "integer",
+      "title": "N"
+     },
+     "q1": {
+      "type": "number",
+      "title": "Q1"
+     },
+     "median": {
+      "type": "number",
+      "title": "Median"
+     },
+     "q3": {
+      "type": "number",
+      "title": "Q3"
+     },
+     "lo": {
+      "type": "number",
+      "title": "Lo"
+     },
+     "hi": {
+      "type": "number",
+      "title": "Hi"
+     },
+     "outliers": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Outliers",
+      "description": "Past the whiskers; at most POINTS, the furthest kept."
+     },
+     "price_low": {
+      "type": "number",
+      "title": "Price Low",
+      "description": "The group's cheapest sale."
+     },
+     "price_high": {
+      "type": "number",
+      "title": "Price High",
+      "description": "Its dearest."
+     },
+     "points": {
+      "items": {
+       "prefixItems": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "number"
+        }
+       ],
+       "type": "array",
+       "maxItems": 2,
+       "minItems": 2
+      },
+      "type": "array",
+      "title": "Points",
+      "description": "Each sale's (price, ratio); at most POINTS, an even sample of them when there are more."
+     }
+    },
+    "type": "object",
+    "required": [
+     "n",
+     "q1",
+     "median",
+     "q3",
+     "lo",
+     "hi",
+     "outliers",
+     "price_low",
+     "price_high",
+     "points"
+    ],
+    "title": "Box",
+    "description": "One VEI group's ratios as a box plot (openratiostudy.com's chart): the quartiles, the whiskers (the furthest\nratios within 1.5 IQR of the box) and the ratios past them; and every sale in it, for its dots."
    },
    "ByHand": {
     "properties": {
@@ -10184,6 +10560,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -10205,6 +10587,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt",
      "accepted"
     ],
@@ -13088,6 +13471,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -13109,6 +13498,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt",
      "accepted"
     ],
@@ -15357,6 +15747,12 @@
       "title": "Auto",
       "description": "Numbers: the automatic range, [low, high].",
       "default": []
+     },
+     "unsized": {
+      "type": "integer",
+      "title": "Unsized",
+      "description": "Per size: parcels with a value but no size (or zero), left blank.",
+      "default": 0
      }
     },
     "type": "object",
@@ -15368,7 +15764,8 @@
      "categories",
      "counts",
      "quantiles",
-     "auto"
+     "auto",
+     "unsized"
     ],
     "title": "MapColumn"
    },
@@ -15495,6 +15892,30 @@
       "title": "Sales",
       "description": "What the \ud83d\udcb0 Sales Record can colour by: price, year, valid, vacant (as it has them).",
       "default": []
+     },
+     "outs": {
+      "items": {
+       "$ref": "#/components/schemas/MapField"
+      },
+      "type": "array",
+      "title": "Outs",
+      "description": "The app's own outputs' columns (out:<source>:<column>).",
+      "default": []
+     },
+     "per": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Per",
+      "description": "The sizes a value can be shown per (bldg, land): the ones loaded on the parcels.",
+      "default": []
+     },
+     "area_unit": {
+      "type": "string",
+      "title": "Area Unit",
+      "description": "The project's small area unit, a size's: sqft or sqm.",
+      "default": "sqft"
      }
     },
     "type": "object",
@@ -15506,7 +15927,10 @@
      "bounds",
      "stamp",
      "fields",
-     "sales"
+     "sales",
+     "outs",
+     "per",
+     "area_unit"
     ],
     "title": "MapInfo"
    },
@@ -15535,6 +15959,18 @@
      "trimmed": {
       "type": "boolean",
       "title": "Trimmed"
+     },
+     "key_sale": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Key Sale",
+      "description": "The sale: Extreme ratios picks it on the map."
      }
     },
     "type": "object",
@@ -15544,7 +15980,8 @@
      "ratio",
      "price",
      "value",
-     "trimmed"
+     "trimmed",
+     "key_sale"
     ],
     "title": "MapPoint"
    },
@@ -15683,6 +16120,12 @@
       "title": "Vacant",
       "description": "int8: 1 vacant, 0 not, -1 unknown."
      },
+     "deed": {
+      "type": "string",
+      "title": "Deed",
+      "description": "int8: 1 its deed has another sale that day, 0 alone, -1 no deed ID.",
+      "default": ""
+     },
      "price_quantiles": {
       "items": {
        "type": "number"
@@ -15721,7 +16164,13 @@
       },
       "type": "array",
       "title": "Has",
-      "description": "Which of price, year, valid, vacant the sales file has."
+      "description": "Which of price, year, valid, vacant, deed the sales file has."
+     },
+     "unsized": {
+      "type": "integer",
+      "title": "Unsized",
+      "description": "Per size: sales with a price on a parcel with no size, left blank.",
+      "default": 0
      }
     },
     "type": "object",
@@ -15733,11 +16182,13 @@
      "year",
      "valid",
      "vacant",
+     "deed",
      "price_quantiles",
      "price_auto",
      "year_quantiles",
      "year_auto",
-     "has"
+     "has",
+     "unsized"
     ],
     "title": "MapSales",
     "description": "Each sale of the main sales file, at its parcel (a sale has no place of its own): base64 arrays, one entry a\nsale, in the file's order."
@@ -16985,6 +17436,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -17002,6 +17459,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt"
     ],
     "title": "ModelView"
@@ -20074,6 +20532,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -20095,6 +20559,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt",
      "accepted"
     ],
@@ -21025,6 +21490,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -21056,6 +21527,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt",
      "accepted",
      "has_values",
@@ -21342,6 +21814,86 @@
      "name"
     ],
     "title": "Region"
+   },
+   "RegionPoints": {
+    "properties": {
+     "lon": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Lon"
+     },
+     "lat": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Lat"
+     },
+     "region": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Region",
+      "description": "Index into regions."
+     },
+     "regions": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Regions"
+     },
+     "median": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Median",
+      "description": "Each region's median ratio."
+     },
+     "sales": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Sales",
+      "description": "Each region's sales counted in its median."
+     },
+     "overall": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Overall",
+      "description": "The median ratio of all of them, the same way."
+     }
+    },
+    "type": "object",
+    "required": [
+     "lon",
+     "lat",
+     "region",
+     "regions",
+     "median",
+     "sales",
+     "overall"
+    ],
+    "title": "RegionPoints",
+    "description": "Each sale studied with a place, by its region (neighbourhood), as columns, for Neighbourhood price levels'\nmap: each coloured by its region's median ratio (the outlying ratios left out of it, as in the statistics)."
    },
    "RegionStats": {
     "properties": {
@@ -22248,6 +22800,29 @@
      "note": {
       "type": "string",
       "title": "Note"
+     },
+     "latitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latitude",
+      "description": "Where it is, for the map."
+     },
+     "longitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Longitude"
      }
     },
     "type": "object",
@@ -22282,7 +22857,9 @@
      "buyer",
      "second_look",
      "status",
-     "note"
+     "note",
+     "latitude",
+     "longitude"
     ],
     "title": "ReviewItem"
    },
@@ -22294,6 +22871,14 @@
       },
       "type": "array",
       "title": "Items"
+     },
+     "points": {
+      "items": {
+       "$ref": "#/components/schemas/ReviewPoint"
+      },
+      "type": "array",
+      "title": "Points",
+      "description": "Every sale matching the filters (not just this page), for the map."
      },
      "total": {
       "type": "integer",
@@ -22342,6 +22927,7 @@
     "type": "object",
     "required": [
      "items",
+     "points",
      "total",
      "all",
      "undecided",
@@ -22352,6 +22938,47 @@
      "unit"
     ],
     "title": "ReviewPage"
+   },
+   "ReviewPoint": {
+    "properties": {
+     "key_sale": {
+      "type": "string",
+      "title": "Key Sale"
+     },
+     "latitude": {
+      "type": "number",
+      "title": "Latitude"
+     },
+     "longitude": {
+      "type": "number",
+      "title": "Longitude"
+     },
+     "checks": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Checks"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "undecided",
+       "kept",
+       "excluded"
+      ],
+      "title": "Status"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key_sale",
+     "latitude",
+     "longitude",
+     "checks",
+     "status"
+    ],
+    "title": "ReviewPoint"
    },
    "RowField": {
     "properties": {
@@ -23617,6 +24244,157 @@
      "path"
     ],
     "title": "ShowBody"
+   },
+   "SimilarGroup": {
+    "properties": {
+     "cluster": {
+      "type": "string",
+      "title": "Cluster"
+     },
+     "chd": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Chd"
+     },
+     "median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median"
+     },
+     "members": {
+      "items": {
+       "$ref": "#/components/schemas/SimilarMember"
+      },
+      "type": "array",
+      "title": "Members"
+     }
+    },
+    "type": "object",
+    "required": [
+     "cluster",
+     "chd",
+     "median",
+     "members"
+    ],
+    "title": "SimilarGroup",
+    "description": "One group of similar parcels: each parcel's ID, place and value (the field studied), dearest first."
+   },
+   "SimilarMember": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "lat": {
+      "type": "number",
+      "title": "Lat"
+     },
+     "lon": {
+      "type": "number",
+      "title": "Lon"
+     },
+     "value": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Value"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "lat",
+     "lon",
+     "value"
+    ],
+    "title": "SimilarMember"
+   },
+   "SimilarPoints": {
+    "properties": {
+     "lon": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Lon"
+     },
+     "lat": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Lat"
+     },
+     "chd": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Chd",
+      "description": "Its group of similar parcels' CHD; null: a group of one."
+     },
+     "size": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Size",
+      "description": "Parcels in its group of similar parcels."
+     },
+     "cluster": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Cluster",
+      "description": "Index into clusters: its group of similar parcels.",
+      "default": []
+     },
+     "clusters": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Clusters",
+      "description": "Each group's id (model group:cluster), for its members.",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "lon",
+     "lat",
+     "chd",
+     "size",
+     "cluster",
+     "clusters"
+    ],
+    "title": "SimilarPoints",
+    "description": "Every parcel with a place and a group of similar parcels, as columns, for Similar parcels' map: each coloured by\nhow far apart its group's values are (its CHD)."
    },
    "SkipBody": {
     "properties": {
@@ -26501,6 +27279,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -26518,6 +27302,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt"
     ],
     "title": "VarTestView"
@@ -26588,6 +27373,51 @@
      "values"
     ],
     "title": "Variable"
+   },
+   "VeiBoxes": {
+    "properties": {
+     "by_sale": {
+      "items": {
+       "$ref": "#/components/schemas/Box"
+      },
+      "type": "array",
+      "title": "By Sale",
+      "description": "The VEI's percentile groups, by each sale's market value proxy."
+     },
+     "by_region": {
+      "items": {
+       "$ref": "#/components/schemas/Box"
+      },
+      "type": "array",
+      "title": "By Region",
+      "description": "The same groups by the price level of each sale's region."
+     },
+     "trimmed": {
+      "items": {
+       "prefixItems": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "number"
+        }
+       ],
+       "type": "array",
+       "maxItems": 2,
+       "minItems": 2
+      },
+      "type": "array",
+      "title": "Trimmed",
+      "description": "The sales trimmed (price, ratio): in no group, drawn grey by price."
+     }
+    },
+    "type": "object",
+    "required": [
+     "by_sale",
+     "by_region",
+     "trimmed"
+    ],
+    "title": "VeiBoxes"
    },
    "Verdict": {
     "properties": {
@@ -26736,6 +27566,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -26769,6 +27605,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt",
      "changed",
      "accepted",

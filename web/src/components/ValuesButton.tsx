@@ -34,7 +34,11 @@ export function ValuesButton({
         className="button button-small vals-button"
         aria-label={`${say.wizard.values.button(distinct, noun)}: ${column}`}
       >
-        {say.wizard.values.button(distinct, noun)}
+        {/* Short where there's no room (a narrow capsule): the count alone. */}
+        <span className="vals-long">{say.wizard.values.button(distinct, noun)}</span>
+        <span className="vals-short" aria-hidden="true">
+          {distinct.toLocaleString()}
+        </span>
         <ChevronDown aria-hidden="true" size="0.85em" />
       </Button>
       <Popover className="popover vals-popover" placement="bottom start" offset={0}>

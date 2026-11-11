@@ -9,7 +9,16 @@ import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { ExternalLink, Maximize2, Minimize2 } from "lucide-react";
 import type * as maplibregl from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Button, Header, ListBoxItem, ListBoxSection } from "react-aria-components";
+import {
+  Button,
+  Header,
+  ListBox,
+  ListBoxItem,
+  ListBoxSection,
+  Popover,
+  Select,
+  SelectValue,
+} from "react-aria-components";
 import {
   api,
   type MapColumn,
@@ -29,17 +38,20 @@ import {
   MAX,
   MIN,
   onGo,
+  type Per,
   publishWhere,
   type Side,
   setDock,
   sideFor,
+  stepKey,
   toggleMap,
   useDock,
   useWhere,
 } from "../lib/mapdock";
 import { setSlot, useMapStep } from "../lib/mapstep";
+import { currentFrame, usePlace } from "../lib/place";
 import { navigate } from "../lib/route";
-import { readShapes, type Shapes, toBinary } from "../lib/shapes";
+import { readShapes, type Shapes, shapeSize, toBinary } from "../lib/shapes";
 import { RangedBars, useChosenRange } from "../screens/FieldHistogram";
 import { GroupsOnMap } from "../screens/GroupMap";
 import { CentreOnMap, LocationsOnMap } from "../screens/Location";
@@ -91,13 +103,16 @@ const BLANK_LINE: [number, number, number, number] = [120, 120, 120, 90];
 export function MapWindow({
   projectId,
   tab,
-  step,
+  step: routeStep,
 }: {
   projectId: string;
   /** Where the main window is: what Follow follows. */
   tab: string | null;
   step: string | null;
 }) {
+  // The step on screen: the Data wizard's from the address, any other tab's from its step list (lib/place).
+  const frame = usePlace().frame;
+  const step = tab === "fields" ? routeStep : (frame?.current ?? null);
   const d = useDock();
   const width = useWindowWidth();
   const side = sideFor(d.side, width);
@@ -215,7 +230,8 @@ function useLidBottom(): number {
   useEffect(() => {
     const lid = document.querySelector(".oak-nav");
     if (!lid) return;
-    const measure = () => setBottom(Math.round(lid.getBoundingClientRect().height));
+    // Its bottom edge, not its height: the map starts under it wherever it sits.
+    const measure = () => setBottom(Math.round(lid.getBoundingClientRect().bottom));
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(lid);
@@ -346,7 +362,23 @@ function MapPanel({
   );
   // The project's map layers (Shapefiles) that can be placed: drawn over the parcels when chosen.
   const layerNames = (wizard.data?.layers ?? []).filter((l) => l.projected).map((l) => l.name);
-  const target = m ? followed(tab, step, wizard.data, m.fields, m.sales, probs, layerNames) : null;
+  const own = m ? followed(tab, step, wizard.data, m.fields, m.sales, probs, layerNames, m.outs ?? []) : null;
+  // A Map button pressed on this step: what it follows here now (kept for the step).
+  const here = stepKey(projectId, tab, step);
+  const picked = here ? dock.picks?.[here] : undefined;
+  const target = picked
+    ? {
+        title:
+          own?.title ??
+          (tab === "fields"
+            ? (wizard.data?.steps.find((x) => x.key === step)?.title ??
+              t.wizard.steps[step ?? ""]?.title ??
+              step ??
+              "")
+            : (currentFrame()?.steps.find((x) => x.key === step)?.title ?? step ?? "")),
+        field: picked,
+      }
+    : own;
   // A step that takes the map over (SPEC §3.15), here or in the main window: while following, the map draws the
   // step's own view, its instruction on a banner along the top.
   const ms = useMapStep();
@@ -366,6 +398,7 @@ function MapPanel({
         ...m.sales.map((k) => ({ id: `sr:${k}`, label: w.sr[k as SrKey] ?? k })),
         ...(probs?.items ?? []).map((x) => ({ id: x.id, label: problemLabel(x) })),
         ...(layerNames.length ? [{ id: LAYERS, label: w.lyAll({ n: layerNames.length }) }] : []),
+        ...(m.outs ?? []),
         ...m.fields,
       ]
     : [];
@@ -384,8 +417,22 @@ function MapPanel({
             problems={probs}
             layers={layerNames.length}
             fields={m.fields}
+            outs={m.outs ?? []}
             value={field?.id ?? null}
             onChange={(id) => setDock({ field: id, follow: false })}
+          />
+        )}
+        {!takeOver && m?.status === "ready" && field && isValue(field.id, m) && (
+          <PerPick
+            value={dock.per?.[field.id] ?? null}
+            sizes={m.per ?? []}
+            unit={m.area_unit ?? "sqft"}
+            onChange={(v) => {
+              const next = { ...(dock.per ?? {}) };
+              if (v) next[field.id] = v;
+              else delete next[field.id];
+              setDock({ per: next });
+            }}
           />
         )}
         <Tip text={dock.follow ? w.followOnTip : w.followOffTip}>
@@ -442,6 +489,12 @@ function MapPanel({
           />
         </span>
       </header>
+      {/* Nothing on this step to map: it says so, and holds what it showed (SPEC §3.15). */}
+      {dock.follow && !takeOver && target === null && m?.status === "ready" && field && (
+        <div className="mapwin-banner mapwin-hold" role="status">
+          {w.hold({ shown: field.label })}
+        </div>
+      )}
       {takeOver && (
         <div key={flashAt} className={`mapwin-banner ${flashAt ? "flash" : ""}`} role="status">
           <b>{takeOver.title}:</b> {takeOver.instruction}
@@ -494,6 +547,11 @@ function MapPanel({
           fieldId={field?.id ?? null}
           label={field?.label ?? ""}
           wizardStamp={stamp}
+          per={
+            field && m && isValue(field.id, m) && (m.per ?? []).includes(dock.per?.[field.id] ?? "")
+              ? (dock.per?.[field.id] ?? null)
+              : null
+          }
           unplaced={probs?.unplaced ?? 0}
           layerNames={layerNames}
           stepOf={stepOf}
@@ -515,9 +573,12 @@ function FieldPick({
   problems,
   layers,
   fields,
+  outs,
   value,
   onChange,
 }: {
+  /** The app's own outputs' columns (Bring in data's, Variables', the models'). */
+  outs: MapInfo["fields"];
   sales: string[];
   problems: MapProblems | undefined;
   /** How many map layers the project has (Shapefiles): one choice shows them all. */
@@ -545,8 +606,10 @@ function FieldPick({
     differences: (problems?.items ?? []).filter(
       (x) => x.id.startsWith("pr:differs:") && matches(problemLabel(x), q),
     ),
-    columns: list(q).filter((f) => !f.field),
+    permits: list(q).filter((f) => f.id.startsWith("permits:")),
+    columns: list(q).filter((f) => !f.field && !f.id.startsWith("permits:")),
     layers: layers > 0 && matches(w.lyAll({ n: layers }), q) ? [LAYERS] : [],
+    outs: outs.filter((f) => matches(f.label, q)),
   });
   const totals = items("");
   const all = (q: string) => {
@@ -557,6 +620,8 @@ function FieldPick({
       ...x.problems.map((p) => p.id),
       ...x.differences.map((p) => p.id),
       ...x.layers,
+      ...x.permits.map((f) => f.id),
+      ...x.outs.map((f) => f.id),
       ...x.columns.map((f) => f.id),
     ];
   };
@@ -631,6 +696,25 @@ function FieldPick({
                 {shown("layers", q, x.layers).map((id) => option(id, w.lyAll({ n: layers }), q))}
               </ListBoxSection>
             )}
+            {x.permits.length > 0 && (
+              <ListBoxSection className="wiz-section">
+                {head("permits", q, totals.permits.length, w.permitsTitle)}
+                {shown("permits", q, x.permits).map((f) => option(f.id, f.label, q))}
+              </ListBoxSection>
+            )}
+            {x.outs.length > 0 && !q.trim() && (
+              <ListBoxSection className="wiz-section">
+                {head("outs", q, totals.outs.length, w.outsTitle)}
+              </ListBoxSection>
+            )}
+            {[...new Set(shown("outs", q, x.outs).map((f) => f.file))].map((file) => (
+              <ListBoxSection key={file} className="wiz-section">
+                <Header className="wiz-section-head">
+                  {w.outSource[file.slice(4) as keyof typeof w.outSource] ?? file}
+                </Header>
+                {x.outs.filter((f) => f.file === file).map((f) => option(f.id, f.label, q, true))}
+              </ListBoxSection>
+            ))}
             {x.columns.length > 0 && !q.trim() && (
               <ListBoxSection className="wiz-section">
                 {head("columns", q, totals.columns.length, w.columnsTitle)}
@@ -649,7 +733,70 @@ function FieldPick({
   );
 }
 
-type Fold = "pu" | "sr" | "problems" | "differences" | "layers" | "columns";
+type Fold = "pu" | "sr" | "problems" | "differences" | "layers" | "permits" | "outs" | "columns";
+
+// ---------- A value per size ----------
+
+/** A value field, that a size can divide: a sale price, a value loaded (the roll's, a set of values), or a value or
+ * prediction from the steps. */
+function isValue(id: string, m: MapInfo): boolean {
+  if (id === "sr:price") return true;
+  const f = m.fields.find((x) => x.id === id);
+  if (f) return !!f.field && /(_value|^sale_price)$/.test(f.field);
+  const o = (m.outs ?? []).find((x) => x.id === id);
+  return !!o && /(_value$|^prediction|^sale_price)/.test(o.column);
+}
+
+/** After the field picker: the value as it is, or per building or land size (a size not loaded, greyed). */
+function PerPick({
+  value,
+  sizes,
+  unit,
+  onChange,
+}: {
+  value: Per | null;
+  sizes: string[];
+  unit: string;
+  onChange: (v: Per | null) => void;
+}) {
+  const u = w.per.unit[unit as keyof typeof w.per.unit] ?? unit;
+  const shown = value && sizes.includes(value) ? value : "asis";
+  const options: [string, string, string][] = [
+    ["asis", w.per.asIs, w.per.asIs],
+    ["bldg", w.per.bldg({ unit: u }), w.per.bldgShort({ unit: u })],
+    ["land", w.per.land({ unit: u }), w.per.landShort({ unit: u })],
+  ];
+  return (
+    <Select
+      className={`field choice mapwin-per ${shown !== "asis" ? "on" : ""}`}
+      aria-label={w.per.label}
+      selectedKey={shown}
+      disabledKeys={(["bldg", "land"] as const).filter((k) => !sizes.includes(k))}
+      onSelectionChange={(k) => onChange(k === "bldg" || k === "land" ? k : null)}
+    >
+      <Button className="choice-button">
+        <SelectValue className="choice-value">
+          {({ selectedText }) => options.find(([k]) => k === shown)?.[2] ?? selectedText}
+        </SelectValue>
+        <span className="combo-arrow" aria-hidden="true">
+          ▾
+        </span>
+      </Button>
+      <Popover className="popover choice-popover" offset={0}>
+        <ListBox className="choice-list">
+          {options.map(([k, label]) => (
+            <ListBoxItem key={k} id={k} className="choice-item" textValue={label}>
+              {label}
+              {k !== "asis" && !sizes.includes(k) && (
+                <span className="choice-aside">{k === "bldg" ? w.per.noBldg : w.per.noLand}</span>
+              )}
+            </ListBoxItem>
+          ))}
+        </ListBox>
+      </Popover>
+    </Select>
+  );
+}
 
 /** The choice that draws every map layer (Shapefiles) over the parcels. */
 const LAYERS = "ly:all";
@@ -674,6 +821,21 @@ const SALES_STEPS: Record<string, string[]> = {
   sale_price: ["price"],
   valid_sale: ["valid"],
   vacant_sale: ["vacant"],
+  deeds: ["deed"],
+};
+
+/** Other tabs' steps the map follows with a 💰 sales layer: by year sold, or by price. */
+const OTHER_STEPS: Record<string, Record<string, string>> = {
+  sales: { window: "year", time: "year", sales: "price" },
+};
+
+/** Variables' steps the map follows with a column of the app's own outputs: Spatial average statistics the nearby
+ * price average (as the models' try worked it out). */
+// A trailing * follows the first such column: Per area statistics' first statistic.
+const OUT_STEPS: Record<string, Record<string, string>> = {
+  variables: { lag: "out:modeled:spatial_lag_sale_price_time_adj", area: "out:modeled:area_stat_*" },
+  // Inputs: what Bring in data kept, by parcel.
+  bring: { universe: "out:universe:@parcels", sales: "out:universe:@sales" },
 };
 
 type Target = { title: string; field: string };
@@ -688,7 +850,19 @@ function followed(
   sales: string[],
   problems: MapProblems | undefined,
   layerNames: string[],
+  outs: MapInfo["fields"] = [],
 ): Target | null {
+  // Other tabs: their steps that a layer here shows (SPEC §3.15's plan): the sales by date, or by price.
+  if (tab && tab !== "fields" && step) {
+    const k = (OTHER_STEPS[tab] ?? {})[step];
+    const title = currentFrame()?.steps.find((x) => x.key === step)?.title ?? step;
+    const out = (OUT_STEPS[tab] ?? {})[step];
+    const hit = out?.endsWith("*")
+      ? outs.find((o) => o.id.startsWith(out.slice(0, -1)))
+      : outs.find((o) => o.id === out);
+    if (hit) return { title, field: hit.id };
+    return k && sales.includes(k) ? { title, field: `sr:${k}` } : null;
+  }
   if (tab !== "fields" || !step || !wizard) return null;
   const s = wizard.steps.find((x) => x.key === step);
   if (!s) return null;
@@ -711,6 +885,11 @@ function followed(
   if (sr) {
     const k = sr.find((x) => sales.includes(x));
     return k ? { title, field: `sr:${k}` } : null;
+  }
+  // Permits: the kind most of each parcel's permits are, else how many it has.
+  if (step === "permits") {
+    const f = fields.find((x) => x.id === "permits:type") ?? fields.find((x) => x.id === "permits:count");
+    return f ? { title, field: f.id } : null;
   }
   const keys = step === "location" ? wizard.locations.map((l) => l.name) : s.fields;
   for (const k of keys) {
@@ -745,6 +924,7 @@ function MapBody({
   fieldId,
   label,
   wizardStamp,
+  per,
   unplaced,
   layerNames,
   stepOf,
@@ -758,6 +938,8 @@ function MapBody({
   label: string;
   /** When the wizard last changed: the sales (their rules, their columns) read again. */
   wizardStamp: number;
+  /** A value shown per building or land size; null as it is. */
+  per: Per | null;
   /** Sales whose parcel isn't in the universe: said, as they can't be shown. */
   unplaced: number;
   layerNames: string[];
@@ -782,6 +964,7 @@ function MapBody({
     })),
   });
   const by = fieldId?.startsWith("sr:") ? (fieldId.slice(3) as SrKey) : null;
+  const { showPu, showSr } = useDock();
   const base = `/api/projects/${encodeURIComponent(projectId)}/map`;
   const centres = useQuery({
     queryKey: ["map-centres", projectId, info.stamp],
@@ -789,25 +972,26 @@ function MapBody({
     staleTime: Number.POSITIVE_INFINITY,
   });
   const col = useQuery({
-    queryKey: ["map-column", projectId, info.stamp, fieldId],
+    queryKey: ["map-column", projectId, info.stamp, fieldId, per],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/projects/{project_id}/map/column", {
-          params: { path: { project_id: projectId }, query: { field: fieldId ?? "" } },
+          params: { path: { project_id: projectId }, query: { field: fieldId ?? "", per: per ?? "" } },
         }),
       ),
     enabled: !!fieldId && !by && !prId && !lyOn,
     staleTime: Number.POSITIVE_INFINITY,
   });
   const sales = useQuery({
-    queryKey: ["map-sales", projectId, info.stamp, wizardStamp],
+    queryKey: ["map-sales", projectId, info.stamp, wizardStamp, by === "price" ? per : null],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/projects/{project_id}/map/sales", {
-          params: { path: { project_id: projectId } },
+          params: { path: { project_id: projectId }, query: { per: (by === "price" && per) || "" } },
         }),
       ),
-    enabled: !!by || (!!prId && prId.startsWith("pr:differs:")),
+    // Also for 🌐 off (only the parcels with a sale drawn): which parcels have one.
+    enabled: !!by || (!!prId && prId.startsWith("pr:differs:")) || showPu === false,
     placeholderData: keepPreviousData,
     staleTime: Number.POSITIVE_INFINITY,
   });
@@ -840,21 +1024,64 @@ function MapBody({
   });
 
   // The colour of each parcel (and its place 0..1 on the ramp, for a cell's average), from the field and its range.
-  const linkKey = `map:${fieldId}`;
+  // Per a size: its own range (a price per sq ft isn't on a price's scale).
+  const linkKey = per ? `map:${fieldId}:per:${per}` : `map:${fieldId}`;
   const srSpread = by && sales.data ? spreadOf(sales.data, by) : undefined;
   const range = useRangeOf(linkKey, by ? srSpread : col.data);
+  const hideOut = useDock().hideOut;
+  // 🌐 off: only the parcels in the sales record (with a sale) are drawn; 💰 off: no sales drawn.
+  const soldParcels = useMemo(() => (showPu === false && sold ? new Set(sold.parcel) : null), [showPu, sold]);
   const paint = useMemo(
     () =>
-      prPaint && !onSales
-        ? prPaint
-        : by || prId || lyOn
-          ? painter(undefined, null)
-          : painter(col.data, range),
-    [by, prId, lyOn, prPaint, onSales, col.data, range],
+      onlySold(
+        prPaint && !onSales
+          ? prPaint
+          : by || prId || lyOn
+            ? painter(undefined, null)
+            : outside(painter(col.data, range), hideOut),
+        soldParcels,
+      ),
+    [by, prId, lyOn, prPaint, onSales, col.data, range, hideOut, soldParcels],
   );
   const srPaint = useMemo(
-    () => (prPaint && onSales ? prPaint : by && sold ? salesPainter(sold, by, range) : null),
-    [by, sold, range, prPaint, onSales],
+    () =>
+      showSr === false
+        ? null
+        : prPaint && onSales
+          ? prPaint
+          : by && sold
+            ? outside(salesPainter(sold, by, range), hideOut)
+            : null,
+    [by, sold, range, prPaint, onSales, hideOut, showSr],
+  );
+  // What's drawn: the parcel universe, the sales record (each on or off), where there are sales.
+  const layerToggles =
+    info.sales.length > 0 ? (
+      <div className="mapwin-show">
+        <label>
+          <input
+            type="checkbox"
+            checked={showPu !== false}
+            onChange={(e) => setDock({ showPu: e.target.checked })}
+          />{" "}
+          {w.showPu}
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={showSr !== false}
+            onChange={(e) => setDock({ showSr: e.target.checked })}
+          />{" "}
+          {w.showSr}
+        </label>
+      </div>
+    ) : null;
+  // Hide the rest, beside the range: the ones outside it aren't drawn.
+  const hideToggle = (
+    <label className="fh-linked">
+      <input type="checkbox" checked={hideOut} onChange={(e) => setDock({ hideOut: e.target.checked })} />{" "}
+      {w.hideOut}
+    </label>
   );
 
   // Following the view: a new plan only when the view leaves the last one's box, or the zoom wants another size.
@@ -935,11 +1162,15 @@ function MapBody({
         ];
       })
     : [];
+  // Some parcel files hold only a small square at each parcel's point (scattered specks): drawn as shapes, they're
+  // lost under a pixel until zoomed right in, so each is also a dot, at least a few pixels across, under its shape.
+  const specks = shapes.data ? !!shapeSize(shapes.data)?.scattered : false;
   const parcels = ((): Layer[] => {
     if (!xy || !plan) return [] as Layer[];
     if (plan.kind === "shapes" && shapes.data) {
       const data = toBinary(shapes.data, plan.ids);
       return [
+        ...(specks ? [specksLayer(xy, plan.ids, paint, setPicked)] : []),
         new GeoJsonLayer({
           id: "parcels",
           data: data as never,
@@ -948,7 +1179,10 @@ function MapBody({
           filled: true,
           lineWidthUnits: "pixels",
           getFillColor: (f) => paint.fill(parcelOf(f)),
-          getLineColor: (f) => (paint.has(parcelOf(f)) ? [255, 255, 255, 200] : BLANK_LINE),
+          getLineColor: (f) => {
+            const i = parcelOf(f);
+            return paint.hidden?.(i) ? GONE : paint.has(i) ? [255, 255, 255, 200] : BLANK_LINE;
+          },
           getLineWidth: 0.5,
           updateTriggers: { getFillColor: paint, getLineColor: paint },
           onClick: ({ index }) => {
@@ -983,34 +1217,8 @@ function MapBody({
   return (
     <div className="mapwin-body">
       {centres.error && <p className="error mapwin-msg">{centres.error.message}</p>}
-      <div className="mapwin-stage" ref={stage}>
-        <MapView
-          className="mapwin-map"
-          asked
-          label={w.mapLabel}
-          layers={layers}
-          bounds={bounds}
-          fitKey={info.stamp}
-          resizeKey={`${side}-${size}-${docked}`}
-          onMap={watch}
-          tooltip={tooltip}
-          cursor={cursorOf}
-        />
-        {picked !== null && (
-          <MapCard
-            projectId={projectId}
-            index={picked}
-            stepOf={stepOf}
-            onGo={onGo}
-            onColour={(id) => setDock({ field: id, follow: false })}
-            pinned={pinned}
-            onPin={(on) => setDock({ cardPinned: on })}
-            stage={stage}
-            onClose={() => setPicked(null)}
-          />
-        )}
-      </div>
       <div className="mapwin-legend">
+        {layerToggles}
         {lyOn ? (
           <ul className="mapwin-cats">
             {layerNames.map((name, k) => (
@@ -1060,17 +1268,20 @@ function MapBody({
                 unit=""
                 linkKey={linkKey}
                 label={w.spread({ field: label })}
+                extra={hideToggle}
               />
-              <small className="mapwin-how">
-                {w.salesPlaced({ n: sales.data?.placed ?? 0, of: sales.data?.sales ?? 0 })}
-              </small>
+              {per && by === "price" && (sales.data?.unsized ?? 0) > 0 && (
+                <small className="mapwin-share">
+                  {w.per.unsized({ n: sales.data?.unsized ?? 0, what: "sales", size: per })}
+                </small>
+              )}
             </>
           ) : (
             <>
               <div className="mapwin-ramp" aria-hidden="true" />
               <small className="mapwin-share">
-                <span>{w.share0[by as "valid" | "vacant"]}</span>
-                <span>{w.share1[by as "valid" | "vacant"]}</span>
+                <span>{w.share0[by as "valid" | "vacant" | "deed"]}</span>
+                <span>{w.share1[by as "valid" | "vacant" | "deed"]}</span>
               </small>
             </>
           )
@@ -1089,7 +1300,13 @@ function MapBody({
               unit=""
               linkKey={linkKey}
               label={w.spread({ field: label })}
+              extra={hideToggle}
             />
+            {per && col.data.unsized > 0 && (
+              <small className="mapwin-share">
+                {w.per.unsized({ n: col.data.unsized, what: "parcels", size: per })}
+              </small>
+            )}
           </>
         ) : col.data?.kind === "category" ? (
           <ul className="mapwin-cats">
@@ -1105,15 +1322,32 @@ function MapBody({
             </li>
           </ul>
         ) : null}
-        {plan && (
-          <small className="mapwin-how">
-            {plan.kind === "shapes"
-              ? w.howShapes({ n: plan.ids.length })
-              : w.howCells({
-                  size: plan.level >= 1000 ? `${plan.level / 1000} km` : `${plan.level} m`,
-                  sales: by || onSales ? "yes" : "no",
-                })}
-          </small>
+      </div>
+      <div className="mapwin-stage" ref={stage}>
+        <MapView
+          className="mapwin-map"
+          asked
+          label={w.mapLabel}
+          layers={layers}
+          bounds={bounds}
+          fitKey={info.stamp}
+          resizeKey={`${side}-${size}-${docked}`}
+          onMap={watch}
+          tooltip={tooltip}
+          cursor={cursorOf}
+        />
+        {picked !== null && (
+          <MapCard
+            projectId={projectId}
+            index={picked}
+            stepOf={stepOf}
+            onGo={onGo}
+            onColour={(id) => setDock({ field: id, follow: false })}
+            pinned={pinned}
+            onPin={(on) => setDock({ cardPinned: on })}
+            stage={stage}
+            onClose={() => setPicked(null)}
+          />
         )}
       </div>
     </div>
@@ -1176,7 +1410,41 @@ type Paint = {
   kind: "number" | "category" | "none";
   /** A problem: the county's share of it, for colouring a cell by its own share and outlining hot spots. */
   county?: number;
+  /** Not drawn: outside the histogram's range, with Hide the rest. */
+  hidden?: (i: number) => boolean;
 };
+
+const GONE: [number, number, number, number] = [0, 0, 0, 0];
+
+/** 🌐 off: only the parcels with a sale drawn (nor counted in a cell); the rest as if hidden. */
+function onlySold(p: Paint, sold: Set<number> | null): Paint {
+  if (!sold) return p;
+  const out = (i: number) => !sold.has(i) || !!p.hidden?.(i);
+  return {
+    ...p,
+    at: (i) => (out(i) ? null : p.at(i)),
+    has: (i) => !out(i) && p.has(i),
+    fill: (i) => (out(i) ? GONE : p.fill(i)),
+    hidden: out,
+  };
+}
+
+/** With Hide the rest, a number painter's parcels (or sales) outside the range aren't drawn, nor counted in a cell's
+ * colour; without it they're drawn at the ramp's ends. */
+function outside(p: Paint, hide: boolean): Paint {
+  if (!hide || p.kind !== "number") return p;
+  const out = (i: number) => {
+    const a = p.at(i);
+    return a !== null && (a < -1e-9 || a > 1 + 1e-9);
+  };
+  return {
+    ...p,
+    at: (i) => (out(i) ? null : p.at(i)),
+    has: (i) => !out(i) && p.has(i),
+    fill: (i) => (out(i) ? GONE : p.fill(i)),
+    hidden: out,
+  };
+}
 
 function ramp(t: number): [number, number, number, number] {
   return rampOf(RAMP, t);
@@ -1200,7 +1468,8 @@ function painter(c: MapColumn | undefined, range: { lo: number; hi: number } | n
     const span = f(range.hi) - lo || 1;
     const at = (i: number) => {
       const x = v[i];
-      return x === undefined || Number.isNaN(x) ? null : (f(log ? Math.max(x, range.lo) : x) - lo) / span;
+      if (x === undefined || Number.isNaN(x)) return null;
+      return log && x < range.lo ? -1 : (f(x) - lo) / span;
     };
     return {
       kind: "number",
@@ -1268,19 +1537,30 @@ function cellsLayer(
   const lat0 = (((box.s + box.n) / 2) * Math.PI) / 180;
   const dx = level / (111_320 * Math.cos(lat0));
   const dy = level / 110_540;
-  type Acc = { parcels: number; n: number; sum: number; have: number; cats: Map<number, number> };
+  type Acc = {
+    parcels: number;
+    n: number;
+    sum: number;
+    have: number;
+    gone: number;
+    cats: Map<number, number>;
+  };
   const acc = new Map<string, Acc>();
   const cellAt = (x: number, y: number): Acc | null => {
     if (!(x >= box.w && x <= box.e && y >= box.s && y <= box.n)) return null;
     const key = `${Math.floor(x / dx)}:${Math.floor(y / dy)}`;
     let c = acc.get(key);
     if (!c) {
-      c = { parcels: 0, n: 0, sum: 0, have: 0, cats: new Map() };
+      c = { parcels: 0, n: 0, sum: 0, have: 0, gone: 0, cats: new Map() };
       acc.set(key, c);
     }
     return c;
   };
   const add = (c: Acc, k: number) => {
+    if (paint.hidden?.(k)) {
+      c.gone++;
+      return;
+    }
     c.n++;
     const a = paint.at(k);
     if (a === null) return;
@@ -1304,6 +1584,8 @@ function cellsLayer(
     }
   const cells: Cell[] = [];
   for (const [key, c] of acc) {
+    // Hide the rest: a cell of only hidden ones isn't drawn.
+    if (c.gone > 0 && c.n === 0) continue;
     const [gx = 0, gy = 0] = key.split(":").map(Number);
     const x0 = gx * dx;
     const y0 = gy * dy;
@@ -1420,6 +1702,7 @@ type Sold = {
   year: Float32Array;
   valid: Int8Array;
   vacant: Int8Array;
+  deed: Int8Array;
 };
 
 function unpackSales(d: MapSales): Sold {
@@ -1430,6 +1713,7 @@ function unpackSales(d: MapSales): Sold {
     year: new Float32Array(decode(d.year)),
     valid: new Int8Array(decode(d.valid)),
     vacant: new Int8Array(decode(d.vacant)),
+    deed: d.deed ? new Int8Array(decode(d.deed)) : new Int8Array(d.sales).fill(-1),
   };
 }
 
@@ -1443,6 +1727,7 @@ function spreadOf(d: MapSales, by: SrKey): MapColumn | undefined {
     kind: "number",
     values: "",
     have: d.placed,
+    unsized: by === "price" ? (d.unsized ?? 0) : 0,
     quantiles: q,
     auto,
     categories: [],
@@ -1450,7 +1735,8 @@ function spreadOf(d: MapSales, by: SrKey): MapColumn | undefined {
   };
 }
 
-/** Each sale's colour: price or date on the ramp over the range shown; valid or vacant at its two ends (dark: yes),
+/** Each sale's colour: price or date on the ramp over the range shown; valid, vacant or a shared deed at its two ends
+ * (dark: yes),
  * so a cell's average is the share. */
 function salesPainter(d: Sold, by: SrKey, range: { lo: number; hi: number } | null): Paint {
   let at: (k: number) => number | null;
@@ -1463,10 +1749,11 @@ function salesPainter(d: Sold, by: SrKey, range: { lo: number; hi: number } | nu
     const span = f(hi) - f(lo) || 1;
     at = (k) => {
       const x = v[k];
-      return x === undefined || Number.isNaN(x) ? null : (f(log ? Math.max(x, lo) : x) - f(lo)) / span;
+      if (x === undefined || Number.isNaN(x)) return null;
+      return log && x < lo ? -1 : (f(x) - f(lo)) / span;
     };
   } else {
-    const v = by === "valid" ? d.valid : d.vacant;
+    const v = by === "valid" ? d.valid : by === "deed" ? d.deed : d.vacant;
     at = (k) => {
       const x = v[k] ?? -1;
       return x < 0 ? null : x;
@@ -1499,6 +1786,7 @@ function saleText(d: Sold, k: number): string {
     p === undefined || Number.isNaN(p) ? null : p.toLocaleString(),
     d.valid[k] === 1 ? w.validYes : d.valid[k] === 0 ? w.validNo : null,
     d.vacant[k] === 1 ? w.vacantYes : null,
+    d.deed[k] === 1 ? w.deedShared : null,
   ];
   return `💰 ${bits.filter(Boolean).join(" · ")}`;
 }
@@ -1517,7 +1805,8 @@ function dotsLayer(
   const dots: Dot[] = [];
   for (let k = 0; k < d.n; k++) {
     const p = d.parcel[k] ?? -1;
-    if (p >= 0 && shown.has(p)) dots.push({ sale: k, position: [xy[2 * p] ?? 0, xy[2 * p + 1] ?? 0] });
+    if (p >= 0 && shown.has(p) && !paint.hidden?.(k))
+      dots.push({ sale: k, position: [xy[2 * p] ?? 0, xy[2 * p + 1] ?? 0] });
   }
   dots.sort((a, b) => (d.year[a.sale] || 0) - (d.year[b.sale] || 0));
   return new ScatterplotLayer<Dot>({
@@ -1536,6 +1825,23 @@ function dotsLayer(
     onClick: ({ object }) => {
       const p = object ? (d.parcel[(object as Dot).sale] ?? -1) : -1;
       if (p >= 0) onPick(p);
+    },
+  });
+}
+
+/** Parcels whose shapes are specks, as dots at their centres, a few pixels across however far out. */
+function specksLayer(xy: Float32Array, ids: number[], paint: Paint, onPick: (parcel: number) => void): Layer {
+  return new ScatterplotLayer<number>({
+    id: "specks",
+    data: ids,
+    pickable: true,
+    radiusUnits: "pixels",
+    getRadius: 3.5,
+    getPosition: (p) => [xy[2 * p] ?? 0, xy[2 * p + 1] ?? 0],
+    getFillColor: (p) => paint.fill(p),
+    updateTriggers: { getFillColor: paint },
+    onClick: ({ object }) => {
+      if (typeof object === "number") onPick(object);
     },
   });
 }

@@ -164,98 +164,103 @@ export function StandardsTable({ v, set }: Props) {
       {all.length === 0 ? (
         <p className="wiz-from">{s.none}</p>
       ) : (
-        <table className="tbl rv-standards">
-          <thead>
-            <tr>
-              <th>{s.standard}</th>
-              {head(s.level, s.levelWhy)}
-              {head(s.cod, s.codWhy)}
-              {head(s.prbGood, s.prbWhy)}
-              {head(s.prbBad, s.prbWhy)}
-              {head(s.vei, s.veiWhy)}
-              {head(s.minSales, s.minSalesWhy)}
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {all.map((x, i) => (
-              <tr key={x.id}>
-                <td>
-                  <Name value={x.name} onCommit={(name) => put(i, { name })} />
-                </td>
-                <td>
-                  <span className="rv-pair">
-                    <Num
-                      label={`${x.name}: ${s.level}, ${s.from}`}
-                      value={x.level_low}
-                      onCommit={(n) => put(i, { level_low: n })}
-                    />
-                    –
-                    <Num
-                      label={`${x.name}: ${s.level}, ${s.to}`}
-                      value={x.level_high}
-                      onCommit={(n) => put(i, { level_high: n })}
-                    />
-                  </span>
-                </td>
-                <td>
-                  <span className="rv-pair">
-                    <Num
-                      label={`${x.name}: ${s.cod}, ${s.from}`}
-                      value={x.cod_low}
-                      onCommit={(n) => put(i, { cod_low: n })}
-                    />
-                    –
-                    <Num
-                      label={`${x.name}: ${s.cod}, ${s.to}`}
-                      value={x.cod_high}
-                      onCommit={(n) => put(i, { cod_high: n })}
-                    />
-                  </span>
-                </td>
-                <td>
-                  <span className="rv-pair">
-                    ±
-                    <Num
-                      label={`${x.name}: ${s.prbGood}`}
-                      value={x.prb_good}
-                      onCommit={(n) => put(i, { prb_good: n })}
-                    />
-                  </span>
-                </td>
-                <td>
-                  <span className="rv-pair">
-                    ±
-                    <Num
-                      label={`${x.name}: ${s.prbBad}`}
-                      value={x.prb_bad}
-                      onCommit={(n) => put(i, { prb_bad: n })}
-                    />
-                  </span>
-                </td>
-                <td>
-                  <span className="rv-pair">
-                    ±<Num label={`${x.name}: ${s.vei}`} value={x.vei} onCommit={(n) => put(i, { vei: n })} />%
-                  </span>
-                </td>
-                <td>
-                  <Num
-                    label={`${x.name}: ${s.minSales}`}
-                    value={x.min_sales}
-                    onCommit={(n) => put(i, { min_sales: Math.max(1, Math.round(n)) })}
-                  />
-                </td>
-                <td>
-                  <RemoveButton
-                    what={x.name}
-                    onPress={() => set({ standards: all.filter((_, j) => j !== i) })}
-                    undo={() => set({ standards: all })}
-                  />
-                </td>
+        // Scrolls on its own when it's wider than the page: the button and notes below stay in view.
+        <div className="tbl-wrap">
+          <table className="tbl rv-standards">
+            <thead>
+              <tr>
+                <th>{s.standard}</th>
+                {head(s.level, s.levelWhy)}
+                {head(s.cod, s.codWhy)}
+                {head(s.prbGood, s.prbWhy)}
+                {head(s.prbBad, s.prbWhy)}
+                {head(s.vei, s.veiWhy)}
+                {head(s.minSales, s.minSalesWhy)}
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {all.map((x, i) => (
+                <tr key={x.id}>
+                  <td>
+                    <Name value={x.name} onCommit={(name) => put(i, { name })} />
+                  </td>
+                  <td>
+                    <span className="rv-pair">
+                      <Num
+                        label={`${x.name}: ${s.level}, ${s.from}`}
+                        value={x.level_low}
+                        onCommit={(n) => put(i, { level_low: n })}
+                      />
+                      –
+                      <Num
+                        label={`${x.name}: ${s.level}, ${s.to}`}
+                        value={x.level_high}
+                        onCommit={(n) => put(i, { level_high: n })}
+                      />
+                    </span>
+                  </td>
+                  <td>
+                    <span className="rv-pair">
+                      <Num
+                        label={`${x.name}: ${s.cod}, ${s.from}`}
+                        value={x.cod_low}
+                        onCommit={(n) => put(i, { cod_low: n })}
+                      />
+                      –
+                      <Num
+                        label={`${x.name}: ${s.cod}, ${s.to}`}
+                        value={x.cod_high}
+                        onCommit={(n) => put(i, { cod_high: n })}
+                      />
+                    </span>
+                  </td>
+                  <td>
+                    <span className="rv-pair">
+                      ±
+                      <Num
+                        label={`${x.name}: ${s.prbGood}`}
+                        value={x.prb_good}
+                        onCommit={(n) => put(i, { prb_good: n })}
+                      />
+                    </span>
+                  </td>
+                  <td>
+                    <span className="rv-pair">
+                      ±
+                      <Num
+                        label={`${x.name}: ${s.prbBad}`}
+                        value={x.prb_bad}
+                        onCommit={(n) => put(i, { prb_bad: n })}
+                      />
+                    </span>
+                  </td>
+                  <td>
+                    <span className="rv-pair">
+                      ±
+                      <Num label={`${x.name}: ${s.vei}`} value={x.vei} onCommit={(n) => put(i, { vei: n })} />
+                      %
+                    </span>
+                  </td>
+                  <td>
+                    <Num
+                      label={`${x.name}: ${s.minSales}`}
+                      value={x.min_sales}
+                      onCommit={(n) => put(i, { min_sales: Math.max(1, Math.round(n)) })}
+                    />
+                  </td>
+                  <td>
+                    <RemoveButton
+                      what={x.name}
+                      onPress={() => set({ standards: all.filter((_, j) => j !== i) })}
+                      undo={() => set({ standards: all })}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       <p className="cs-row add-row">
         <AddButton onPress={add}>{s.add}</AddButton>

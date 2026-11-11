@@ -158,6 +158,9 @@ def run(project_id: str) -> None:
     if not (steps.handoff(pdir, "2-clean")).is_file():
         raise RuntimeError("Prepare the fields first: the models start from what it writes.")
     tmp = steps.workdir(out_dir(pdir))
+    from oakbox import clean
+
+    steps.note_excluded(tmp, clean.excluded(project))
     depends = STEP.now(project, pdir)
     s: ratio.RatioState = project.ratio
     start, end, _ = ratio.window(project, project_dir=pdir)
@@ -528,7 +531,17 @@ def blocked(project: Project, project_dir: Path) -> list[str]:
 def view(project: Project, project_dir: Path) -> FinalView:
     stop = blocked(project, project_dir)
     s = STEP.state(project, project_dir, check=not stop)
-    return FinalView(status=s.status, job=s.job, receipt=s.receipt, stale=s.stale, blocked=stop, accepted=s.accepted)
+    from oakbox import clean
+
+    return FinalView(
+        status=s.status,
+        job=s.job,
+        receipt=s.receipt,
+        stale=s.stale,
+        blocked=stop,
+        accepted=s.accepted,
+        excluded_since=steps.excluded_since(out_dir(project_dir), clean.excluded(project)) if s.receipt else 0,
+    )
 
 
 def start(project: Project, project_dir: Path) -> None:

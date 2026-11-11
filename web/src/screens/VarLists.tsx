@@ -56,70 +56,72 @@ export function VarListsStep({ projectId }: { projectId: string }) {
       {v.lists.length === 0 ? (
         <p className="wiz-from">{s.none}</p>
       ) : (
-        <table className="tbl vl-lists">
-          <thead>
-            <tr>
-              <th className="vl-arrow" />
-              <th>{s.list}</th>
-              <th>{s.type}</th>
-              <th>{s.groups}</th>
-              <th className="cs-n">{s.count}</th>
-              <th>{s.usedBy}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {v.lists.map((x) => {
-              const on = x.id === shown;
-              const Chevron = on ? ChevronDown : ChevronRight;
-              return [
-                <tr key={x.id} className={on ? "vl-open" : undefined}>
-                  <td className="vl-arrow">
-                    <Button
-                      className="vl-toggle"
-                      aria-expanded={on}
-                      aria-label={x.name}
-                      onPress={() => setOpen(on ? "" : x.id)}
-                    >
-                      <Chevron aria-hidden="true" size="1em" />
-                    </Button>
-                  </td>
-                  <td>
-                    <Button className="vl-name" onPress={() => setOpen(on ? "" : x.id)}>
-                      {x.name}
-                    </Button>
-                  </td>
-                  <td>{s.kindShort[x.kind]}</td>
-                  <td>
-                    {x.groups.map((g) => (
-                      <span key={g} className="vl-chip">
-                        <span className="mg-sw ab-sw" style={{ background: gname[g]?.color }} />
-                        {gname[g]?.name ?? g}
-                      </span>
-                    ))}
-                  </td>
-                  <td className="cs-n">{num(x.variables.length)}</td>
-                  <td className="wiz-from">{x.used_by.length ? x.used_by.join(", ") : s.notUsed}</td>
-                  <td>
-                    <RemoveButton
-                      what={x.name}
-                      onPress={() => save(v.lists.filter((y) => y.id !== x.id).map(plain))}
-                      undo={() => save(v.lists.map(plain))}
-                    />
-                  </td>
-                </tr>,
-                on && (
-                  <tr key={`${x.id}-open`} className="vl-detail">
-                    <td />
-                    <td colSpan={6}>
-                      <ListEditor list={x} view={v} tests={vt} change={(patch) => change(x.id, patch)} />
+        <div className="tbl-wrap">
+          <table className="tbl vl-lists">
+            <thead>
+              <tr>
+                <th className="vl-arrow" />
+                <th>{s.list}</th>
+                <th>{s.type}</th>
+                <th>{s.groups}</th>
+                <th className="cs-n">{s.count}</th>
+                <th>{s.usedBy}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {v.lists.map((x) => {
+                const on = x.id === shown;
+                const Chevron = on ? ChevronDown : ChevronRight;
+                return [
+                  <tr key={x.id} className={on ? "vl-open" : undefined}>
+                    <td className="vl-arrow">
+                      <Button
+                        className="vl-toggle"
+                        aria-expanded={on}
+                        aria-label={x.name}
+                        onPress={() => setOpen(on ? "" : x.id)}
+                      >
+                        <Chevron aria-hidden="true" size="1em" />
+                      </Button>
                     </td>
-                  </tr>
-                ),
-              ];
-            })}
-          </tbody>
-        </table>
+                    <td>
+                      <Button className="vl-name" onPress={() => setOpen(on ? "" : x.id)}>
+                        {x.name}
+                      </Button>
+                    </td>
+                    <td>{s.kindShort[x.kind]}</td>
+                    <td>
+                      {x.groups.map((g) => (
+                        <span key={g} className="vl-chip">
+                          <span className="mg-sw ab-sw" style={{ background: gname[g]?.color }} />
+                          {gname[g]?.name ?? g}
+                        </span>
+                      ))}
+                    </td>
+                    <td className="cs-n">{num(x.variables.length)}</td>
+                    <td className="wiz-from">{x.used_by.length ? x.used_by.join(", ") : s.notUsed}</td>
+                    <td>
+                      <RemoveButton
+                        what={x.name}
+                        onPress={() => save(v.lists.filter((y) => y.id !== x.id).map(plain))}
+                        undo={() => save(v.lists.map(plain))}
+                      />
+                    </td>
+                  </tr>,
+                  on && (
+                    <tr key={`${x.id}-open`} className="vl-detail">
+                      <td />
+                      <td colSpan={6}>
+                        <ListEditor list={x} view={v} tests={vt} change={(patch) => change(x.id, patch)} />
+                      </td>
+                    </tr>
+                  ),
+                ];
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
       <p className="cs-row add-row">
         <AddButton onPress={add}>{s.add}</AddButton>

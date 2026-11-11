@@ -4,6 +4,7 @@ import { Button } from "react-aria-components";
 import type { CorrDetail, ModelPatch, ModelSetup, TestRow, VarTestView } from "../api/client";
 import { Disclose } from "../components/Disclose";
 import { Choice, Tick } from "../components/Form";
+import { MapVariable } from "../components/ShowOnMap";
 import { Val } from "../components/Val";
 import { num, pct, short } from "../lib/format";
 import { say, t } from "../wording";
@@ -151,6 +152,8 @@ export function TestStep({
         <thead>
           <tr>
             <th>{vt.variable}</th>
+            {/* Each variable's map button: a column of its own, the icon alone. */}
+            <th className="vt-map" aria-label={t.mapWindow.step.showOnMap} />
             <th className="cs-n">{info?.figure}</th>
             <th>{vt.value}</th>
           </tr>
@@ -198,6 +201,7 @@ export function TestStep({
                     )}
                   </span>
                 </td>
+                <td className="vt-map">{!it.category && <MapVariable column={best.column} compact />}</td>
                 {cells(
                   it.category
                     ? passing
@@ -234,6 +238,7 @@ export function TestStep({
                           </Disclose>
                         )}
                       </td>
+                      <td className="vt-map" />
                       {cells(x.passed, x)}
                     </tr>,
                     ...(how.has(x.column) && g?.corr[x.column]
@@ -269,6 +274,7 @@ export function WhatToKeep({ view, setup }: { view: VarTestView; setup: ModelSet
         <thead>
           <tr>
             <th>{vt.variable}</th>
+            <th className="vt-map" aria-label={t.mapWindow.step.showOnMap} />
             {tested.map((g) => (
               <th key={g.id} className="cs-n">
                 <span className="mg-sw ab-sw" style={{ background: g.color }} />
@@ -282,6 +288,9 @@ export function WhatToKeep({ view, setup }: { view: VarTestView; setup: ModelSet
             <tr key={x.field}>
               <td>
                 {x.name} <span className="mono wiz-from">{x.field}</span>
+              </td>
+              <td className="vt-map">
+                <MapVariable column={x.field} compact />
               </td>
               {tested.map((g) => (
                 <td key={g.id} className="cs-n">
@@ -322,7 +331,7 @@ function CorrHow({
   const strength = d.to_price == null ? null : Math.abs(d.to_price);
   return (
     <tr className="vt-how">
-      <td colSpan={3}>
+      <td colSpan={4}>
         <div className="vt-how-body">
           <span className="vt-how-fig">
             <span className="wiz-from">{vt.howStrength}</span>
