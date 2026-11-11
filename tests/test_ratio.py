@@ -195,4 +195,6 @@ def test_vei_boxes_group_sales_as_the_engine_does(tmp_path):
     for b in got.by_sale + got.by_region:
         assert b.lo <= b.q1 <= b.median <= b.q3 <= b.hi
         assert all(o < b.lo or o > b.hi for o in b.outliers)
+        assert len(b.points) == b.n and all(b.price_low <= p <= b.price_high for p, _ in b.points)
+    assert sum(b.n for b in got.by_sale) == n - 5 and len(got.trimmed) == 5
     assert ratio.vei_boxes(tmp_path, "missing", "", "").by_sale == []

@@ -60,18 +60,25 @@ statistics and views.
   2026-11-10; Summary takes the map over, each group's row with Show on map): sales, trimmed, median ratio, its 90% range, COD, VEI (with its reading: compliant, not
   significant, regressive, progressive, too few sales), PRB, PRD and MKI; the judged ones with ✓ / ✗, every sale's
   figure beneath each ("all"); all groups as the total. Headers explain themselves on hover.
-- **Across prices:** per model group, each sale's ratio against its price (log scale; trimmed in grey), the median of
-  each fifth of sales by price, the standard's level band; the fifths as a table; the VEI's groups by value, drawn as
-  the VEI chart.
+- **Across prices:** per model group, the VEI's reading, then the VEI chart with its By price view, then one table
+  of the VEI's groups (their sale prices, sales, median and 90% range). Until 2026-11-11 a scatter of ratio against
+  price with the median by fifths of sales ran above it, with a table of its own; the By price view replaced both, so
+  the page shows one grouping, the VEI's. (The Report's Across prices still draws the fifths.)
 - **The VEI chart** (2026-11-11; openratiostudy.com's, as near as SVG draws it): each VEI group's ratios as a box
-  (quartiles, whiskers to the furthest ratio within 1.5 IQR, the ratios past them as dots; at most 400 per group, the
-  furthest), "Quartile 1"… under them (just the number when narrow), the sample median as a red dashed line labelled
-  at the right. Buttons at the right ("click to show/hide:") show or hide the boxes, the sample median, each group's
-  90% interval (bars with caps) and its central tendency (a white diamond at its median); the intervals start hidden,
-  shown instead when the boxes can't be drawn (no sale table: trimming off). A slider at the left sets the ratios
-  shown: drag a handle, or click it and type; double-click the track for the default (the widest whiskers, every
-  median and interval in view). The boxes come from `GET /ratio/boxes` (the sale table grouped as the engine groups
-  the VEI's strata and the neighbourhood price levels; tested against both).
+  (quartiles, whiskers to the furthest ratio within 1.5 IQR), every sale a dot spread across its group's column
+  (Plotly's "all points"; with the dots hidden, only the ratios past the whiskers), "Quartile 1"… under them (just the
+  number when narrow), the sample median as a red dashed line labelled at the right, the standard's level range in
+  green (its group's standard; none for all groups). **By group / By price** (Across prices only): By price puts every
+  sale at its price (log scale; the trimmed grey, a toggle of their own) and each group's median as a line across
+  the prices its sales span (the VEI groups by market value proxy, so neighbouring spans can overlap). Buttons at the
+  right ("click to show/hide:") show or hide the dots, the boxes, the trimmed, the sample median, the standard's
+  range, each group's 90% interval (bars with caps) and its central tendency (a white diamond); the intervals start
+  hidden, shown instead when the boxes can't be drawn (no sale table: trimming off). A slider at the left sets the
+  ratios shown, from 0 (or the lowest ratio) to 2 (or the highest): drag a handle, or click it and type;
+  double-click the track for the default (the widest whiskers, every median, interval and the standard's range in
+  view). `GET /ratio/boxes` gives the boxes, each group's sales (price, ratio; an even sample past 1,500) and price
+  span, and the trimmed: the sale table grouped as the engine groups the VEI's strata and the neighbourhood price
+  levels (tested against both).
 - **On the map** and **Neighbourhood price levels** (openratiostudy's further analysis): each sale where its parcel is,
   coloured by its ratio in openratiostudy's colours (blue under 1, white at 1, red over; trimmed grey), per model group
   or all; and the median ratio by the price level of each sale's neighbourhood (the neighbourhood's median market value

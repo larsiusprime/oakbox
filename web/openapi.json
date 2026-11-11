@@ -7006,82 +7006,6 @@
     }
    }
   },
-  "/api/projects/{project_id}/ratio/points": {
-   "get": {
-    "summary": "Ratio Points",
-    "description": "Each sale studied: its price, its ratio, and whether it was trimmed.",
-    "operationId": "ratio_points_api_projects__project_id__ratio_points_get",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     },
-     {
-      "name": "field",
-      "in": "query",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Field"
-      }
-     },
-     {
-      "name": "group",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "type": "string",
-       "default": "",
-       "title": "Group"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "type": "array",
-         "items": {
-          "type": "array",
-          "prefixItems": [
-           {
-            "type": "number"
-           },
-           {
-            "type": "number"
-           },
-           {
-            "type": "boolean"
-           }
-          ],
-          "minItems": 3,
-          "maxItems": 3
-         },
-         "title": "Response Ratio Points Api Projects  Project Id  Ratio Points Get"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
   "/api/projects/{project_id}/report": {
    "get": {
     "summary": "Report View",
@@ -9493,7 +9417,35 @@
       },
       "type": "array",
       "title": "Outliers",
-      "description": "Past the whiskers; at most OUTLIERS, the furthest kept."
+      "description": "Past the whiskers; at most POINTS, the furthest kept."
+     },
+     "price_low": {
+      "type": "number",
+      "title": "Price Low",
+      "description": "The group's cheapest sale."
+     },
+     "price_high": {
+      "type": "number",
+      "title": "Price High",
+      "description": "Its dearest."
+     },
+     "points": {
+      "items": {
+       "prefixItems": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "number"
+        }
+       ],
+       "type": "array",
+       "maxItems": 2,
+       "minItems": 2
+      },
+      "type": "array",
+      "title": "Points",
+      "description": "Each sale's (price, ratio); at most POINTS, an even sample of them when there are more."
      }
     },
     "type": "object",
@@ -9504,10 +9456,13 @@
      "q3",
      "lo",
      "hi",
-     "outliers"
+     "outliers",
+     "price_low",
+     "price_high",
+     "points"
     ],
     "title": "Box",
-    "description": "One VEI group's ratios as a box plot (openratiostudy.com's chart): the quartiles, the whiskers (the furthest\nratios within 1.5 IQR of the box) and the ratios past them."
+    "description": "One VEI group's ratios as a box plot (openratiostudy.com's chart): the quartiles, the whiskers (the furthest\nratios within 1.5 IQR of the box) and the ratios past them; and every sale in it, for its dots."
    },
    "ByHand": {
     "properties": {
@@ -27436,12 +27391,31 @@
       "type": "array",
       "title": "By Region",
       "description": "The same groups by the price level of each sale's region."
+     },
+     "trimmed": {
+      "items": {
+       "prefixItems": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "number"
+        }
+       ],
+       "type": "array",
+       "maxItems": 2,
+       "minItems": 2
+      },
+      "type": "array",
+      "title": "Trimmed",
+      "description": "The sales trimmed (price, ratio): in no group, drawn grey by price."
      }
     },
     "type": "object",
     "required": [
      "by_sale",
-     "by_region"
+     "by_region",
+     "trimmed"
     ],
     "title": "VeiBoxes"
    },

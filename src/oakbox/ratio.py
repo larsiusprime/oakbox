@@ -972,19 +972,6 @@ def _checked(stds: list[Standard]) -> list[Standard]:
     ]
 
 
-def points(project_dir: Path, field: str, group: str | None) -> list[tuple[float, float, bool]]:
-    """Each sale studied: (price, ratio, trimmed), for the chart."""
-    import pandas as pd
-
-    path = out_dir(project_dir) / "studies" / f"{field}.sales.parquet"
-    if not path.is_file():
-        return []
-    t = pd.read_parquet(path)
-    if group:
-        t = t[t["model_group"].astype(str) == group]
-    return [(float(p), float(r), bool(x)) for p, r, x in zip(t["sale_price"], t["ratio"], t["trimmed"], strict=True)]
-
-
 class MapPoint(BaseModel):
     lat: float
     lon: float
@@ -1172,7 +1159,7 @@ if __name__ == "__main__":
 
 class Box(BaseModel):
     """One VEI group's ratios as a box plot (openratiostudy.com's chart): the quartiles, the whiskers (the furthest
-    ratios within 1.5 IQR of the box) and the ratios past them."""
+    ratios within 1.5 IQR of the box) and the ratios past them; and every sale in it, for its dots."""
 
     n: int
     q1: float
@@ -1180,29 +1167,62 @@ class Box(BaseModel):
     q3: float
     lo: float
     hi: float
-    outliers: list[float] = Field(description="Past the whiskers; at most OUTLIERS, the furthest kept.")
+    outliers: list[float] = Field(description="Past the whiskers; at most POINTS, the furthest kept.")
+    price_low: float = Field(description="The group's cheapest sale.")
+    price_high: float = Field(description="Its dearest.")
+    points: list[tuple[float, float]] = Field(
+        description="Each sale's (price, ratio); at most POINTS, an even sample of them when there are more."
+    )
 
 
 class VeiBoxes(BaseModel):
     by_sale: list[Box] = Field(description="The VEI's percentile groups, by each sale's market value proxy.")
     by_region: list[Box] = Field(description="The same groups by the price level of each sale's region.")
+    trimmed: list[tuple[float, float]] = Field(
+        default_factory=list, description="The sales trimmed (price, ratio): in no group, drawn grey by price."
+    )
 
 
-OUTLIERS = 400
+POINTS = 1500
 
 
-def _box(r) -> Box:
+def _sample(n: int):
+    """At most POINTS of n rows, evenly spread (the same every time)."""
     import numpy as np
 
-    r = np.sort(np.asarray(r, dtype=float))
+    return np.arange(n) if n <= POINTS else np.linspace(0, n - 1, POINTS).round().astype(int)
+
+
+def _pairs(price, ratio) -> list[tuple[float, float]]:
+    return [(round(float(p), 2), round(float(r), 4)) for p, r in zip(price, ratio, strict=True)]
+
+
+def _box(r, price) -> Box:
+    import numpy as np
+
+    order = np.argsort(np.asarray(r, dtype=float), kind="stable")
+    r = np.asarray(r, dtype=float)[order]
+    price = np.asarray(price, dtype=float)[order]
     q1, med, q3 = (float(x) for x in np.quantile(r, [0.25, 0.5, 0.75]))
     iqr = q3 - q1
     inside = r[(r >= q1 - 1.5 * iqr) & (r <= q3 + 1.5 * iqr)]
     lo, hi = (float(inside[0]), float(inside[-1])) if len(inside) else (q1, q3)
     out = r[(r < lo) | (r > hi)]
-    if len(out) > OUTLIERS:  # the furthest from the box, both ends
-        out = out[np.argsort(-np.maximum(q1 - out, out - q3))[:OUTLIERS]]
-    return Box(n=len(r), q1=q1, median=med, q3=q3, lo=lo, hi=hi, outliers=[round(float(x), 4) for x in out])
+    if len(out) > POINTS:  # the furthest from the box, both ends
+        out = out[np.argsort(-np.maximum(q1 - out, out - q3))[:POINTS]]
+    keep = _sample(len(r))
+    return Box(
+        n=len(r),
+        q1=q1,
+        median=med,
+        q3=q3,
+        lo=lo,
+        hi=hi,
+        outliers=[round(float(x), 4) for x in out],
+        price_low=round(float(price.min()), 2),
+        price_high=round(float(price.max()), 2),
+        points=_pairs(price[keep], r[keep]),
+    )
 
 
 def _vei_groups(n: int) -> int:
@@ -1224,20 +1244,28 @@ def vei_boxes(project_dir: Path, field: str, group: str | None, region: str | No
     t = pd.read_parquet(path)
     if group:
         t = t[t["model_group"].astype(str) == group]
+    gone: list[tuple[float, float]] = []
     if "trimmed" in t:
-        t = t[~t["trimmed"].astype(bool)]
+        cut = t["trimmed"].astype(bool)
+        out = t[cut]
+        out_price = cells.numbers(out, "sale_price").to_numpy(dtype=float)
+        out_ratio = cells.numbers(out, "value").to_numpy(dtype=float) / out_price
+        ok = np.isfinite(out_ratio) & (out_price > 0)
+        keep = _sample(int(ok.sum()))
+        gone = _pairs(out_price[ok][keep], out_ratio[ok][keep])
+        t = t[~cut]
     price = cells.numbers(t, "sale_price").to_numpy(dtype=float)
     value = cells.numbers(t, "value").to_numpy(dtype=float)
     ratio = value / price
     if len(t) < 20 or not np.isfinite(ratio).any():
-        return empty
+        return VeiBoxes(by_sale=[], by_region=[], trimmed=gone)
     median = float(np.nanmedian(ratio))
     proxy = 0.5 * price + 0.5 * value / median
     by_sale: list[Box] = []
     k = _vei_groups(len(t))
     if pd.Series(proxy).nunique() >= k:
         bins = np.asarray(pd.qcut(proxy, q=k, labels=False))
-        by_sale = [_box(ratio[bins == g]) for g in range(k) if bool((bins == g).any())]
+        by_sale = [_box(ratio[bins == g], price[bins == g]) for g in range(k) if bool((bins == g).any())]
     by_region: list[Box] = []
     if region and region in t:
         name = cast(pd.Series, t[region]).astype("string").str.strip()
@@ -1245,5 +1273,8 @@ def vei_boxes(project_dir: Path, field: str, group: str | None, region: str | No
         if has.sum() >= 20 and name[has].nunique() >= 2:
             level = pd.Series(proxy[has]).groupby(name[has].to_numpy()).median()
             key = name[has].map(level).to_numpy(dtype=float)
-            by_region = [_box(ratio[has][rows]) for rows in _group_by_sort_key(key, _vei_groups(int(has.sum())))]
-    return VeiBoxes(by_sale=by_sale, by_region=by_region)
+            by_region = [
+                _box(ratio[has][rows], price[has][rows])
+                for rows in _group_by_sort_key(key, _vei_groups(int(has.sum())))
+            ]
+    return VeiBoxes(by_sale=by_sale, by_region=by_region, trimmed=gone)

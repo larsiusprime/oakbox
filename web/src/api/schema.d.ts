@@ -2639,26 +2639,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{project_id}/ratio/points": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Ratio Points
-         * @description Each sale studied: its price, its ratio, and whether it was trimmed.
-         */
-        get: operations["ratio_points_api_projects__project_id__ratio_points_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/projects/{project_id}/report": {
         parameters: {
             query?: never;
@@ -3645,7 +3625,7 @@ export interface components {
         /**
          * Box
          * @description One VEI group's ratios as a box plot (openratiostudy.com's chart): the quartiles, the whiskers (the furthest
-         *     ratios within 1.5 IQR of the box) and the ratios past them.
+         *     ratios within 1.5 IQR of the box) and the ratios past them; and every sale in it, for its dots.
          */
         Box: {
             /** N */
@@ -3662,9 +3642,27 @@ export interface components {
             hi: number;
             /**
              * Outliers
-             * @description Past the whiskers; at most OUTLIERS, the furthest kept.
+             * @description Past the whiskers; at most POINTS, the furthest kept.
              */
             outliers: number[];
+            /**
+             * Price Low
+             * @description The group's cheapest sale.
+             */
+            price_low: number;
+            /**
+             * Price High
+             * @description Its dearest.
+             */
+            price_high: number;
+            /**
+             * Points
+             * @description Each sale's (price, ratio); at most POINTS, an even sample of them when there are more.
+             */
+            points: [
+                number,
+                number
+            ][];
         };
         /**
          * ByHand
@@ -11756,6 +11754,14 @@ export interface components {
              * @description The same groups by the price level of each sale's region.
              */
             by_region: components["schemas"]["Box"][];
+            /**
+             * Trimmed
+             * @description The sales trimmed (price, ratio): in no group, drawn grey by price.
+             */
+            trimmed: [
+                number,
+                number
+            ][];
         };
         /**
          * Verdict
@@ -17229,44 +17235,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MapPoint"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    ratio_points_api_projects__project_id__ratio_points_get: {
-        parameters: {
-            query: {
-                field: string;
-                group?: string;
-            };
-            header?: never;
-            path: {
-                project_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": [
-                        number,
-                        number,
-                        boolean
-                    ][];
                 };
             };
             /** @description Validation Error */

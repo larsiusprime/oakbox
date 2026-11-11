@@ -91,13 +91,6 @@ def final_sales(project_id: str, which: final.SetKey = "oof", group: str = "") -
     return final.sale_points(projects.project_dir(project_id), which, group or None)
 
 
-@router.get("/api/projects/{project_id}/ratio/points")
-def ratio_points(project_id: str, field: str, group: str = "") -> list[tuple[float, float, bool]]:
-    """Each sale studied: its price, its ratio, and whether it was trimmed."""
-    load_project(project_id)
-    return ratio.points(projects.project_dir(project_id), field, group or None)
-
-
 # ---------- Step 7, Report (SPEC §4) ----------
 
 

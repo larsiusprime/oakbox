@@ -31,7 +31,6 @@ import { ExtremeMap } from "./ExtremeMap";
 import { SavedGroupsOnMap } from "./GroupMap";
 import { SimilarMap } from "./SimilarMap";
 import { AssignTable, StandardsTable, WhoseCard } from "./Standards";
-import { Scatter } from "./ValueCharts";
 import { RatioMap, Regions } from "./ValueMap";
 import { GroupsTable, judged, Scorecard } from "./ValueTables";
 import { useVeiBoxes, VeiChart } from "./VeiChart";
@@ -293,7 +292,12 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
                     bands
                   />
                 </OnTheMap>
-                <Prices projectId={projectId} result={result} currency={currency} />
+                <Prices
+                  projectId={projectId}
+                  result={result}
+                  currency={currency}
+                  standards={u?.standards ?? []}
+                />
               </>
             )}
 
@@ -592,24 +596,21 @@ function Prices({
   projectId,
   result,
   currency,
+  standards,
 }: {
   projectId: string;
   result: FieldResult;
   currency: string;
+  /** Who judges which group: the green band is its group's standard's level. */
+  standards: { id: string; level_low: number; level_high: number }[];
 }) {
   const studied = result.groups.filter((g) => g.sales > 0);
   const [gid, setGid] = useState(studied.slice().sort((a, b) => b.sales - a.sales)[0]?.id ?? "");
   const g = result.groups.find((x) => x.id === gid) ?? result.overall;
-  const pts = useQuery({
-    queryKey: ["ratio-points", projectId, result.field, gid],
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/projects/{project_id}/ratio/points", {
-          params: { path: { project_id: projectId }, query: { field: result.field, group: gid } },
-        }),
-      ),
-  });
   const boxes = useVeiBoxes(projectId, result.field, gid);
+  const sales = boxes.data?.by_sale.length === g.strata.length ? boxes.data.by_sale : [];
+  const judge = standards.find((x) => x.id === g.cls);
+  const target: [number, number] | null = judge ? [judge.level_low, judge.level_high] : null;
   const p = r.prices;
   return (
     <div className="rv-cards">
@@ -627,37 +628,7 @@ function Prices({
         />
         <span className="wiz-from">{p.lede}</span>
       </div>
-      <Scatter
-        points={(pts.data ?? []) as [number, number, boolean][]}
-        fifths={g.fifths}
-        currency={currency}
-      />
-      <p className="wiz-from">{p.trimmedDot}</p>
-      {g.fifths.length > 0 && (
-        <table className="tbl">
-          <thead>
-            <tr>
-              <th>{p.fifth}</th>
-              <th className="cs-n">{r.table.sales}</th>
-              <th className="cs-n">{r.table.median}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {g.fifths.map((f) => (
-              <tr key={f.low}>
-                <td>
-                  {money(f.low, currency)} to {money(f.high, currency)}
-                </td>
-                <td className="cs-n">{num(f.sales)}</td>
-                <td className="cs-n">{ratioText(f.median)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      <p className="wiz-from">{p.flat}</p>
       <section className="cs-step">
-        <h3 className="wiz-group">{p.strata}</h3>
         {g.strata.length ? (
           <>
             <p>
@@ -668,15 +639,20 @@ function Prices({
               })}
             </p>
             <VeiChart
-              boxes={boxes.data?.by_sale.length === g.strata.length ? boxes.data.by_sale : []}
+              boxes={sales}
               bands={g.strata}
               median={g.median}
               label={p.strata}
+              target={target}
+              trimmed={boxes.data?.trimmed ?? []}
+              currency={currency}
             />
+            <p className="wiz-from">{p.flat}</p>
             <table className="tbl">
               <thead>
                 <tr>
                   <th>{p.stratum}</th>
+                  <th>{p.fifth}</th>
                   <th className="cs-n">{r.table.sales}</th>
                   <th className="cs-n">{r.table.median}</th>
                   <th className="cs-n">{r.table.range}</th>
@@ -686,6 +662,11 @@ function Prices({
                 {g.strata.map((x, k) => (
                   <tr key={`${x.n}-${x.median}-${x.low}-${x.high}`}>
                     <td>{k + 1}</td>
+                    <td>
+                      {sales[k]
+                        ? `${money(sales[k].price_low, currency)} to ${money(sales[k].price_high, currency)}`
+                        : "—"}
+                    </td>
                     <td className="cs-n">{num(x.n)}</td>
                     <td className="cs-n">{ratioText(x.median)}</td>
                     <td className="cs-n">

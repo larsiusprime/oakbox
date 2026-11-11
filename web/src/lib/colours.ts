@@ -15,9 +15,6 @@ export const CHART = {
 /** A sale trimmed from the ratio study (an outlier): on its map, in its chart and their keys. */
 export const TRIMMED = { fill: "#d0d0d0", line: "#9a9a9a" };
 
-/** A sale on Across prices' chart. */
-export const BY_SALE = "#d4566f";
-
 /** What's picked or found on a map (--link). */
 export const PICKED = "#1d5bb8";
 /** A boundary that's wrong on a map (--bad). */
@@ -62,4 +59,6 @@ export const ORS = {
   ciDot: "#0f172a",
   grid: "#e2e8f0",
   ink: "#1f2937",
+  span: "#1e3a8a", // By price: a group's median across the prices it spans
+  target: "#4caf6e", // the standard's range (CHART.band, as a key's dot)
 };

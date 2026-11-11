@@ -1824,6 +1824,17 @@ export type Wording = {
       sampleMedian: string;
       ci: string;
       ct: string;
+      view: string;
+      byGroup: string;
+      byPrice: string;
+      salePrice: string;
+      dots: string;
+      trimmed: string;
+      target: string;
+      targetTip: (a: { low: string | number; high: string | number }) => string;
+      saleTip: (a: { group: string | number; price: string | number; ratio: string | number }) => string;
+      trimmedTip: (a: { price: string | number; ratio: string | number }) => string;
+      spanTip: (a: { group: string | number; n: number; low: string | number; high: string | number; median: string | number }) => string;
       rangeHint: string;
       top: string;
       bottom: string;
@@ -1840,7 +1851,6 @@ export type Wording = {
       stratum: string;
       vei: (a: { vei: string | number; sig: string | number; verdict: string | number }) => string;
       noVei: string;
-      trimmedDot: string;
     };
     similar: {
       title: string;
