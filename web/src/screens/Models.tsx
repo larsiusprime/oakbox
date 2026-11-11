@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import type { EngineState, ModelEntry, ModelSetup } from "../api/client";
@@ -6,7 +7,7 @@ import { downloadEnded, mb, useEngineAction, useOptionalEngines } from "../api/e
 import { useSetGroupModels, useSetSkip } from "../api/models";
 import { setupKey } from "../api/steps";
 import { AddButton } from "../components/AddButton";
-import { SmallButton } from "../components/Buttons";
+import { SmallButton, ToolButton } from "../components/Buttons";
 import { EngineProgress, InstallEngineDialog } from "../components/Engines";
 import { Choice } from "../components/Form";
 import { RemoveButton } from "../components/RemoveButton";
@@ -206,15 +207,17 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                       </td>
                       <td>
                         {options.length ? (
-                          <>
-                            <ConfigSummary e={e} options={options} defaults={v.defaults} places={places} />{" "}
-                            <Button
-                              className="button button-small"
+                          // The pencil first, so every row's lines up on the left; pressed in while its settings show.
+                          <span className="mt-config">
+                            <ToolButton
+                              label={m.changeSettings({ engine: eng?.name ?? e.engine })}
+                              pressed={open}
                               onPress={() => setStack(open ? null : e.key)}
                             >
-                              {open ? m.done : m.change}
-                            </Button>
-                          </>
+                              <Pencil aria-hidden="true" size="1em" />
+                            </ToolButton>
+                            <ConfigSummary e={e} options={options} defaults={v.defaults} places={places} />
+                          </span>
                         ) : (
                           <span className="wiz-from">{m.noSettings}</span>
                         )}

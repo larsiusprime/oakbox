@@ -19,6 +19,9 @@ statistics and views.
   **Neighbourhood price levels** › **Similar parcels** › **Extreme ratios**, whose Next is **Looks right › Model
   values** (it opens the Model values tab, step 6, or Variables, step 5, while that waits; once pressed, **Model values
   ›**).
+- **Ticks on the results' pages** (2026-11-11): Summary to Similar parcels are only read, so each is ticked once it's
+  been looked at, this run; a new run starts them unticked, and while the run is stale they show none (`lib/visited`,
+  kept on this computer). Extreme ratios is ticked by Looks right, flagged while it finds nominal prices.
 - **Which sales:** the sales Check sales kept for modeling, in the window, valid for a ratio study (the parcel looks as
   it did when sold). The window is two date pickers. Proposed: from the year before the valuation date (the IAAO's
   window), reaching back a year at a time (up to five) until it holds 30 sales; when the IAAO's year has none it says so

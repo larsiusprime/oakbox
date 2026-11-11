@@ -2263,8 +2263,7 @@ export type Wording = {
       engine: string;
       variables: string;
       list: (a: { name: string | number; n: number }) => string;
-      change: string;
-      done: string;
+      changeSettings: (a: { engine: string | number }) => string;
       remove: string;
       add: string;
       addIt: string;

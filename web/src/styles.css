@@ -8939,3 +8939,9 @@ th.vt-map {
     width: auto;
   }
 }
+/* Models' Configuration cell: the pencil first, the summary beside it, wrapping under its own start. */
+.mt-config {
+  display: inline-flex;
+  align-items: center;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
+}

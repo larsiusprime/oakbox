@@ -26,6 +26,7 @@ import { LoadingBar } from "../components/Waiting";
 import { day, money, num, ratioText, signed, when } from "../lib/format";
 import { setStepPick, useMapStep } from "../lib/mapstep";
 import { onward as goOnTo } from "../lib/returnto";
+import { MarkVisited, useVisited } from "../lib/visited";
 import { t } from "../wording";
 import { ExtremeMap } from "./ExtremeMap";
 import { SavedGroupsOnMap } from "./GroupMap";
@@ -79,6 +80,8 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   const [shown, setShown] = useState<string | null>(null);
   // The model group the map shows ("" every group): picked by a row's Show on map or on the map itself.
   const mapGroup = useMapStep()?.pick ?? "";
+  // The results' pages are ticked once looked at, this run; a new run unticks them, a stale one shows none.
+  const visited = useVisited(projectId, "check", v?.receipt?.ran_at);
   if (!v) return <LoadingBar error={state.error} />;
   const running = v.status === "running";
   const rc = v.receipt;
@@ -93,9 +96,11 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   const nominal = result?.trimmed.filter((x) => x.nominal) ?? [];
   const called = rc ? (v.stale ? "attention" : "done") : "blank";
   const statusOf = (key: RStep): StepStatus => {
-    // The results' pages: only Extreme values is ever marked (the nominal values it found, or Looks right).
+    // The results' pages: ticked once looked at, while the run is fresh; Extreme values by what it found (the
+    // nominal values) or Looks right.
     if (AFTER.includes(key)) {
-      if (!rc || key !== "extreme") return "blank";
+      if (!rc) return "blank";
+      if (key !== "extreme") return fresh && visited.has(key) ? "done" : "blank";
       if (nominal.length) return "attention";
       return v.accepted ? "done" : "blank";
     }
@@ -149,6 +154,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
 
   return (
     <StepFrame steps={steps} current={current} go={go} landing="check">
+      <MarkVisited step={fresh && AFTER.includes(current) ? current : null} mark={visited.mark} />
       {current === "what" && (
         <>
           <StepBody title={r.what.title} lede={r.what.lede}>
