@@ -550,9 +550,6 @@ function Summary({
   return (
     <div className="rv-cards">
       <p className="rv-head">{text}</p>
-      <div className="rv-onmap-all">
-        <ShowOnMapButton shown={map.shown === ""} onPress={() => map.show("")} label={r.map.allOnMap} />
-      </div>
       {/* As wide as its figures and words read; scrolls on its own when the page is narrower (a map docked). */}
       <div className="tbl-wrap">
         <Scorecard groups={result.groups} map={map} />
@@ -710,9 +707,6 @@ function Similar({
   return (
     <>
       <p className="wiz-lede">{sm.lede}</p>
-      <div className="rv-onmap-all">
-        <ShowOnMapButton shown={map.shown === ""} onPress={() => map.show("")} label={r.map.allOnMap} />
-      </div>
       <table className="tbl">
         <thead>
           <tr>
@@ -723,7 +717,10 @@ function Similar({
               <InfoTip label={sm.chd} text={sm.chdWhy} />
             </th>
             <th>{sm.reads}</th>
-            <th />
+            {/* Above the rows' Show on map: every group at once. */}
+            <th className="rv-onmap">
+              <ShowOnMapButton shown={map.shown === ""} onPress={() => map.show("")} label={r.map.allOnMap} />
+            </th>
           </tr>
         </thead>
         <tbody>

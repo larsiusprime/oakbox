@@ -8603,3 +8603,9 @@ tr.rv-picked > td {
   gap: 0.3rem;
   white-space: nowrap;
 }
+/* "Every group on the map" in the header cell above the rows' Show on map. */
+th.rv-onmap {
+  white-space: nowrap;
+  font-weight: normal;
+  text-transform: none;
+}

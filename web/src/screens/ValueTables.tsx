@@ -88,7 +88,16 @@ export function Scorecard({
           <th>
             <InfoTip label={technical ? c.verticalEquity : c.vertical} text={c.verticalWhy} />
           </th>
-          {map && <th />}
+          {/* Above the rows' Show on map: every group at once. */}
+          {map && (
+            <th className="rv-onmap">
+              <ShowOnMapButton
+                shown={map.shown === ""}
+                onPress={() => map.show("")}
+                label={t.ratio.map.allOnMap}
+              />
+            </th>
+          )}
         </tr>
       </thead>
       <tbody>
