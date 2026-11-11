@@ -76,21 +76,20 @@ const MODEL: Column<Fig> = {
 };
 // A set's tables (untrimmed and trimmed): each model's Map shows its ratios on that set's sales. The timings, none.
 const withMap = (columns: Column<Fig>[], set: string) =>
-  columns.map((c) =>
+  columns.flatMap((c) =>
     c.key === "model"
-      ? {
-          ...MODEL,
-          cell: (r: Fig) => (
-            <span className="md-model">
-              <span>
-                {r.name}
-                {r.model === "ensemble" && <span className="wiz-from"> · {m.shipped}</span>}
-              </span>
-              <ModelOnMap set={set} model={r.model} />
-            </span>
-          ),
-        }
-      : c,
+      ? [
+          c,
+          {
+            key: "map",
+            label: t.mapWindow.step.showOnMap,
+            plain: true,
+            width: 34,
+            value: () => null,
+            cell: (r: Fig) => <ModelOnMap set={set} model={r.model} />,
+          },
+        ]
+      : [c],
   );
 
 const IAAO_COLUMNS = [
@@ -144,7 +143,7 @@ const TIMINGS = [
 /** The columns with a figure in any of a view's tables (CHD, say, is only figured on the study set): every table
  * in the view shows the same ones, so they line up. */
 function shown(tables: [Column<Fig>[], Fig[]][]): Set<string> {
-  const keys = new Set(["model"]);
+  const keys = new Set(["model", "map"]);
   for (const [columns, rows] of tables)
     for (const c of columns) if (!c.spacer && rows.some((r) => c.value(r) != null)) keys.add(c.key);
   return keys;

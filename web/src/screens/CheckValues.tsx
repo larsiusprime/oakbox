@@ -723,7 +723,12 @@ function Similar({
             <th>{sm.reads}</th>
             {/* Above the rows' Show on map: every group at once. */}
             <th className="rv-onmap">
-              <ShowOnMapButton shown={map.shown === ""} onPress={() => map.show("")} label={r.map.allOnMap} />
+              <ShowOnMapButton
+                compact
+                shown={map.shown === ""}
+                onPress={() => map.show("")}
+                label={r.map.allOnMap}
+              />
             </th>
           </tr>
         </thead>
@@ -739,7 +744,7 @@ function Similar({
               <td className="cs-n">{num(g.median_chd, 1)}</td>
               <td>{reads(g.median_chd)}</td>
               <td className="rv-onmap">
-                <ShowOnMapButton shown={map.shown === g.id} onPress={() => map.show(g.id)} />
+                <ShowOnMapButton compact shown={map.shown === g.id} onPress={() => map.show(g.id)} />
               </td>
             </tr>
           ))}
@@ -797,7 +802,11 @@ function Extreme({
                 <td className="cs-n">{num(x.ratio, x.ratio >= 100 ? 0 : 2)}</td>
                 <td>{x.nominal ? e.nominal : x.ratio > 1 ? e.high : e.low}</td>
                 <td className="rv-onmap">
-                  <ShowOnMapButton shown={map.shown === x.key_sale} onPress={() => map.show(x.key_sale)} />
+                  <ShowOnMapButton
+                    compact
+                    shown={map.shown === x.key_sale}
+                    onPress={() => map.show(x.key_sale)}
+                  />
                 </td>
                 <td>
                   {done.has(x.key_sale) ? (

@@ -94,6 +94,7 @@ export function CustomFields({
             <th className="cf-th">{c.group}</th>
             <th className="cf-th">{c.type}</th>
             <th className="cf-th">{c.values}</th>
+            <th className="cf-th vt-map" aria-label={t.mapWindow.step.showOnMap} />
             <th className="cf-th">
               <span className="visually-hidden">{c.actions}</span>
             </th>
@@ -144,9 +145,11 @@ export function CustomFields({
                       column={x.column}
                       distinct={x.distinct}
                     />
-                    <SummonMap field={`${x.file}:${x.column}`} label={t.mapWindow.step.mapIt} />
                     {(x.check.warn || !x.check.ok) && <span className="wiz-warn">{x.check.text}</span>}
                   </span>
+                </td>
+                <td className="cf-td vt-map">
+                  <SummonMap field={`${x.file}:${x.column}`} label={t.mapWindow.step.showOnMap} compact />
                 </td>
                 <td className="cf-td cf-remove">
                   <RemoveButton
@@ -199,6 +202,7 @@ export function CustomFields({
                 {c.add}
               </AddButton>
             </td>
+            <td className="cf-td cf-add-td vt-map" />
             <td className="cf-td cf-add-td">
               {dirty && <SmallButton onPress={clear}>{t.multiPick.clear}</SmallButton>}
             </td>

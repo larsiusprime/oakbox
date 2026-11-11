@@ -82,7 +82,7 @@ export function GroupChecks({
                 </td>
                 {onMap && (
                   <td className="rv-onmap">
-                    <ShowOnMapButton shown={onMap.shown === id} onPress={() => onMap.show(id)} />
+                    <ShowOnMapButton compact shown={onMap.shown === id} onPress={() => onMap.show(id)} />
                   </td>
                 )}
               </tr>

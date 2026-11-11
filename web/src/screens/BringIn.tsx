@@ -456,6 +456,7 @@ function Section({
               <th>
                 <InfoTip label={b.field} text={b.fieldTip} />
               </th>
+              <th className="vt-map" aria-label={t.mapWindow.step.showOnMap} />
               <th>{b.has}</th>
               <th>{b.summary}</th>
               <th>{b.from}</th>
@@ -466,7 +467,7 @@ function Section({
             list.length === 0 ? null : (
               <tbody key={g}>
                 <tr className="bi-grp">
-                  <td colSpan={5}>{b.groups[g]}</td>
+                  <td colSpan={6}>{b.groups[g]}</td>
                 </tr>
                 {list.map((f) => (
                   <tr key={f.field} onClick={openRow}>
@@ -477,14 +478,16 @@ function Section({
                           set={set === "sales" ? "sales" : "universe"}
                           field={f.field}
                         />
-                        {mapOf(set, f.field) && (
-                          <MapIfThere
-                            field={mapOf(set, f.field) ?? ""}
-                            label={b.mapField({ field: f.field })}
-                            compact
-                          />
-                        )}
                       </span>
+                    </td>
+                    <td className="vt-map">
+                      {mapOf(set, f.field) && (
+                        <MapIfThere
+                          field={mapOf(set, f.field) ?? ""}
+                          label={b.mapField({ field: f.field })}
+                          compact
+                        />
+                      )}
                     </td>
                     <td className="bi-has">
                       <span className="bi-bar">

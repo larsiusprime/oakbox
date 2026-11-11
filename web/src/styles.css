@@ -8781,3 +8781,13 @@ html:has(.content > .project) {
 html[data-map="bottom"] .content:has(> .project) {
   padding-bottom: calc(var(--map-h) + 2 * var(--rim));
 }
+
+/* Variables' test tables: each variable's map button in a narrow column of its own, the icon alone. */
+td.vt-map,
+th.vt-map {
+  width: 1%;
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
+  text-align: center;
+  white-space: nowrap;
+}

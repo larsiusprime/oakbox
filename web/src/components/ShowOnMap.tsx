@@ -46,7 +46,7 @@ export function SummonMap({ field, label, compact }: { field: string; label?: st
   const here = useStepHere();
   const d = useDock();
   const shown = !!here && d.follow && d.picks?.[here] === field;
-  return (
+  const button = (
     <Button
       className={`button button-small show-on-map${shown ? " on" : ""}${compact ? " show-on-map-icon" : ""}`}
       aria-pressed={shown}
@@ -57,6 +57,7 @@ export function SummonMap({ field, label, compact }: { field: string; label?: st
       {compact ? null : <span className="som-label">{label ?? t.mapWindow.step.showOnMap}</span>}
     </Button>
   );
+  return compact ? <span title={label ?? t.mapWindow.step.showOnMap}>{button}</span> : button;
 }
 
 /** The same button, for a step that keeps what's shown itself (Evaluate's group): pressed while it's the one shown. */
@@ -64,15 +65,20 @@ export function ShowOnMapButton({
   shown,
   onPress,
   label,
+  compact,
 }: {
   shown: boolean;
   onPress: () => void;
   label?: string;
+  /** The icon alone (a table's map column): its words its name and tooltip. */
+  compact?: boolean;
 }) {
-  return (
+  const words = label ?? (shown ? t.mapWindow.step.onMap : t.mapWindow.step.showOnMap);
+  const button = (
     <Button
-      className={shown ? "button button-small show-on-map on" : "button button-small show-on-map"}
+      className={`button button-small show-on-map${shown ? " on" : ""}${compact ? " show-on-map-icon" : ""}`}
       aria-pressed={shown}
+      aria-label={words}
       onPress={() => {
         onPress();
         const d = dockNow();
@@ -80,9 +86,10 @@ export function ShowOnMapButton({
       }}
     >
       <MapIcon aria-hidden="true" size="1em" />
-      {label ?? (shown ? t.mapWindow.step.onMap : t.mapWindow.step.showOnMap)}
+      {compact ? null : words}
     </Button>
   );
+  return compact ? <span title={words}>{button}</span> : button;
 }
 
 /** 🗺 Map beside a variable (a column of the app's own outputs), when the map has it: the models' parcels first, then
@@ -111,7 +118,7 @@ export function MapIfThere({ field, label, compact }: { field: string; label?: s
   ) : null;
 }
 
-export function MapVariable({ column }: { column: string }) {
+export function MapVariable({ column, compact }: { column: string; compact?: boolean }) {
   const projectId = usePlace().where?.projectId ?? "";
   const info = useQuery({
     queryKey: ["map-info", projectId],
@@ -126,7 +133,13 @@ export function MapVariable({ column }: { column: string }) {
   const id = ["modeled", "prepared", "universe"]
     .map((s) => `out:${s}:${column}`)
     .find((x) => outs.some((o) => o.id === x));
-  return id ? <SummonMap field={id} label={t.mapWindow.step.mapIt} /> : null;
+  return id ? (
+    compact ? (
+      <SummonMap field={id} label={t.mapWindow.step.showOnMap} compact />
+    ) : (
+      <SummonMap field={id} label={t.mapWindow.step.mapIt} />
+    )
+  ) : null;
 }
 
 /** The step on screen (project/tab/step), as the map keys a Map button's pick: the Data wizard's from the address,

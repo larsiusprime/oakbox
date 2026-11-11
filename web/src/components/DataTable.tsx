@@ -14,6 +14,8 @@ export type Column<R> = {
   width?: number;
   /** A blank column, there to line this table's columns up with another's. */
   spacer?: boolean;
+  /** Not sorted by (a row's buttons, say): no header to press; its label, if any, its name for screen readers. */
+  plain?: boolean;
 };
 
 export type Widths = {
@@ -130,9 +132,10 @@ export function DataTable<R>({
                 <th
                   key={c.key}
                   className={c.spacer ? "dt-th dt-spacer" : c.numeric ? "cs-n dt-th" : "dt-th"}
-                  aria-sort={on ? (sort.desc ? "descending" : "ascending") : "none"}
+                  aria-sort={c.plain ? undefined : on ? (sort.desc ? "descending" : "ascending") : "none"}
+                  aria-label={c.plain && c.label ? c.label : undefined}
                 >
-                  {!c.spacer && (
+                  {!c.spacer && !c.plain && (
                     <button type="button" className="vals-sort dt-sort" onClick={() => setSort(next(c.key))}>
                       {c.tip ? <InfoTip label={c.label} text={c.tip} /> : c.label}
                       <span className="dt-arrow" aria-hidden="true">

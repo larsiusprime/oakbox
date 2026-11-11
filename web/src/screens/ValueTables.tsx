@@ -43,7 +43,7 @@ export function Scorecard({
   const onMap = (id: string) =>
     map && (
       <td className="rv-onmap">
-        <ShowOnMapButton shown={map.shown === id} onPress={() => map.show(id)} />
+        <ShowOnMapButton compact shown={map.shown === id} onPress={() => map.show(id)} />
       </td>
     );
   const c = r.card;
@@ -92,6 +92,7 @@ export function Scorecard({
           {map && (
             <th className="rv-onmap">
               <ShowOnMapButton
+                compact
                 shown={map.shown === ""}
                 onPress={() => map.show("")}
                 label={t.ratio.map.allOnMap}

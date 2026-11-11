@@ -125,6 +125,7 @@ function Columns({ projectId }: { projectId: string }) {
               <th>{a.cols.column({ file })}</th>
               <th className="cs-n">{a.cols.have}</th>
               <th>{a.cols.against}</th>
+              <th className="vt-map" aria-label={t.mapWindow.step.mapThem} />
               <th>{a.cols.use}</th>
             </tr>
           </thead>
@@ -143,6 +144,11 @@ function Columns({ projectId }: { projectId: string }) {
                 <td className="cs-n">{share(r.have, r.sales)}</td>
                 <td>
                   <Against r={r} />
+                </td>
+                <td className="vt-map">
+                  {r.compared > r.same && (
+                    <SummonMap field={`pr:differs:${r.key}`} label={t.mapWindow.step.mapThem} compact />
+                  )}
                 </td>
                 <td>
                   <Picker
@@ -191,10 +197,7 @@ function Against({ r }: { r: Row }) {
         {same >= 0.5 ? a.same({ pct: pct(same) }) : a.differs({ pct: pct(1 - same) })}
       </span>
       {r.compared > r.same && (
-        <div className="wiz-from as-eg">
-          {a.differsFor({ n: r.compared - r.same })}{" "}
-          <SummonMap field={`pr:differs:${r.key}`} label={t.mapWindow.step.mapThem} />
-        </div>
+        <div className="wiz-from as-eg">{a.differsFor({ n: r.compared - r.same })}</div>
       )}
     </>
   );
