@@ -12,3 +12,6 @@ work/
 
 # OpenAVMKit writes its cache next to wherever it runs: never the checkout.
 /cache/
+
+# TypeScript build cache (tsc -b)
+*.tsbuildinfo
