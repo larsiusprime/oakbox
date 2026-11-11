@@ -6643,6 +6643,75 @@
     }
    }
   },
+  "/api/projects/{project_id}/ratio/boxes": {
+   "get": {
+    "summary": "Ratio Boxes",
+    "description": "Each VEI group's ratios as a box, by sale and by the price level of the sale's region, for their charts.",
+    "operationId": "ratio_boxes_api_projects__project_id__ratio_boxes_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "field",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Field"
+      }
+     },
+     {
+      "name": "group",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Group"
+      }
+     },
+     {
+      "name": "region",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Region"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VeiBoxes"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/ratio/similar": {
    "get": {
     "summary": "Ratio Similar",
@@ -9391,6 +9460,54 @@
      "source"
     ],
     "title": "BorrowBody"
+   },
+   "Box": {
+    "properties": {
+     "n": {
+      "type": "integer",
+      "title": "N"
+     },
+     "q1": {
+      "type": "number",
+      "title": "Q1"
+     },
+     "median": {
+      "type": "number",
+      "title": "Median"
+     },
+     "q3": {
+      "type": "number",
+      "title": "Q3"
+     },
+     "lo": {
+      "type": "number",
+      "title": "Lo"
+     },
+     "hi": {
+      "type": "number",
+      "title": "Hi"
+     },
+     "outliers": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Outliers",
+      "description": "Past the whiskers; at most OUTLIERS, the furthest kept."
+     }
+    },
+    "type": "object",
+    "required": [
+     "n",
+     "q1",
+     "median",
+     "q3",
+     "lo",
+     "hi",
+     "outliers"
+    ],
+    "title": "Box",
+    "description": "One VEI group's ratios as a box plot (openratiostudy.com's chart): the quartiles, the whiskers (the furthest\nratios within 1.5 IQR of the box) and the ratios past them."
    },
    "ByHand": {
     "properties": {
@@ -27301,6 +27418,32 @@
      "values"
     ],
     "title": "Variable"
+   },
+   "VeiBoxes": {
+    "properties": {
+     "by_sale": {
+      "items": {
+       "$ref": "#/components/schemas/Box"
+      },
+      "type": "array",
+      "title": "By Sale",
+      "description": "The VEI's percentile groups, by each sale's market value proxy."
+     },
+     "by_region": {
+      "items": {
+       "$ref": "#/components/schemas/Box"
+      },
+      "type": "array",
+      "title": "By Region",
+      "description": "The same groups by the price level of each sale's region."
+     }
+    },
+    "type": "object",
+    "required": [
+     "by_sale",
+     "by_region"
+    ],
+    "title": "VeiBoxes"
    },
    "Verdict": {
     "properties": {

@@ -8811,3 +8811,131 @@ th.vt-map {
   margin-left: 0.25em;
   vertical-align: -0.1em;
 }
+
+/* ---------- The VEI's chart, as openratiostudy.com draws it ---------- */
+.vei {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+}
+.vei-plot {
+  flex: 1;
+  min-width: 0;
+  display: block;
+}
+.vei-slider {
+  flex: 0 0 64px;
+  align-self: stretch;
+  height: 420px;
+  padding-right: 8px;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+}
+.vei-track {
+  position: relative;
+  width: 6px;
+  height: 100%;
+  background: #e2e8f0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.vei-fill {
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  background: #bfdbfe;
+  border-radius: 4px;
+}
+.vei-handle {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  min-width: 0;
+  max-width: none;
+  height: 22px;
+  background: #fff;
+  border: 2px solid #3b82f6;
+  border-radius: 5px;
+  font: inherit;
+  font-size: 11px;
+  color: #1e3a8a;
+  text-align: center;
+  padding: 0;
+  box-sizing: border-box;
+  outline: none;
+  touch-action: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  z-index: 2;
+}
+.vei-handle.vei-hi {
+  z-index: 3;
+}
+.vei-handle:focus {
+  z-index: 4;
+  box-shadow: 0 0 0 2px #bfdbfe;
+}
+.vei-keys {
+  flex: 0 0 148px;
+  padding-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vei-keys-head {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.vei-key {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 6px 9px;
+  border-radius: 7px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #94a3b8;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.vei-key.on {
+  border-color: #3b82f6;
+  color: #1e3a8a;
+}
+.vei-key:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+}
+.vei-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.vei-keys-note {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+/* Narrow: the buttons go under the chart, in a row. */
+@container (max-width: 34rem) {
+  .vei {
+    flex-wrap: wrap;
+  }
+  .vei-keys {
+    flex: 1 0 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 8px 0 0 64px !important;
+  }
+  .vei-key {
+    width: auto;
+  }
+}

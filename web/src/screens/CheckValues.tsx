@@ -23,7 +23,6 @@ import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus 
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
 import { LoadingBar } from "../components/Waiting";
-import { BY_SALE } from "../lib/colours";
 import { day, money, num, ratioText, signed, when } from "../lib/format";
 import { setStepPick, useMapStep } from "../lib/mapstep";
 import { onward as goOnTo } from "../lib/returnto";
@@ -32,9 +31,10 @@ import { ExtremeMap } from "./ExtremeMap";
 import { SavedGroupsOnMap } from "./GroupMap";
 import { SimilarMap } from "./SimilarMap";
 import { AssignTable, StandardsTable, WhoseCard } from "./Standards";
-import { BandChart, Scatter } from "./ValueCharts";
+import { Scatter } from "./ValueCharts";
 import { RatioMap, Regions } from "./ValueMap";
 import { GroupsTable, judged, Scorecard } from "./ValueTables";
+import { useVeiBoxes, VeiChart } from "./VeiChart";
 
 const r = t.ratio;
 type RStep =
@@ -609,6 +609,7 @@ function Prices({
         }),
       ),
   });
+  const boxes = useVeiBoxes(projectId, result.field, gid);
   const p = r.prices;
   return (
     <div className="rv-cards">
@@ -666,7 +667,12 @@ function Prices({
                 verdict: r.table.verdicts[g.vei_verdict ?? ""] ?? "—",
               })}
             </p>
-            <BandChart series={[{ label: p.bySale, color: BY_SALE, bands: g.strata }]} />
+            <VeiChart
+              boxes={boxes.data?.by_sale.length === g.strata.length ? boxes.data.by_sale : []}
+              bands={g.strata}
+              median={g.median}
+              label={p.strata}
+            />
             <table className="tbl">
               <thead>
                 <tr>

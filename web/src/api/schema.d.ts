@@ -2519,6 +2519,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/ratio/boxes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ratio Boxes
+         * @description Each VEI group's ratios as a box, by sale and by the price level of the sale's region, for their charts.
+         */
+        get: operations["ratio_boxes_api_projects__project_id__ratio_boxes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/ratio/similar": {
         parameters: {
             query?: never;
@@ -3621,6 +3641,30 @@ export interface components {
              * @description The group whose time adjustment it uses; null: its own.
              */
             source: string | null;
+        };
+        /**
+         * Box
+         * @description One VEI group's ratios as a box plot (openratiostudy.com's chart): the quartiles, the whiskers (the furthest
+         *     ratios within 1.5 IQR of the box) and the ratios past them.
+         */
+        Box: {
+            /** N */
+            n: number;
+            /** Q1 */
+            q1: number;
+            /** Median */
+            median: number;
+            /** Q3 */
+            q3: number;
+            /** Lo */
+            lo: number;
+            /** Hi */
+            hi: number;
+            /**
+             * Outliers
+             * @description Past the whiskers; at most OUTLIERS, the furthest kept.
+             */
+            outliers: number[];
         };
         /**
          * ByHand
@@ -11700,6 +11744,19 @@ export interface components {
              */
             values: number | null;
         };
+        /** VeiBoxes */
+        VeiBoxes: {
+            /**
+             * By Sale
+             * @description The VEI's percentile groups, by each sale's market value proxy.
+             */
+            by_sale: components["schemas"]["Box"][];
+            /**
+             * By Region
+             * @description The same groups by the price level of each sale's region.
+             */
+            by_region: components["schemas"]["Box"][];
+        };
         /**
          * Verdict
          * @description True met, False missed, None neither (or not judged).
@@ -16969,6 +17026,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MapPoint"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_boxes_api_projects__project_id__ratio_boxes_get: {
+        parameters: {
+            query: {
+                field: string;
+                group?: string;
+                region?: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VeiBoxes"];
                 };
             };
             /** @description Validation Error */

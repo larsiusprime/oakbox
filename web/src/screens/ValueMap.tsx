@@ -8,11 +8,11 @@ import { Choice } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
 import { OnTheMap } from "../components/OnTheMap";
 import { Seg } from "../components/Seg";
-import { BY_LEVEL, BY_SALE, ratioColor, ratioStroke, TRIMMED } from "../lib/colours";
+import { ratioColor, ratioStroke, TRIMMED } from "../lib/colours";
 import { money, num, ratioText, signed } from "../lib/format";
 import { t } from "../wording";
 import { RegionMap } from "./RegionMap";
-import { BandChart } from "./ValueCharts";
+import { useVeiBoxes, VeiChart } from "./VeiChart";
 
 const r = t.ratio;
 
@@ -166,6 +166,7 @@ export function Regions({
   const [gid, setGid] = useState("");
   const g = result.groups.find((x) => x.id === gid) ?? result.overall;
   const rg = g.regions;
+  const boxes = useVeiBoxes(projectId, result.field, gid, rg?.field ?? "");
   const rr = r.regions;
   return (
     <div className="rv-cards">
@@ -219,11 +220,11 @@ export function Regions({
               verdict: r.table.verdicts[rg.vei_verdict] ?? rg.vei_verdict,
             })}
           </p>
-          <BandChart
-            series={[
-              { label: rr.byLevel, color: BY_LEVEL, bands: rg.strata },
-              ...(g.strata.length ? [{ label: rr.bySale, color: BY_SALE, bands: g.strata }] : []),
-            ]}
+          <VeiChart
+            boxes={boxes.data?.by_region.length === rg.strata.length ? boxes.data.by_region : []}
+            bands={rg.strata}
+            median={g.median}
+            label={rr.chartTitle}
           />
           <table className="tbl">
             <thead>

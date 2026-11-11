@@ -2304,13 +2304,32 @@
         "insufficient": "too few sales"
       }
     },
+    "veiChart": {
+      "half": "Half",
+      "quartile": "Quartile",
+      "decile": "Decile",
+      "group": "Group",
+      "ratio": "Ratio",
+      "sample": "Sample",
+      "median": "Median",
+      "toggle": "click to show/hide:",
+      "boxes": "Box distribution",
+      "sampleMedian": "Sample median",
+      "ci": "90% CI (bounds)",
+      "ct": "Central tendency",
+      "rangeHint": "Y range: drag a handle on the left, or click it to type a value. Double-click the track to reset.",
+      "top": "Highest ratio shown",
+      "bottom": "Lowest ratio shown",
+      "boxTip": "{group}: {n, number} sales\nupper fence {hi}\nq3 {q3}\nmedian {median}\nq1 {q1}\nlower fence {lo}",
+      "ciTip": "{group}\nMedian: {median}\n90% CI: [{low}, {high}]",
+      "ctTip": "{group}\nMedian: {median}"
+    },
     "prices": {
       "title": "Across prices: {name}",
       "lede": "Each dot a sale: its ratio against its price. Black: the median ratio of each fifth of sales, by price. Green: the level the standard asks for.",
       "fifth": "Sale price",
       "flat": "Flat would be even: rising, dearer parcels are valued relatively higher; falling, lower.",
       "strata": "The VEI''s groups, by value",
-      "bySale": "By each sale''s price level",
       "stratum": "Group",
       "vei": "VEI {vei}, significance {sig}: {verdict}.",
       "noVei": "Too few sales for the VEI (it needs 20).",
@@ -2425,8 +2444,7 @@
       "compare": "By each sale''s own price, the VEI is {vei}.",
       "group": "Price level group",
       "regionsCol": "Neighbourhoods",
-      "byLevel": "By its neighbourhood''s price level",
-      "bySale": "By its own price level (the VEI)",
+      "chartTitle": "Vertical equity across neighbourhood price levels",
       "level": "Price level",
       "lowest": "Cheapest",
       "highest": "Dearest"

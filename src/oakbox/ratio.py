@@ -1168,3 +1168,82 @@ def similar_points(project_dir: Path, field: str, group: str | None) -> SimilarP
 
 if __name__ == "__main__":
     steps.main(run)
+
+
+class Box(BaseModel):
+    """One VEI group's ratios as a box plot (openratiostudy.com's chart): the quartiles, the whiskers (the furthest
+    ratios within 1.5 IQR of the box) and the ratios past them."""
+
+    n: int
+    q1: float
+    median: float
+    q3: float
+    lo: float
+    hi: float
+    outliers: list[float] = Field(description="Past the whiskers; at most OUTLIERS, the furthest kept.")
+
+
+class VeiBoxes(BaseModel):
+    by_sale: list[Box] = Field(description="The VEI's percentile groups, by each sale's market value proxy.")
+    by_region: list[Box] = Field(description="The same groups by the price level of each sale's region.")
+
+
+OUTLIERS = 400
+
+
+def _box(r) -> Box:
+    import numpy as np
+
+    r = np.sort(np.asarray(r, dtype=float))
+    q1, med, q3 = (float(x) for x in np.quantile(r, [0.25, 0.5, 0.75]))
+    iqr = q3 - q1
+    inside = r[(r >= q1 - 1.5 * iqr) & (r <= q3 + 1.5 * iqr)]
+    lo, hi = (float(inside[0]), float(inside[-1])) if len(inside) else (q1, q3)
+    out = r[(r < lo) | (r > hi)]
+    if len(out) > OUTLIERS:  # the furthest from the box, both ends
+        out = out[np.argsort(-np.maximum(q1 - out, out - q3))[:OUTLIERS]]
+    return Box(n=len(r), q1=q1, median=med, q3=q3, lo=lo, hi=hi, outliers=[round(float(x), 4) for x in out])
+
+
+def _vei_groups(n: int) -> int:
+    return 0 if n < 20 else 2 if n <= 50 else 4 if n <= 500 else 10
+
+
+def vei_boxes(project_dir: Path, field: str, group: str | None, region: str | None) -> VeiBoxes:
+    """Each VEI group's ratios, grouped as the engine groups them for its VEI and its neighbourhood price levels:
+    the sales studied (the trimmed left out), by market value proxy, half the price and half the value at the
+    median ratio."""
+    import numpy as np
+    import pandas as pd
+    from openavmkit.value_studies import _group_by_sort_key
+
+    empty = VeiBoxes(by_sale=[], by_region=[])
+    path = out_dir(project_dir) / "studies" / f"{field}.sales.parquet"
+    if not path.is_file():
+        return empty
+    t = pd.read_parquet(path)
+    if group:
+        t = t[t["model_group"].astype(str) == group]
+    if "trimmed" in t:
+        t = t[~t["trimmed"].astype(bool)]
+    price = cells.numbers(t, "sale_price").to_numpy(dtype=float)
+    value = cells.numbers(t, "value").to_numpy(dtype=float)
+    ratio = value / price
+    if len(t) < 20 or not np.isfinite(ratio).any():
+        return empty
+    median = float(np.nanmedian(ratio))
+    proxy = 0.5 * price + 0.5 * value / median
+    by_sale: list[Box] = []
+    k = _vei_groups(len(t))
+    if pd.Series(proxy).nunique() >= k:
+        bins = np.asarray(pd.qcut(proxy, q=k, labels=False))
+        by_sale = [_box(ratio[bins == g]) for g in range(k) if bool((bins == g).any())]
+    by_region: list[Box] = []
+    if region and region in t:
+        name = cast(pd.Series, t[region]).astype("string").str.strip()
+        has = (name.notna() & name.ne("")).to_numpy()
+        if has.sum() >= 20 and name[has].nunique() >= 2:
+            level = pd.Series(proxy[has]).groupby(name[has].to_numpy()).median()
+            key = name[has].map(level).to_numpy(dtype=float)
+            by_region = [_box(ratio[has][rows]) for rows in _group_by_sort_key(key, _vei_groups(int(has.sum())))]
+    return VeiBoxes(by_sale=by_sale, by_region=by_region)

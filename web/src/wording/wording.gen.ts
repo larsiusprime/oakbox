@@ -1811,13 +1811,32 @@ export type Wording = {
       trimmedWhy: string;
       verdicts: Record<string, string>;
     };
+    veiChart: {
+      half: string;
+      quartile: string;
+      decile: string;
+      group: string;
+      ratio: string;
+      sample: string;
+      median: string;
+      toggle: string;
+      boxes: string;
+      sampleMedian: string;
+      ci: string;
+      ct: string;
+      rangeHint: string;
+      top: string;
+      bottom: string;
+      boxTip: (a: { group: string | number; n: number; hi: string | number; q3: string | number; median: string | number; q1: string | number; lo: string | number }) => string;
+      ciTip: (a: { group: string | number; median: string | number; low: string | number; high: string | number }) => string;
+      ctTip: (a: { group: string | number; median: string | number }) => string;
+    };
     prices: {
       title: (a: { name: string | number }) => string;
       lede: string;
       fifth: string;
       flat: string;
       strata: string;
-      bySale: string;
       stratum: string;
       vei: (a: { vei: string | number; sig: string | number; verdict: string | number }) => string;
       noVei: string;
@@ -1911,8 +1930,7 @@ export type Wording = {
       compare: (a: { vei: string | number }) => string;
       group: string;
       regionsCol: string;
-      byLevel: string;
-      bySale: string;
+      chartTitle: string;
       level: string;
       lowest: string;
       highest: string;

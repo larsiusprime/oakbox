@@ -46,7 +46,7 @@ statistics and views.
   openratiostudy) and the targets; a few seconds. Writes `out/oakbox/ratio/` (the receipt, OpenAVMKit's study files,
   every sale studied with its ratio).
 - **Pills never move a figure:** in By model group, each figure's pill sits at the cell's left edge and the figure at
-  its right. **Across prices** draws the VEI's groups as a chart too (median and 90% range per group).
+  its right. **Across prices** draws the VEI's groups as a chart too (the VEI chart, below).
 - **Summary:** a paragraph a board member can read ("Assessed market values are about 67% of what parcels sold for,
   2024-01-01 to 2025-12-31. That's outside the 90% to 110% the standard asks for in every model group judged. Not
   uniform enough: Single-family (COD 19.2). No significant vertical inequity."), then a scorecard: a row per model
@@ -61,14 +61,23 @@ statistics and views.
   significant, regressive, progressive, too few sales), PRB, PRD and MKI; the judged ones with ✓ / ✗, every sale's
   figure beneath each ("all"); all groups as the total. Headers explain themselves on hover.
 - **Across prices:** per model group, each sale's ratio against its price (log scale; trimmed in grey), the median of
-  each fifth of sales by price, the standard's level band; the fifths as a table; the VEI's groups by value with their
-  medians and 90% ranges.
+  each fifth of sales by price, the standard's level band; the fifths as a table; the VEI's groups by value, drawn as
+  the VEI chart.
+- **The VEI chart** (2026-11-11; openratiostudy.com's, as near as SVG draws it): each VEI group's ratios as a box
+  (quartiles, whiskers to the furthest ratio within 1.5 IQR, the ratios past them as dots; at most 400 per group, the
+  furthest), "Quartile 1"… under them (just the number when narrow), the sample median as a red dashed line labelled
+  at the right. Buttons at the right ("click to show/hide:") show or hide the boxes, the sample median, each group's
+  90% interval (bars with caps) and its central tendency (a white diamond at its median); the intervals start hidden,
+  shown instead when the boxes can't be drawn (no sale table: trimming off). A slider at the left sets the ratios
+  shown: drag a handle, or click it and type; double-click the track for the default (the widest whiskers, every
+  median and interval in view). The boxes come from `GET /ratio/boxes` (the sale table grouped as the engine groups
+  the VEI's strata and the neighbourhood price levels; tested against both).
 - **On the map** and **Neighbourhood price levels** (openratiostudy's further analysis): each sale where its parcel is,
   coloured by its ratio in openratiostudy's colours (blue under 1, white at 1, red over; trimmed grey), per model group
   or all; and the median ratio by the price level of each sale's neighbourhood (the neighbourhood's median market value
   proxy), sales grouped as openratiostudy groups them (2, 4 or 10 groups by the number of sales, as the VEI; a
-  neighbourhood never split), cheapest to dearest, drawn as the VEI's chart (each group's median with its 90% range)
-  beside the same chart by each sale's own price level, then the table: flat by neighbourhood while the VEI by sale
+  neighbourhood never split), cheapest to dearest, drawn as the VEI chart (openratiostudy draws it alone, so the chart
+  by each sale's own price level is on Across prices), then the table: flat by neighbourhood while the VEI by sale
   isn't points to invalid sales, not real inequity. Neighbourhoods by a location field (Check sales' by default;
   changing it checks again); without one it points to Data › Location. Engine: `region` on `run_value_field_studies`.
 - **Similar parcels:** horizontal equity from the equity clusters: parcels, groups of similar parcels, the median spread

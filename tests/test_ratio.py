@@ -152,3 +152,46 @@ def test_a_group_of_similar_parcels(tmp_path):
     assert [m.key for m in g.members] == ["c", "b", "a"] and g.median == 200.0
     assert g.chd == round(100 * (100 + 0 + 100) / 3 / 200, 1)
     assert ratio.similar_group(tmp_path, "v", "condo:0").members[0].key == "d"
+
+
+def test_vei_boxes_group_sales_as_the_engine_does(tmp_path):
+    """The VEI chart's boxes: the same groups, with the same medians, as the engine's VEI strata and neighbourhood
+    price levels; the trimmed left out."""
+    import numpy as np
+    import pandas as pd
+    from openavmkit.value_studies import _region_stats
+    from openavmkit.vertical_equity_study import get_vertical_equity_scores
+
+    rng = np.random.default_rng(3)
+    n = 120
+    price = rng.uniform(1e5, 9e5, n)
+    value = price * rng.normal(0.95, 0.12, n)
+    hood = rng.choice(["a", "b", "c", "d", "e"], n)
+    trimmed = np.zeros(n, dtype=bool)
+    trimmed[:5] = True
+    table = pd.DataFrame(
+        {
+            "model_group": "sf",
+            "sale_price": price,
+            "value": value,
+            "ratio": value / price,
+            "hood": hood,
+            "trimmed": trimmed,
+        }
+    )
+    studies = ratio.out_dir(tmp_path) / "studies"
+    studies.mkdir(parents=True)
+    table.to_parquet(studies / "v.sales.parquet")
+
+    got = ratio.vei_boxes(tmp_path, "v", "sf", "hood")
+    kept = table[~trimmed].rename(columns={"value": "v"})
+    want = get_vertical_equity_scores(kept, "sale_price", "v")["group_stats"]
+    assert [b.n for b in got.by_sale] == want["n"].tolist()
+    assert [b.median for b in got.by_sale] == pytest.approx(want["ratio"].tolist())
+    regions = _region_stats(kept, "v", "hood")["strata"]
+    assert [b.n for b in got.by_region] == [x["n"] for x in regions]
+    assert [b.median for b in got.by_region] == pytest.approx([x["median"] for x in regions])
+    for b in got.by_sale + got.by_region:
+        assert b.lo <= b.q1 <= b.median <= b.q3 <= b.hi
+        assert all(o < b.lo or o > b.hi for o in b.outliers)
+    assert ratio.vei_boxes(tmp_path, "missing", "", "").by_sale == []
