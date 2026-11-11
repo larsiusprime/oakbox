@@ -15895,6 +15895,12 @@
       "title": "Vacant",
       "description": "int8: 1 vacant, 0 not, -1 unknown."
      },
+     "deed": {
+      "type": "string",
+      "title": "Deed",
+      "description": "int8: 1 its deed has another sale that day, 0 alone, -1 no deed ID.",
+      "default": ""
+     },
      "price_quantiles": {
       "items": {
        "type": "number"
@@ -15933,7 +15939,7 @@
       },
       "type": "array",
       "title": "Has",
-      "description": "Which of price, year, valid, vacant the sales file has."
+      "description": "Which of price, year, valid, vacant, deed the sales file has."
      }
     },
     "type": "object",
@@ -15945,6 +15951,7 @@
      "year",
      "valid",
      "vacant",
+     "deed",
      "price_quantiles",
      "price_auto",
      "year_quantiles",

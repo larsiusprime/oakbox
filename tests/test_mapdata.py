@@ -166,3 +166,17 @@ def test_a_column_from_the_steps_outputs(client, pid):
     assert v[[0, 1, 3]].tolist() == [100, 200, 400] and np.isnan(v[[2, 4, 5]]).all()
     for bad in ("out:modeled:nope", "out:modeled:key", "out:nowhere:spatial_lag_x"):
         assert client.get(f"/api/projects/{pid}/map/column", params={"field": bad}).status_code == 404
+
+
+def test_permits_on_the_parcels(client, pid, tmp_path):
+    """The permits file on the map: how many permits each parcel has (blank: none)."""
+    client.put(f"/api/projects/{pid}/wizard/files/shapes", json={"universe": True, "id_column": "PARCEL_ID"})
+    body = {"path": str(tmp_path / "permits.csv"), "mode": "copy", "name": "permits"}
+    assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    r = client.put(f"/api/projects/{pid}/wizard/files/permits", json={"holds": "permits", "id_column": "PROP_ID"})
+    assert r.status_code == 200
+    m = _ready(client, pid)
+    assert "permits:count" in {f["id"] for f in m["fields"]}
+    c = client.get(f"/api/projects/{pid}/map/column", params={"field": "permits:count"}).json()
+    v = np.frombuffer(base64.b64decode(c["values"]), dtype="<f4")
+    assert c["kind"] == "number" and v[:2].tolist() == [2, 1] and np.isnan(v[2:]).all()

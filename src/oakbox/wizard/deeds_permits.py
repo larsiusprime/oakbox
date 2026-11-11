@@ -64,6 +64,39 @@ def deeds_check(project: Project, files: Files) -> DeedsCheck | None:
     return DeedsCheck(ok=True, text=words, deeds=len(shared), sales=int(shared.sum()), blank=n_blank)
 
 
+def deed_shared(project: Project, f: DataFile, in_dir: Path):
+    """Each row of a sales file: 1 its deed (ID and sale date) has another sale on it (likely one sale of several
+    parcels), 0 alone, -1 no deed ID; None where the file hasn't the deed fields and the sale date."""
+    import numpy as np
+    import pandas as pd
+
+    deed = projects.deed_field(project)
+    if deed is None:
+        return None
+    wanted = ["deed_id"] if deed == "deed_id" else ["deed_book", "deed_page"]
+    if not all(k in f.load for k in [*wanted, "sale_date"]):
+        return None
+    stamp = file_stamp(in_dir / f.filename)
+
+    def text(key: str) -> pd.Series:
+        return pd.Series(values_of(stamp, f.layer, f.load[key][0], raw=True)).astype(str).str.strip()
+
+    parts = [text(k) for k in wanted]
+    blank = pd.concat([p.str.lower().isin(["", "nan", "none", "null"]) for p in parts], axis=1).any(axis=1)
+    ids = parts[0] if len(parts) == 1 else parts[0] + "-" + parts[1]
+    spec = f.load["sale_date"]
+    when = (
+        parse_dates(stamp, f.layer, spec[0], spec[2])
+        if len(spec) > 2
+        else pd.Series(values_of(stamp, f.layer, spec[0]))
+    )
+    together = ids + "|" + when.astype(str)
+    counts = together[~blank].value_counts()
+    out = np.where(together.map(counts).fillna(0).to_numpy() > 1, 1, 0).astype("i1")
+    out[np.asarray(blank, dtype=bool)] = -1
+    return out
+
+
 NAME_FIELDS = {
     "seller": "deed_grantor",
     "buyer": "deed_grantee",

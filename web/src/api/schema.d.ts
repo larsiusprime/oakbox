@@ -6672,6 +6672,12 @@ export interface components {
              */
             vacant: string;
             /**
+             * Deed
+             * @description int8: 1 its deed has another sale that day, 0 alone, -1 no deed ID.
+             * @default
+             */
+            deed: string;
+            /**
              * Price Quantiles
              * @default []
              */
@@ -6693,7 +6699,7 @@ export interface components {
             year_auto: number[];
             /**
              * Has
-             * @description Which of price, year, valid, vacant the sales file has.
+             * @description Which of price, year, valid, vacant, deed the sales file has.
              */
             has: string[];
         };

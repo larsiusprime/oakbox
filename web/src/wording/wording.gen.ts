@@ -2752,6 +2752,7 @@ export type Wording = {
     howCells: (a: { size: string | number; sales: string | number }) => string;
     follow: string;
     backToFollowing: string;
+    permitsTitle: string;
     outsTitle: string;
     outSource: {
       universe: string;
@@ -2769,21 +2770,25 @@ export type Wording = {
       year: string;
       valid: string;
       vacant: string;
+      deed: string;
     };
     readingSales: string;
     salesPlaced: (a: { n: number; of: number }) => string;
     share0: {
       valid: string;
       vacant: string;
+      deed: string;
     };
     share1: {
       valid: string;
       vacant: string;
+      deed: string;
     };
     cellSales: (a: { n: number; parcels: number }) => string;
     validYes: string;
     validNo: string;
     vacantYes: string;
+    deedShared: string;
     prTitle: string;
     prBlankIds: (a: { n: number; share: string | number }) => string;
     prRepeatedIds: (a: { n: number; share: string | number }) => string;

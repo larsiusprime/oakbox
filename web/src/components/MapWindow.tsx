@@ -562,7 +562,8 @@ function FieldPick({
     differences: (problems?.items ?? []).filter(
       (x) => x.id.startsWith("pr:differs:") && matches(problemLabel(x), q),
     ),
-    columns: list(q).filter((f) => !f.field),
+    permits: list(q).filter((f) => f.id.startsWith("permits:")),
+    columns: list(q).filter((f) => !f.field && !f.id.startsWith("permits:")),
     layers: layers > 0 && matches(w.lyAll({ n: layers }), q) ? [LAYERS] : [],
     outs: outs.filter((f) => matches(f.label, q)),
   });
@@ -575,6 +576,7 @@ function FieldPick({
       ...x.problems.map((p) => p.id),
       ...x.differences.map((p) => p.id),
       ...x.layers,
+      ...x.permits.map((f) => f.id),
       ...x.outs.map((f) => f.id),
       ...x.columns.map((f) => f.id),
     ];
@@ -650,6 +652,12 @@ function FieldPick({
                 {shown("layers", q, x.layers).map((id) => option(id, w.lyAll({ n: layers }), q))}
               </ListBoxSection>
             )}
+            {x.permits.length > 0 && (
+              <ListBoxSection className="wiz-section">
+                {head("permits", q, totals.permits.length, w.permitsTitle)}
+                {shown("permits", q, x.permits).map((f) => option(f.id, f.label, q))}
+              </ListBoxSection>
+            )}
             {x.outs.length > 0 && !q.trim() && (
               <ListBoxSection className="wiz-section">
                 {head("outs", q, totals.outs.length, w.outsTitle)}
@@ -681,7 +689,7 @@ function FieldPick({
   );
 }
 
-type Fold = "pu" | "sr" | "problems" | "differences" | "layers" | "outs" | "columns";
+type Fold = "pu" | "sr" | "problems" | "differences" | "layers" | "permits" | "outs" | "columns";
 
 /** The choice that draws every map layer (Shapefiles) over the parcels. */
 const LAYERS = "ly:all";
@@ -706,6 +714,7 @@ const SALES_STEPS: Record<string, string[]> = {
   sale_price: ["price"],
   valid_sale: ["valid"],
   vacant_sale: ["vacant"],
+  deeds: ["deed"],
 };
 
 /** Other tabs' steps the map follows with a 💰 sales layer: by year sold, or by price. */
@@ -767,6 +776,11 @@ function followed(
   if (sr) {
     const k = sr.find((x) => sales.includes(x));
     return k ? { title, field: `sr:${k}` } : null;
+  }
+  // Permits: the kind most of each parcel's permits are, else how many it has.
+  if (step === "permits") {
+    const f = fields.find((x) => x.id === "permits:type") ?? fields.find((x) => x.id === "permits:count");
+    return f ? { title, field: f.id } : null;
   }
   const keys = step === "location" ? wizard.locations.map((l) => l.name) : s.fields;
   for (const k of keys) {
@@ -1129,8 +1143,8 @@ function MapBody({
             <>
               <div className="mapwin-ramp" aria-hidden="true" />
               <small className="mapwin-share">
-                <span>{w.share0[by as "valid" | "vacant"]}</span>
-                <span>{w.share1[by as "valid" | "vacant"]}</span>
+                <span>{w.share0[by as "valid" | "vacant" | "deed"]}</span>
+                <span>{w.share1[by as "valid" | "vacant" | "deed"]}</span>
               </small>
             </>
           )
@@ -1480,6 +1494,7 @@ type Sold = {
   year: Float32Array;
   valid: Int8Array;
   vacant: Int8Array;
+  deed: Int8Array;
 };
 
 function unpackSales(d: MapSales): Sold {
@@ -1490,6 +1505,7 @@ function unpackSales(d: MapSales): Sold {
     year: new Float32Array(decode(d.year)),
     valid: new Int8Array(decode(d.valid)),
     vacant: new Int8Array(decode(d.vacant)),
+    deed: d.deed ? new Int8Array(decode(d.deed)) : new Int8Array(d.sales).fill(-1),
   };
 }
 
@@ -1510,7 +1526,8 @@ function spreadOf(d: MapSales, by: SrKey): MapColumn | undefined {
   };
 }
 
-/** Each sale's colour: price or date on the ramp over the range shown; valid or vacant at its two ends (dark: yes),
+/** Each sale's colour: price or date on the ramp over the range shown; valid, vacant or a shared deed at its two ends
+ * (dark: yes),
  * so a cell's average is the share. */
 function salesPainter(d: Sold, by: SrKey, range: { lo: number; hi: number } | null): Paint {
   let at: (k: number) => number | null;
@@ -1526,7 +1543,7 @@ function salesPainter(d: Sold, by: SrKey, range: { lo: number; hi: number } | nu
       return x === undefined || Number.isNaN(x) ? null : (f(log ? Math.max(x, lo) : x) - f(lo)) / span;
     };
   } else {
-    const v = by === "valid" ? d.valid : d.vacant;
+    const v = by === "valid" ? d.valid : by === "deed" ? d.deed : d.vacant;
     at = (k) => {
       const x = v[k] ?? -1;
       return x < 0 ? null : x;
@@ -1559,6 +1576,7 @@ function saleText(d: Sold, k: number): string {
     p === undefined || Number.isNaN(p) ? null : p.toLocaleString(),
     d.valid[k] === 1 ? w.validYes : d.valid[k] === 0 ? w.validNo : null,
     d.vacant[k] === 1 ? w.vacantYes : null,
+    d.deed[k] === 1 ? w.deedShared : null,
   ];
   return `💰 ${bits.filter(Boolean).join(" · ")}`;
 }

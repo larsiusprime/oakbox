@@ -397,8 +397,8 @@ Variables' prepared ones and the models' try (`out:<universe|prepared|modeled>:<
 | Data | Sales Record (the file) | Its sales, found / not found in the parcel universe |
 | Data | More files, Add files, a file's part | That file's rows on the parcels, joined / not (**data**: per-file match) |
 | Data | Condo units | Condo parcels, units per parent; on The parcel they're on, units without one (**data**) |
-| Data | Deeds | Sales coloured by deed issue |
-| Data | Permits | Parcels with permits, by year or type |
+| Data | Deeds | Sales by whether their deed has other sales that day (likely several parcels sold together) ✓ |
+| Data | Permits | Parcels by the kind most of their permits are, else by how many (the picker's Permits) ✓ |
 | Data | Enrichments | Each enrichment's Map button: its column, from Bring in data's parcels ✓ |
 | Inputs | What runs, Bring in data | Hold; then the parcels loaded (**data**) |
 | Inputs | The parcel universe, The sales | Kept vs dropped, by reason (**data**) |
