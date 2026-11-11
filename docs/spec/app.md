@@ -413,7 +413,7 @@ Variables' prepared ones and the models' try (`out:<universe|prepared|modeled>:<
 | Evaluate | Across prices | Sales by ratio, a price band at a time (cheap / middle / dear) ✓ |
 | Evaluate | Neighbourhood price levels | Each sale by its neighbourhood's median ratio, against the median of them all (the page's model group) ✓ |
 | Variables | Fill blanks … What changed | Hold (what changed: **data**) |
-| Variables | Spatial average, Per area statistics | The nearby sale price, from the models' try ✓ (per area: **data**) |
+| Variables | Spatial average, Per area statistics | The nearby sale price; per area, its first statistic: from the models' try ✓ |
 | Variables | Test the variables … VIF | Each variable's Map button: the column, the models' try's first ✓ |
 | Models | Models | The group on the page |
 | Models | How they did | The group's held-out sales by one model's ratio, Map on each holdout row (the ensemble first) ✓ |

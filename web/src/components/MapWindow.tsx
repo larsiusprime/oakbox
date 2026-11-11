@@ -715,8 +715,9 @@ const OTHER_STEPS: Record<string, Record<string, string>> = {
 
 /** Variables' steps the map follows with a column of the app's own outputs: Spatial average statistics the nearby
  * price average (as the models' try worked it out). */
+// A trailing * follows the first such column: Per area statistics' first statistic.
 const OUT_STEPS: Record<string, Record<string, string>> = {
-  variables: { lag: "out:modeled:spatial_lag_sale_price_time_adj" },
+  variables: { lag: "out:modeled:spatial_lag_sale_price_time_adj", area: "out:modeled:area_stat_*" },
 };
 
 type Target = { title: string; field: string };
@@ -738,7 +739,10 @@ function followed(
     const k = (OTHER_STEPS[tab] ?? {})[step];
     const title = currentFrame()?.steps.find((x) => x.key === step)?.title ?? step;
     const out = (OUT_STEPS[tab] ?? {})[step];
-    if (out && outs.some((o) => o.id === out)) return { title, field: out };
+    const hit = out?.endsWith("*")
+      ? outs.find((o) => o.id.startsWith(out.slice(0, -1)))
+      : outs.find((o) => o.id === out);
+    if (hit) return { title, field: hit.id };
     return k && sales.includes(k) ? { title, field: `sr:${k}` } : null;
   }
   if (tab !== "fields" || !step || !wizard) return null;
