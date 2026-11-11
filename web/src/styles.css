@@ -8280,3 +8280,16 @@ tr.rv-picked > td {
 .mapwin-per .choice-item[data-disabled] {
   color: var(--muted, #5f6159);
 }
+
+/* A field's capsule beside another (Big five, the 🌐 and 💰 side by side): too narrow for the column, its unit and
+   the values and Map buttons on one line, the buttons go under them, at the right, side by side, never past the
+   capsule's edge. */
+.as-cap.cap-narrow .wiz-capsules > .wiz-capsule > .wiz-samples {
+  grid-column: 1 / -1;
+  justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  width: auto;
+}

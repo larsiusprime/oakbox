@@ -513,7 +513,7 @@ function FieldsStep({
               {/* Two fields on the step (Age): each pair under its field's name; one, the question says it. */}
               {hasSales && shown.length > 1 && <h3 className="wiz-group">{shortName(f)}</h3>}
               <div className="as-pair">
-                <div className={hasSales && f.sources.length > 0 ? "frame as-cap as-pu" : "as-today"}>
+                <CapPu paired={hasSales && f.sources.length > 0}>
                   {hasSales && f.sources.length > 0 && <CapHead kind="pu" />}
                   <div className="wiz-grid wiz-capsules">
                     <div className={hasSales && f.sources.length > 0 ? "wiz-capsule" : "frame wiz-capsule"}>
@@ -533,7 +533,7 @@ function FieldsStep({
                       </div>
                     )}
                   </div>
-                </div>
+                </CapPu>
                 {hasSales && f.sources.length > 0 && <AtSale projectId={project.id} field={f} />}
               </div>
             </div>
@@ -709,5 +709,42 @@ function ReviewStep({
         </tbody>
       </table>
     </>
+  );
+}
+
+/** The 🌐 capsule of a Big five field beside its 💰 one: where it's too narrow for the column, its unit and the
+ * values and Map buttons on one line (they ran past its edge), the buttons go under them (cap-narrow); back once the
+ * sheet is wider than when they went. Measured, not a container query: the capsule is as wide as what's in it. */
+function CapPu({ paired, children }: { paired: boolean; children: React.ReactNode }) {
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
+  const [narrowAt, setNarrowAt] = useState<number | null>(null);
+  useEffect(() => {
+    if (!el || !paired) return;
+    const sheet = el.closest(".wiz-body") ?? document.body;
+    let frame = 0;
+    const check = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const w = sheet.clientWidth;
+        if (narrowAt === null) {
+          if (el.scrollWidth > el.clientWidth + 1) setNarrowAt(w);
+        } else if (w > narrowAt + 24) setNarrowAt(null);
+      });
+    };
+    const ro = new ResizeObserver(check);
+    ro.observe(sheet);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [el, paired, narrowAt]);
+  return (
+    <div
+      ref={setEl}
+      className={paired ? `frame as-cap as-pu${narrowAt !== null ? " cap-narrow" : ""}` : "as-today"}
+    >
+      {children}
+    </div>
   );
 }
