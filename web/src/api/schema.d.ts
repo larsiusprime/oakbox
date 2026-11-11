@@ -2420,6 +2420,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/model/sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Model Sales
+         * @description A model's prediction on each of a model group's held-out sales, with its place and ratio, for the map.
+         */
+        get: operations["model_sales_api_projects__project_id__model_sales_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/model/small": {
         parameters: {
             query?: never;
@@ -16554,6 +16574,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VarListsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    model_sales_api_projects__project_id__model_sales_get: {
+        parameters: {
+            query: {
+                group: string;
+                model: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapPoint"][];
                 };
             };
             /** @description Validation Error */

@@ -946,6 +946,40 @@ class ModelReceipt(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+def sale_points(project_dir: Path, group: str, model: str) -> list[ratio.MapPoint]:
+    """A model's prediction on each held-out sale of a model group, with its place and ratio (OpenAVMKit's
+    out/models/<group>/main/<model>/pred_test.parquet; the place from Check sales' parcels, by key)."""
+    import pandas as pd
+
+    from oakbox import clean
+
+    if not re.fullmatch(r"[\w.-]+", group) or not re.fullmatch(r"[\w.-]+", model) or ".." in group + model:
+        return []
+    path = project_dir / "out" / "models" / group / "main" / model / "pred_test.parquet"
+    where = clean.out_dir(project_dir) / clean.UNIVERSE_KEPT
+    if not path.is_file() or not where.is_file():
+        return []
+    t = pd.read_parquet(path, columns=["key_sale", "key", "prediction", "sale_price_time_adj"])
+    u = pd.read_parquet(where, columns=["key", "latitude", "longitude"])
+    u = u.assign(key=u["key"].astype(str)).drop_duplicates("key")
+    t = t.assign(key=t["key"].astype(str)).merge(u, on="key", how="inner")
+    price, value = cells.numbers(t, "sale_price_time_adj"), cells.numbers(t, "prediction")
+    lat, lon = cells.numbers(t, "latitude"), cells.numbers(t, "longitude")
+    ok = lat.notna() & lon.notna() & (price > 0) & value.notna()
+    return [
+        ratio.MapPoint(
+            lat=float(a),
+            lon=float(b),
+            ratio=float(v / p),
+            price=float(p),
+            value=float(v),
+            trimmed=False,
+            key_sale=str(k),
+        )
+        for a, b, p, v, k in zip(lat[ok], lon[ok], price[ok], value[ok], t["key_sale"][ok], strict=True)
+    ]
+
+
 NOT_MODELED = "Not modeled: unticked on Model groups › Check them"
 
 

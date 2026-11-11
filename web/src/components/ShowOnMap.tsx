@@ -10,11 +10,24 @@ import { setStepPick } from "../lib/mapstep";
 import { usePlace } from "../lib/place";
 import { t } from "../wording";
 
-export function ShowOnMap({ id, shown, label }: { id: string; shown: boolean; label?: string }) {
+export function ShowOnMap({
+  id,
+  shown,
+  label,
+  compact,
+}: {
+  id: string;
+  shown: boolean;
+  label?: string;
+  /** Only the icon (a tight table cell): the label is its name and tooltip. */
+  compact?: boolean;
+}) {
+  const text = label ?? (shown ? t.mapWindow.step.onMap : t.mapWindow.step.showOnMap);
   return (
     <Button
-      className={shown ? "button button-small show-on-map on" : "button button-small show-on-map"}
+      className={`button button-small show-on-map${shown ? " on" : ""}${compact ? " show-on-map-icon" : ""}`}
       aria-pressed={shown}
+      {...(compact ? { "aria-label": text } : {})}
       onPress={() => {
         setStepPick(id);
         const d = dockNow();
@@ -22,7 +35,7 @@ export function ShowOnMap({ id, shown, label }: { id: string; shown: boolean; la
       }}
     >
       <MapIcon aria-hidden="true" size="1em" />
-      {label ?? (shown ? t.mapWindow.step.onMap : t.mapWindow.step.showOnMap)}
+      {compact ? null : text}
     </Button>
   );
 }

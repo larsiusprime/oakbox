@@ -2,10 +2,13 @@ import { useState } from "react";
 import type { ModelRow, ModelView, SalesSet } from "../api/client";
 import { type Column, DataTable, useWidths, type Widths } from "../components/DataTable";
 import { Choice } from "../components/Form";
+import { OnTheMap } from "../components/OnTheMap";
 import { Pill } from "../components/Pill";
 import { Seg } from "../components/Seg";
 import { day, num, signed } from "../lib/format";
+import { usePlace } from "../lib/place";
 import { t } from "../wording";
+import { ModelMap, ModelOnMap, useMapModel } from "./ModelMap";
 
 const m = t.values.model;
 
@@ -64,12 +67,26 @@ const MODEL: Column<Fig> = {
   width: 200,
   value: (r) => r.name,
   cell: (r) => (
+    <span className="md-model">
+      <span>
+        {r.name}
+        {r.model === "ensemble" && <span className="wiz-from"> · {m.shipped}</span>}
+      </span>
+      <ModelOnMap model={r.model} />
+    </span>
+  ),
+};
+// Map only where the map's sales are, the holdout untrimmed: the rest (trimmed, the study set, timings) without.
+const MODEL_ONLY: Column<Fig> = {
+  ...MODEL,
+  cell: (r) => (
     <>
       {r.name}
       {r.model === "ensemble" && <span className="wiz-from"> · {m.shipped}</span>}
     </>
   ),
 };
+const noMap = (columns: Column<Fig>[]) => columns.map((c) => (c.key === "model" ? MODEL_ONLY : c));
 
 const IAAO_COLUMNS = [
   MODEL,
@@ -110,7 +127,7 @@ const ACADEMIC = [
 ];
 // Under either view, sharing its widths: the model column lines up; the rest are its own.
 const TIMINGS = [
-  MODEL,
+  MODEL_ONLY,
   fig("time_total", h.col.total, undefined, "total"),
   fig("time_param", h.col.param, h.tip.param, "param"),
   fig("time_train", h.col.train, undefined, "train"),
@@ -189,6 +206,8 @@ export function HowTheyDid({ view }: { view: ModelView }) {
   const [how, setHow] = useState<How>("iaao");
   const iaaoWidths = useWidths("how-iaao");
   const academicWidths = useWidths("how-academic");
+  const projectId = usePlace().where?.projectId ?? "";
+  const mapModel = useMapModel();
   if (!r) return null;
   const g = r.groups.find((x) => x.id === gid) ?? r.groups.find((x) => !x.skipped) ?? r.groups[0];
   if (!g) return null;
@@ -231,6 +250,17 @@ export function HowTheyDid({ view }: { view: ModelView }) {
           onChange={setHow}
         />
       </div>
+      {!g.skipped && (
+        <OnTheMap projectId={projectId} step={h.mapStep} title={h.mapInstruction} sub={h.mapInstructionSub}>
+          <ModelMap
+            projectId={projectId}
+            group={g.id}
+            groupName={g.name}
+            model={mapModel}
+            modelName={g.sets[0]?.rows.find((x) => x.model === mapModel)?.name ?? mapModel}
+          />
+        </OnTheMap>
+      )}
       {g.skipped ? (
         <p className="wiz-warn">{m.skipped({ why: g.skipped })}</p>
       ) : how === "iaao" ? (
@@ -239,14 +269,19 @@ export function HowTheyDid({ view }: { view: ModelView }) {
             <Section id={s.key} title={h.set[s.key]} sub={span(s)}>
               <p className="wiz-from md-sec-note">{h.setWhy[s.key]}</p>
               {s.rows.length && s.sales ? (
-                <Table columns={IAAO_COLUMNS} rows={s.rows} keys={keys} widths={widths} />
+                <Table
+                  columns={s.key === "holdout" ? IAAO_COLUMNS : noMap(IAAO_COLUMNS)}
+                  rows={s.rows}
+                  keys={keys}
+                  widths={widths}
+                />
               ) : (
                 <p className="md-empty">{h.empty[s.key]}</p>
               )}
             </Section>
             {s.sales > 0 && (
               <Section id={`${s.key}-trim`} title={h.trimmed({ what: h.set[s.key] })} sub={h.trimmedWhy}>
-                <Table columns={IAAO_TRIMMED} rows={s.trimmed} keys={keys} widths={widths} />
+                <Table columns={noMap(IAAO_TRIMMED)} rows={s.trimmed} keys={keys} widths={widths} />
               </Section>
             )}
           </div>
@@ -258,7 +293,7 @@ export function HowTheyDid({ view }: { view: ModelView }) {
             <Table columns={ACADEMIC} rows={g.academic} keys={keys} widths={widths} />
           </Section>
           <Section id="academic-trim" title={h.trimmed({ what: h.academicTitle })} sub={h.trimmedWhy}>
-            <Table columns={ACADEMIC} rows={g.academic_trimmed} keys={keys} widths={widths} />
+            <Table columns={noMap(ACADEMIC)} rows={g.academic_trimmed} keys={keys} widths={widths} />
           </Section>
         </>
       )}

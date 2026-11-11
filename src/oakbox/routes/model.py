@@ -9,7 +9,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import Field
 
-from oakbox import locstack, model, projects, smallgroups, varlists
+from oakbox import locstack, model, projects, ratio, smallgroups, varlists
 from oakbox.datafiles import BaseModel
 from oakbox.errors import NotFound, NotReady
 from oakbox.routes.common import editing, load_project
@@ -138,6 +138,13 @@ def varlists_change(project_id: str, body: VarListsBody) -> varlists.VarListsVie
 
 class SmallChoice(BaseModel):
     choice: smallgroups.Choice
+
+
+@router.get("/api/projects/{project_id}/model/sales")
+def model_sales(project_id: str, group: str, model_name: Annotated[str, Query(alias="model")]) -> list[ratio.MapPoint]:
+    """A model's prediction on each of a model group's held-out sales, with its place and ratio, for the map."""
+    load_project(project_id)
+    return model.sale_points(projects.project_dir(project_id), group, model_name)
 
 
 @router.get("/api/projects/{project_id}/model/small")

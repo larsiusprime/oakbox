@@ -564,3 +564,29 @@ def test_skip_is_for_a_running_models_model(client):
     pid = client.post("/api/projects", json=NEW).json()["id"]
     assert client.post(f"/api/projects/{pid}/model/skip/model:sf:catboost").status_code == 409  # nothing running
     assert client.post(f"/api/projects/{pid}/final/skip/distances").status_code == 422  # not a model
+
+
+def test_a_models_held_out_sales_on_the_map(tmp_path):
+    """How they did's map: a model's prediction on each held-out sale, placed by its parcel (Check sales' parcels,
+    by key), its ratio worked out against the time-adjusted price; a sale without a place, or a price, is left out."""
+    from oakbox import clean
+
+    where = clean.out_dir(tmp_path)
+    where.mkdir(parents=True)
+    pd.DataFrame({"key": ["1", "2", "3"], "latitude": [10.0, 11.0, None], "longitude": [20.0, 21.0, 22.0]}).to_parquet(
+        where / clean.UNIVERSE_KEPT
+    )
+    pred = tmp_path / "out" / "models" / "sf" / "main" / "mra"
+    pred.mkdir(parents=True)
+    pd.DataFrame(
+        {
+            "key_sale": ["1-a", "2-a", "3-a", "1-b"],
+            "key": [1, 2, 3, 1],
+            "prediction": [110.0, 90.0, 100.0, 50.0],
+            "sale_price_time_adj": [100.0, 100.0, 100.0, 0.0],
+        }
+    ).to_parquet(pred / "pred_test.parquet")
+    got = model.sale_points(tmp_path, "sf", "mra")
+    assert [(p.key_sale, p.lat, p.lon, round(p.ratio, 2)) for p in got] == [("1-a", 10, 20, 1.1), ("2-a", 11, 21, 0.9)]
+    assert model.sale_points(tmp_path, "sf", "ensemble") == []  # not run
+    assert model.sale_points(tmp_path, "..", "sf") == []  # names only, never a path

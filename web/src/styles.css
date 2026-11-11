@@ -8231,3 +8231,16 @@ tr.rv-picked > td {
   background: #f3f3f0;
   border-bottom-color: var(--rule);
 }
+
+/* How they did: a model's name, its Map at the cell's right. */
+.md-model {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.md-model > :last-child {
+  margin-left: auto;
+}
+.show-on-map-icon {
+  padding-inline: 0.35rem;
+}

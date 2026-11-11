@@ -2251,6 +2251,17 @@ export type Wording = {
       model: string;
       salesCount2: (a: { n: number }) => string;
       how: {
+        mapStep: string;
+        mapItTip: string;
+        onMapTip: string;
+        mapInstruction: string;
+        mapInstructionSub: string;
+        mapLabel: string;
+        mapOf: (a: { model: string | number; group: string | number; n: string | number }) => string;
+        mapNone: string;
+        mapTip: (a: { ratio: string | number; price: string | number; value: string | number }) => string;
+        mapLow: string;
+        mapHigh: string;
         which: string;
         iaao: string;
         academic: string;
