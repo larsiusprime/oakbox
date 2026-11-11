@@ -121,7 +121,16 @@ def test_exit_and_documentation_run_here_the_rest_in_the_page():
 
 
 def test_every_menu_command_is_handled():
-    handled_here = {"exit", "docs", "density-default", "density-compact", "zoom-in", "zoom-out", "zoom-reset"}
+    handled_here = {
+        "exit",
+        "docs",
+        "open-log",
+        "density-default",
+        "density-compact",
+        "zoom-in",
+        "zoom-out",
+        "zoom-reset",
+    }
     commands = {item.command for _, item in menus.walk()}
     assert commands == handled_here | set(menus.PAGE_COMMANDS)
 

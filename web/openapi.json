@@ -5,6 +5,42 @@
   "version": "1"
  },
  "paths": {
+  "/api/log": {
+   "get": {
+    "summary": "Log Info",
+    "description": "Where OAK box's log is.",
+    "operationId": "log_info_api_log_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LogInfo"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/log/open": {
+   "post": {
+    "summary": "Log Open",
+    "description": "Show the log's folder in the file manager.",
+    "operationId": "log_open_api_log_open_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/version": {
    "get": {
     "summary": "Version",
@@ -15503,6 +15539,24 @@
     ],
     "title": "LocationMap",
     "description": "A location field on the map: each parcel's centre and which of its areas it's in."
+   },
+   "LogInfo": {
+    "properties": {
+     "folder": {
+      "type": "string",
+      "title": "Folder"
+     },
+     "file": {
+      "type": "string",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "folder",
+     "file"
+    ],
+    "title": "LogInfo"
    },
    "Machine": {
     "properties": {

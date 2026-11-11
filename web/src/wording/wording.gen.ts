@@ -2605,6 +2605,16 @@ export type Wording = {
     taxYear: (a: { year: string | number }) => string;
     loading: string;
     serverError: string;
+    serverErrorRef: (a: { ref: string | number }) => string;
+  };
+  failure: {
+    title: string;
+    what: (a: { ref: string | number; what: string | number }) => string;
+    more: (a: { n: number }) => string;
+    copy: string;
+    copied: string;
+    openLog: string;
+    dismiss: string;
   };
   callout: {
     show: string;

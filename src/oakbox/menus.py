@@ -120,6 +120,7 @@ MENUS: tuple[Submenu, ...] = (
             Item("engines", "Model &engines…"),
             None,
             Item("performance-report", "Save a &performance report", enabled=_in_project),
+            Item("open-log", "Open the &log folder"),
             None,
             Item("about", "&About OAK box"),
         ),
@@ -156,6 +157,10 @@ class Controller:
             self.close()
         elif command == "docs":
             self.open_url(OPENAVMKIT_DOCS)
+        elif command == "open-log":
+            from oakbox import applog
+
+            applog.open_folder()
         elif command in ("density-default", "density-compact", *ZOOM_STEPS):
             with appsettings.changing() as s:
                 if command.startswith("density-"):

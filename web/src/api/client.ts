@@ -1,4 +1,5 @@
 import createClient from "openapi-fetch";
+import { isFailure, noteFailure } from "../lib/failures";
 import { t } from "../wording";
 import type { components, paths } from "./schema";
 
@@ -41,8 +42,14 @@ export type FileCheck = components["schemas"]["FileCheck"];
 /** Unwrap an openapi-fetch result, turning API errors into thrown Errors with the server's message. */
 export function unwrap<T>(result: { data?: T; error?: unknown }): T {
   if (result.error !== undefined || result.data === undefined) {
-    const detail = (result.error as { detail?: unknown } | undefined)?.detail;
-    throw new Error(typeof detail === "string" ? detail : t.project.serverError);
+    const error = result.error as { detail?: unknown; failure?: unknown } | undefined;
+    if (typeof error?.detail === "string") throw new Error(error.detail);
+    // A bug on OAK box's side (a 500): logged there with its traceback; its reference here, and in the failure bar.
+    if (isFailure(error?.failure)) {
+      noteFailure(error.failure);
+      throw new Error(t.project.serverErrorRef({ ref: error.failure.ref }));
+    }
+    throw new Error(t.project.serverError);
   }
   return result.data;
 }

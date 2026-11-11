@@ -4,6 +4,46 @@
  */
 
 export interface paths {
+    "/api/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Log Info
+         * @description Where OAK box's log is.
+         */
+        get: operations["log_info_api_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/log/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log Open
+         * @description Show the log's folder in the file manager.
+         */
+        post: operations["log_open_api_log_open_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/version": {
         parameters: {
             query?: never;
@@ -6429,6 +6469,13 @@ export interface components {
             /** Parcels */
             parcels: number;
         };
+        /** LogInfo */
+        LogInfo: {
+            /** Folder */
+            folder: string;
+            /** File */
+            file: string;
+        };
         /**
          * Machine
          * @description What the check found.
@@ -12495,6 +12542,46 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    log_info_api_log_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogInfo"];
+                };
+            };
+        };
+    };
+    log_open_api_log_open_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     version_api_version_get: {
         parameters: {
             query?: never;

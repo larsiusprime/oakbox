@@ -3243,7 +3243,17 @@
     "title": "{name} – OAK box",
     "taxYear": "Tax year {year}",
     "loading": "Loading…",
-    "serverError": "Something went wrong talking to OAK box."
+    "serverError": "Something went wrong talking to OAK box.",
+    "serverErrorRef": "Something went wrong talking to OAK box (error {ref}, in its log)."
+  },
+  "failure": {
+    "title": "Something went wrong in OAK box",
+    "what": "Error {ref}: {what}",
+    "more": "{n, plural, =1 {} other {(the latest of {n, number})}}",
+    "copy": "Copy details",
+    "copied": "Copied",
+    "openLog": "Open the log folder",
+    "dismiss": "Dismiss"
   },
   "callout": {
     "show": "more",

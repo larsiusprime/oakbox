@@ -78,7 +78,17 @@ off isn't fetched.
 **Help › Save a performance report** (in a project) zips those records with each step's receipt and fingerprint, the
 end of each run's log (400 KB) and the project's settings for OpenAVMKit (file and field names; no data) into
 `performance-report-<date>.zip` in the project folder, shows it in the file manager, and says where it is and what's
-in it.
+in it. It holds the end of OAK box's own log too (below, 200 KB).
+
+**OAK box's own log** (2026-11-11; `applog.py`). The installed app starts with `pythonw` (no console), so a bug's
+traceback used to go nowhere. Every request that fails with a bug (a 500: anything but the 404 and 409 refusals) is
+written to `logs/oakbox.log` in OAK box's settings folder (`%APPDATA%\OAK box\logs`; `~/.config/oakbox/logs`;
+`<OAKBOX_HOME>/.oakbox/logs`), 1 MB a file and three older kept, each entry with a six-letter reference, the request
+and its traceback; each start is noted with the versions. The page is told the reference, the time, the request, the
+error and where the log is: the message reads "Something went wrong talking to OAK box (error a1b2c3, in its log)",
+and a bar at the bottom right (`FailureBar`) shows the latest with **Copy details** (those lines, to paste into a
+message) and **Open the log folder**, until dismissed. **Help › Open the log folder** opens it any time
+(`GET /api/log` says where it is; `POST /api/log/open` opens it).
 
 **A large county is said before the long steps.** Bring in data's plan works out about how much memory the county
 needs (0.5 GB, plus 1 GB per 50,000 parcels, plus 0.6 GB per 50,000 for each extra fold worker: the test runs'
