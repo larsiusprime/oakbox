@@ -915,18 +915,27 @@ function MapBody({
   const linkKey = `map:${fieldId}`;
   const srSpread = by && sales.data ? spreadOf(sales.data, by) : undefined;
   const range = useRangeOf(linkKey, by ? srSpread : col.data);
+  const hideOut = useDock().hideOut;
   const paint = useMemo(
     () =>
       prPaint && !onSales
         ? prPaint
         : by || prId || lyOn
           ? painter(undefined, null)
-          : painter(col.data, range),
-    [by, prId, lyOn, prPaint, onSales, col.data, range],
+          : outside(painter(col.data, range), hideOut),
+    [by, prId, lyOn, prPaint, onSales, col.data, range, hideOut],
   );
   const srPaint = useMemo(
-    () => (prPaint && onSales ? prPaint : by && sold ? salesPainter(sold, by, range) : null),
-    [by, sold, range, prPaint, onSales],
+    () =>
+      prPaint && onSales ? prPaint : by && sold ? outside(salesPainter(sold, by, range), hideOut) : null,
+    [by, sold, range, prPaint, onSales, hideOut],
+  );
+  // Hide the rest, beside the range: the ones outside it aren't drawn.
+  const hideToggle = (
+    <label className="fh-linked">
+      <input type="checkbox" checked={hideOut} onChange={(e) => setDock({ hideOut: e.target.checked })} />{" "}
+      {w.hideOut}
+    </label>
   );
 
   // Following the view: a new plan only when the view leaves the last one's box, or the zoom wants another size.
@@ -1024,7 +1033,10 @@ function MapBody({
           filled: true,
           lineWidthUnits: "pixels",
           getFillColor: (f) => paint.fill(parcelOf(f)),
-          getLineColor: (f) => (paint.has(parcelOf(f)) ? [255, 255, 255, 200] : BLANK_LINE),
+          getLineColor: (f) => {
+            const i = parcelOf(f);
+            return paint.hidden?.(i) ? GONE : paint.has(i) ? [255, 255, 255, 200] : BLANK_LINE;
+          },
           getLineWidth: 0.5,
           updateTriggers: { getFillColor: paint, getLineColor: paint },
           onClick: ({ index }) => {
@@ -1059,33 +1071,6 @@ function MapBody({
   return (
     <div className="mapwin-body">
       {centres.error && <p className="error mapwin-msg">{centres.error.message}</p>}
-      <div className="mapwin-stage" ref={stage}>
-        <MapView
-          className="mapwin-map"
-          asked
-          label={w.mapLabel}
-          layers={layers}
-          bounds={bounds}
-          fitKey={info.stamp}
-          resizeKey={`${side}-${size}-${docked}`}
-          onMap={watch}
-          tooltip={tooltip}
-          cursor={cursorOf}
-        />
-        {picked !== null && (
-          <MapCard
-            projectId={projectId}
-            index={picked}
-            stepOf={stepOf}
-            onGo={onGo}
-            onColour={(id) => setDock({ field: id, follow: false })}
-            pinned={pinned}
-            onPin={(on) => setDock({ cardPinned: on })}
-            stage={stage}
-            onClose={() => setPicked(null)}
-          />
-        )}
-      </div>
       <div className="mapwin-legend">
         {lyOn ? (
           <ul className="mapwin-cats">
@@ -1136,10 +1121,8 @@ function MapBody({
                 unit=""
                 linkKey={linkKey}
                 label={w.spread({ field: label })}
+                extra={hideToggle}
               />
-              <small className="mapwin-how">
-                {w.salesPlaced({ n: sales.data?.placed ?? 0, of: sales.data?.sales ?? 0 })}
-              </small>
             </>
           ) : (
             <>
@@ -1165,6 +1148,7 @@ function MapBody({
               unit=""
               linkKey={linkKey}
               label={w.spread({ field: label })}
+              extra={hideToggle}
             />
           </>
         ) : col.data?.kind === "category" ? (
@@ -1181,15 +1165,32 @@ function MapBody({
             </li>
           </ul>
         ) : null}
-        {plan && (
-          <small className="mapwin-how">
-            {plan.kind === "shapes"
-              ? w.howShapes({ n: plan.ids.length })
-              : w.howCells({
-                  size: plan.level >= 1000 ? `${plan.level / 1000} km` : `${plan.level} m`,
-                  sales: by || onSales ? "yes" : "no",
-                })}
-          </small>
+      </div>
+      <div className="mapwin-stage" ref={stage}>
+        <MapView
+          className="mapwin-map"
+          asked
+          label={w.mapLabel}
+          layers={layers}
+          bounds={bounds}
+          fitKey={info.stamp}
+          resizeKey={`${side}-${size}-${docked}`}
+          onMap={watch}
+          tooltip={tooltip}
+          cursor={cursorOf}
+        />
+        {picked !== null && (
+          <MapCard
+            projectId={projectId}
+            index={picked}
+            stepOf={stepOf}
+            onGo={onGo}
+            onColour={(id) => setDock({ field: id, follow: false })}
+            pinned={pinned}
+            onPin={(on) => setDock({ cardPinned: on })}
+            stage={stage}
+            onClose={() => setPicked(null)}
+          />
         )}
       </div>
     </div>
@@ -1252,7 +1253,28 @@ type Paint = {
   kind: "number" | "category" | "none";
   /** A problem: the county's share of it, for colouring a cell by its own share and outlining hot spots. */
   county?: number;
+  /** Not drawn: outside the histogram's range, with Hide the rest. */
+  hidden?: (i: number) => boolean;
 };
+
+const GONE: [number, number, number, number] = [0, 0, 0, 0];
+
+/** With Hide the rest, a number painter's parcels (or sales) outside the range aren't drawn, nor counted in a cell's
+ * colour; without it they're drawn at the ramp's ends. */
+function outside(p: Paint, hide: boolean): Paint {
+  if (!hide || p.kind !== "number") return p;
+  const out = (i: number) => {
+    const a = p.at(i);
+    return a !== null && (a < -1e-9 || a > 1 + 1e-9);
+  };
+  return {
+    ...p,
+    at: (i) => (out(i) ? null : p.at(i)),
+    has: (i) => !out(i) && p.has(i),
+    fill: (i) => (out(i) ? GONE : p.fill(i)),
+    hidden: out,
+  };
+}
 
 function ramp(t: number): [number, number, number, number] {
   return rampOf(RAMP, t);
@@ -1276,7 +1298,8 @@ function painter(c: MapColumn | undefined, range: { lo: number; hi: number } | n
     const span = f(range.hi) - lo || 1;
     const at = (i: number) => {
       const x = v[i];
-      return x === undefined || Number.isNaN(x) ? null : (f(log ? Math.max(x, range.lo) : x) - lo) / span;
+      if (x === undefined || Number.isNaN(x)) return null;
+      return log && x < range.lo ? -1 : (f(x) - lo) / span;
     };
     return {
       kind: "number",
@@ -1344,19 +1367,30 @@ function cellsLayer(
   const lat0 = (((box.s + box.n) / 2) * Math.PI) / 180;
   const dx = level / (111_320 * Math.cos(lat0));
   const dy = level / 110_540;
-  type Acc = { parcels: number; n: number; sum: number; have: number; cats: Map<number, number> };
+  type Acc = {
+    parcels: number;
+    n: number;
+    sum: number;
+    have: number;
+    gone: number;
+    cats: Map<number, number>;
+  };
   const acc = new Map<string, Acc>();
   const cellAt = (x: number, y: number): Acc | null => {
     if (!(x >= box.w && x <= box.e && y >= box.s && y <= box.n)) return null;
     const key = `${Math.floor(x / dx)}:${Math.floor(y / dy)}`;
     let c = acc.get(key);
     if (!c) {
-      c = { parcels: 0, n: 0, sum: 0, have: 0, cats: new Map() };
+      c = { parcels: 0, n: 0, sum: 0, have: 0, gone: 0, cats: new Map() };
       acc.set(key, c);
     }
     return c;
   };
   const add = (c: Acc, k: number) => {
+    if (paint.hidden?.(k)) {
+      c.gone++;
+      return;
+    }
     c.n++;
     const a = paint.at(k);
     if (a === null) return;
@@ -1380,6 +1414,8 @@ function cellsLayer(
     }
   const cells: Cell[] = [];
   for (const [key, c] of acc) {
+    // Hide the rest: a cell of only hidden ones isn't drawn.
+    if (c.gone > 0 && c.n === 0) continue;
     const [gx = 0, gy = 0] = key.split(":").map(Number);
     const x0 = gx * dx;
     const y0 = gy * dy;
@@ -1542,7 +1578,8 @@ function salesPainter(d: Sold, by: SrKey, range: { lo: number; hi: number } | nu
     const span = f(hi) - f(lo) || 1;
     at = (k) => {
       const x = v[k];
-      return x === undefined || Number.isNaN(x) ? null : (f(log ? Math.max(x, lo) : x) - f(lo)) / span;
+      if (x === undefined || Number.isNaN(x)) return null;
+      return log && x < lo ? -1 : (f(x) - f(lo)) / span;
     };
   } else {
     const v = by === "valid" ? d.valid : by === "deed" ? d.deed : d.vacant;
@@ -1597,7 +1634,8 @@ function dotsLayer(
   const dots: Dot[] = [];
   for (let k = 0; k < d.n; k++) {
     const p = d.parcel[k] ?? -1;
-    if (p >= 0 && shown.has(p)) dots.push({ sale: k, position: [xy[2 * p] ?? 0, xy[2 * p + 1] ?? 0] });
+    if (p >= 0 && shown.has(p) && !paint.hidden?.(k))
+      dots.push({ sale: k, position: [xy[2 * p] ?? 0, xy[2 * p + 1] ?? 0] });
   }
   dots.sort((a, b) => (d.year[a.sale] || 0) - (d.year[b.sale] || 0));
   return new ScatterplotLayer<Dot>({

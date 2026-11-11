@@ -2748,11 +2748,10 @@ export type Wording = {
     blank: string;
     cell: (a: { n: number; what: string | number }) => string;
     mostly: (a: { share: string | number }) => string;
-    howShapes: (a: { n: number }) => string;
-    howCells: (a: { size: string | number; sales: string | number }) => string;
     follow: string;
     backToFollowing: string;
     permitsTitle: string;
+    hideOut: string;
     outsTitle: string;
     outSource: {
       universe: string;
@@ -2773,7 +2772,6 @@ export type Wording = {
       deed: string;
     };
     readingSales: string;
-    salesPlaced: (a: { n: number; of: number }) => string;
     share0: {
       valid: string;
       vacant: string;

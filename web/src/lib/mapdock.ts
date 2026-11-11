@@ -24,6 +24,8 @@ export type Dock = {
   cardPinned: boolean;
   /** The colour picker's sections folded away (pu, sr, problems, differences, columns). */
   folded: string[];
+  /** The parcels (or sales) outside the histogram's range not drawn, rather than drawn at its ends. */
+  hideOut: boolean;
 };
 
 const KEY = "oakbox.mapDock";
@@ -41,6 +43,7 @@ const START: Dock = {
   out: false,
   cardPinned: true,
   folded: ["columns"],
+  hideOut: false,
 };
 
 function load<T>(key: string, fallback: T): T {

@@ -213,6 +213,7 @@ export function RangedBars({
   side = "pu",
   pair = false,
   label,
+  extra,
 }: {
   quantiles: number[];
   count: number;
@@ -226,6 +227,8 @@ export function RangedBars({
   side?: Side;
   pair?: boolean;
   label: string;
+  /** More on the bounds' line, after Reset (the map's Hide the rest). */
+  extra?: React.ReactNode;
 }) {
   const [autoLo, autoHi] = auto;
   const own: Extent | null =
@@ -283,7 +286,7 @@ export function RangedBars({
         ))}
         <span className="fh-spill-label">{over > 0 ? "›" : ""}</span>
       </div>
-      <RangeControls r={r} year={year} unit={unit} prefix={prefix} pair={pair} qs={qs} />
+      <RangeControls r={r} year={year} unit={unit} prefix={prefix} pair={pair} qs={qs} extra={extra} />
     </>
   );
 }
@@ -331,6 +334,7 @@ function RangeControls({
   prefix,
   pair,
   qs,
+  extra,
 }: {
   r: ReturnType<typeof useRange>;
   year: boolean;
@@ -339,6 +343,7 @@ function RangeControls({
   pair: boolean;
   /** The values at every 0.2%: the track is laid out by them. */
   qs: number[];
+  extra?: React.ReactNode;
 }) {
   const ext = r.ext as Extent;
   const range = r.range as Range;
@@ -396,6 +401,7 @@ function RangeControls({
             {h.linked}
           </label>
         )}
+        {extra}
       </div>
     </div>
   );

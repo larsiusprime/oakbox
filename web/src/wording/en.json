@@ -3387,11 +3387,10 @@
     "blank": "blank",
     "cell": "{n, number} {n, plural, =1 {parcel} other {parcels}} here{what, select, other { · {what}} none {}}",
     "mostly": "{share}% of them this",
-    "howShapes": "{n, number} parcels in view, drawn as shapes",
-    "howCells": "Zoomed out: squares of {size}, each coloured by its {sales, select, yes {sales} other {parcels}}; zoom in for the parcels",
     "follow": "Follow",
     "backToFollowing": "Back to following",
     "permitsTitle": "Permits",
+    "hideOut": "Hide the rest",
     "outsTitle": "From the steps",
     "outSource": {
       "universe": "As brought in (Inputs)",
@@ -3412,7 +3411,6 @@
       "deed": "Shares its deed (share sharing)"
     },
     "readingSales": "Reading the sales",
-    "salesPlaced": "{n, number} of {of, number} sales on the map: a sale is where its parcel is; one whose parcel isn''t in the 🌐 Parcel Universe has no place",
     "share0": {
       "valid": "none valid",
       "vacant": "none vacant",

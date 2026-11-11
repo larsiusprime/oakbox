@@ -5261,6 +5261,10 @@ under what it's about; a file appended as rows {
      (interleaved), which loses the dots when the street map is switched. */
   z-index: 10;
 }
+/* The zoom buttons over the dots too: their corner comes before deck.gl's (top right) at the same z-index. */
+.map-view .maplibregl-ctrl-top-left {
+  z-index: 3;
+}
 .wiz-pin {
   width: 22px;
   height: 26px;
@@ -6722,7 +6726,7 @@ html[data-map="top"] .oak-nav {
   display: grid;
   gap: 0.25rem;
   padding: 0.35rem 0.6rem 0.45rem;
-  border-top: 1px solid var(--line, #c9ccc4);
+  border-bottom: 1px solid var(--line, #c9ccc4);
   font-size: 0.85rem;
   max-height: 40%;
   overflow: auto;
@@ -6851,6 +6855,14 @@ html[data-map="top"] .oak-nav {
 .mapcard-h {
   margin: 0.5rem 0 0.25rem;
   font-size: 0.85rem;
+}
+/* A section's heading: pressed, it folds the section away or unfolds it. */
+.mapcard-h .mapcard-fold {
+  width: 100%;
+  font: inherit;
+  font-weight: 650;
+  color: inherit;
+  text-align: left;
 }
 .mapcard-tbl {
   width: 100%;
