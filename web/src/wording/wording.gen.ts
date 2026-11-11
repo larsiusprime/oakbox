@@ -2752,6 +2752,21 @@ export type Wording = {
     backToFollowing: string;
     permitsTitle: string;
     hideOut: string;
+    per: {
+      label: string;
+      asIs: string;
+      bldg: (a: { unit: string | number }) => string;
+      land: (a: { unit: string | number }) => string;
+      bldgShort: (a: { unit: string | number }) => string;
+      landShort: (a: { unit: string | number }) => string;
+      noBldg: string;
+      noLand: string;
+      unit: {
+        sqft: string;
+        sqm: string;
+      };
+      unsized: (a: { n: number; what: string | number; size: string | number }) => string;
+    };
     outsTitle: string;
     outSource: {
       universe: string;

@@ -2971,7 +2971,8 @@ export interface paths {
         };
         /**
          * Map Column
-         * @description A field's value for each parcel (field: file:column, from the map's field list).
+         * @description A field's value for each parcel (field: file:column, from the map's field list); per: divided by each
+         *     parcel's building or land size (bldg, land).
          */
         get: operations["map_column_api_projects__project_id__map_column_get"];
         put?: never;
@@ -2991,7 +2992,8 @@ export interface paths {
         };
         /**
          * Map Sales
-         * @description Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say).
+         * @description Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say);
+         *     per: its price divided by its parcel's building or land size (bldg, land).
          */
         get: operations["map_sales_api_projects__project_id__map_sales_get"];
         put?: never;
@@ -6495,6 +6497,12 @@ export interface components {
              * @default []
              */
             auto: number[];
+            /**
+             * Unsized
+             * @description Per size: parcels with a value but no size (or zero), left blank.
+             * @default 0
+             */
+            unsized: number;
         };
         /** MapField */
         MapField: {
@@ -6563,6 +6571,18 @@ export interface components {
              * @default []
              */
             outs: components["schemas"]["MapField"][];
+            /**
+             * Per
+             * @description The sizes a value can be shown per (bldg, land): the ones loaded on the parcels.
+             * @default []
+             */
+            per: string[];
+            /**
+             * Area Unit
+             * @description The project's small area unit, a size's: sqft or sqm.
+             * @default sqft
+             */
+            area_unit: string;
         };
         /** MapPoint */
         MapPoint: {
@@ -6702,6 +6722,12 @@ export interface components {
              * @description Which of price, year, valid, vacant, deed the sales file has.
              */
             has: string[];
+            /**
+             * Unsized
+             * @description Per size: sales with a price on a parcel with no size, left blank.
+             * @default 0
+             */
+            unsized: number;
         };
         /**
          * MapView
@@ -17639,6 +17665,7 @@ export interface operations {
         parameters: {
             query: {
                 field: string;
+                per?: string;
             };
             header?: never;
             path: {
@@ -17670,7 +17697,9 @@ export interface operations {
     };
     map_sales_api_projects__project_id__map_sales_get: {
         parameters: {
-            query?: never;
+            query?: {
+                per?: string;
+            };
             header?: never;
             path: {
                 project_id: string;

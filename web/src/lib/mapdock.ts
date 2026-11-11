@@ -26,7 +26,11 @@ export type Dock = {
   folded: string[];
   /** The parcels (or sales) outside the histogram's range not drawn, rather than drawn at its ends. */
   hideOut: boolean;
+  /** A value field shown per a size (SPEC §3.15): field id -> bldg or land; missing, as it is. */
+  per: Record<string, Per>;
 };
+
+export type Per = "bldg" | "land";
 
 const KEY = "oakbox.mapDock";
 const ROUTE = "oakbox.mapRoute";
@@ -44,6 +48,7 @@ const START: Dock = {
   cardPinned: true,
   folded: ["columns"],
   hideOut: false,
+  per: {},
 };
 
 function load<T>(key: string, fallback: T): T {

@@ -23,7 +23,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from oakbox.datafiles import BaseModel, DataFile
+from oakbox.datafiles import SQFT_PER, BaseModel, DataFile, small_unit
 from oakbox.errors import NotFound
 from oakbox.projects import Project
 from oakbox.steps import out_dir
@@ -170,6 +170,10 @@ class MapInfo(BaseModel):
         default=[], description="What the 💰 Sales Record can colour by: price, year, valid, vacant (as it has them)."
     )
     outs: list[MapField] = Field(default=[], description="The app's own outputs' columns (out:<source>:<column>).")
+    per: list[str] = Field(
+        default=[], description="The sizes a value can be shown per (bldg, land): the ones loaded on the parcels."
+    )
+    area_unit: str = Field(default="sqft", description="The project's small area unit, a size's: sqft or sqm.")
 
 
 def _short(name: str) -> str:
@@ -204,6 +208,93 @@ def _fields(project: Project, in_dir: Path) -> list[MapField]:
     rank = {k: i for i, k in enumerate(BIG_FIVE)}
     loaded.sort(key=lambda m: (rank.get(m.field or "", len(rank)), m.label.lower()))
     return loaded + others
+
+
+# ---------- A value per size (SPEC §3.15): per building or land area, the project's small unit ----------
+
+PER = {"bldg": "bldg_area_finished_sqft", "land": "land_area_sqft"}
+
+
+def _size_source(project: Project, in_dir: Path, which: str) -> tuple[DataFile, str] | None:
+    """The 🌐 parcel file and column a size is loaded from, if it is."""
+    key = PER.get(which)
+    if key is None:
+        return None
+    for f in project.files:
+        spec = f.load.get(key)
+        if f.holds == "parcels" and spec and (in_dir / f.filename).is_file():
+            return f, spec[0]
+    return None
+
+
+def _size(project: Project, in_dir: Path, which: str):
+    """Each parcel's size (building or land), in the project's small unit (an acres column converted); NaN none."""
+    import numpy as np
+
+    src = _size_source(project, in_dir, which)
+    if src is None:
+        raise NotFound(f"per {which}")
+    f, col = src
+    c = column(project, in_dir, f"{f.name}:{col}")
+    if c.kind != "number":
+        raise NotFound(f"per {which}")
+    size = np.frombuffer(base64.b64decode(c.values), dtype="<f4").astype(float)
+    native = f.area_units.get(PER[which], small_unit(project.units))
+    return size * SQFT_PER[native] / SQFT_PER[small_unit(project.units)]
+
+
+def _numbers(arr) -> tuple[str, int, list[float], list[float]]:
+    """Numbers (NaN blank) as the map takes them: base64 float32, how many, the histogram's values and range."""
+    import numpy as np
+
+    from oakbox.wizard.money import quantiles_and_auto
+
+    ok = sorted(float(x) for x in arr[np.isfinite(arr)])
+    q, auto = quantiles_and_auto(ok) if ok else ([], [])
+    return base64.b64encode(np.asarray(arr, dtype="<f4").tobytes()).decode(), len(ok), q, auto
+
+
+def per_size(project: Project, in_dir: Path, c: MapColumn, which: str) -> MapColumn:
+    """A number column divided by each parcel's size; blank where it has none (or zero)."""
+    import numpy as np
+
+    if c.kind != "number":
+        raise NotFound(f"per {which}: not a number")
+    v = np.frombuffer(base64.b64decode(c.values), dtype="<f4").astype(float)
+    size = _size(project, in_dir, which)
+    sized = np.isfinite(size) & (size > 0)
+    out = np.where(sized, v / np.where(sized, size, 1.0), np.nan)
+    values, have, q, auto = _numbers(out)
+    unsized = int((np.isfinite(v) & ~sized).sum())
+    return c.model_copy(update={"values": values, "have": have, "quantiles": q, "auto": auto, "unsized": unsized})
+
+
+def sales_per_size(project: Project, in_dir: Path, d: MapSales, which: str) -> MapSales:
+    """The sales' prices, each divided by its parcel's size; blank where the parcel has none."""
+    import numpy as np
+
+    from oakbox.wizard.money import quantiles_and_auto
+
+    price = np.frombuffer(base64.b64decode(d.price), dtype="<f4").astype(float)
+    parcel = np.frombuffer(base64.b64decode(d.parcel), dtype="<i4")
+    size = _size(project, in_dir, which)
+    at = (
+        np.where(parcel >= 0, size[np.clip(parcel, 0, len(size) - 1)], np.nan)
+        if len(size)
+        else np.full(len(price), np.nan)
+    )
+    sized = np.isfinite(at) & (at > 0)
+    out = np.where(sized, price / np.where(sized, at, 1.0), np.nan)
+    ok = sorted(float(x) for x in out[(parcel >= 0) & np.isfinite(out)])
+    q, auto = quantiles_and_auto(ok) if ok else ([], [])
+    return d.model_copy(
+        update={
+            "price": base64.b64encode(out.astype("<f4").tobytes()).decode(),
+            "price_quantiles": q,
+            "price_auto": auto,
+            "unsized": int((np.isfinite(price) & (parcel >= 0) & ~sized).sum()),
+        }
+    )
 
 
 PERMITS = "permits"  # field ids permits:count, permits:type
@@ -278,6 +369,8 @@ def info(project: Project, project_dir: Path, in_dir: Path) -> MapInfo:
         fields=_fields(project, in_dir) + _permit_fields(project, in_dir),
         sales=_sales_has(project),
         outs=out_fields(project),
+        per=[k for k in PER if _size_source(project, in_dir, k) is not None],
+        area_unit=small_unit(project.units),
     )
 
 
@@ -329,6 +422,7 @@ class MapColumn(BaseModel):
     counts: list[int] = Field(default=[], description="Parcels with each category, as categories.")
     quantiles: list[float] = Field(default=[], description="Numbers: the values at every 0.2% (the histogram's).")
     auto: list[float] = Field(default=[], description="Numbers: the automatic range, [low, high].")
+    unsized: int = Field(default=0, description="Per size: parcels with a value but no size (or zero), left blank.")
 
 
 def _as_number(text: str) -> float | None:
@@ -558,6 +652,7 @@ class MapSales(BaseModel):
     year_quantiles: list[float] = []
     year_auto: list[float] = []
     has: list[str] = Field(description="Which of price, year, valid, vacant, deed the sales file has.")
+    unsized: int = Field(default=0, description="Per size: sales with a price on a parcel with no size, left blank.")
 
 
 def _b64(a) -> str:

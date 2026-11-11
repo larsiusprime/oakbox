@@ -529,6 +529,15 @@ apart: how many values are under and over the range shown (capped at the chart's
 alone (the row group holding it, or the one feature), not column by column: 0.2 s a card on Guilford, the first after
 opening a few seconds (the sales' comparison, shared with the problems).
 
+**The legend and its controls** (2026-11-11) sit under the field picker, over the map: the histogram, its range,
+Reset and **Hide the rest** (the parcels or sales outside the range not drawn, nor counted in a cell, rather than drawn
+at the ramp's ends). **Per size**: a value field (a sale price, a value loaded, a value or prediction from the steps)
+gets a box after the picker: **As-is**, **per building sq ft**, **per land sq ft** (m² in a metric project), a size
+not loaded greyed with why. The division is the server's (each parcel's size in the project's unit, an acres column
+converted; a sale by its parcel's size today), so the histogram, range and Hide the rest work on it as on any number;
+no size, or zero, is blank, and the legend says how many. Chosen per field and kept; the box is blue while a size
+divides, so it's never read as the value itself. The parcel's card folds its 🌐 and 💰 sections (kept for the next one).
+
 Then **full size and popping out** (2026-11-09). Full size (⤢): the map over the whole main window inside the frame,
 under the lid, the page behind it; the same button (⤡) docks it again. Pop out (⧉): the map moves to a window of its own
 (#/map/<project>: a desktop window, pywebview's, reused; in a browser, a popup), the main window shows none and its 🗺

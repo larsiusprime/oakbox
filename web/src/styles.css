@@ -6599,9 +6599,11 @@ html[data-map="top"] .oak-nav {
 .mapwin-title {
   white-space: nowrap;
 }
+/* Starts small and grows to fill the line (to 22rem): the per box and Follow fit beside it before anything wraps. */
 .mapwin-field {
   min-width: 0;
-  flex: 0 1 22rem;
+  flex: 1 1 9rem;
+  max-width: 22rem;
 }
 .mapwin-field .combo-input {
   width: 100%;
@@ -8255,4 +8257,26 @@ tr.rv-picked > td {
 }
 .show-on-map-icon {
   padding-inline: 0.35rem;
+}
+
+/* Per size, after the field picker: compact; blue once a size divides the value, so it's never read as the value. */
+.mapwin-per,
+.mapwin-head .mapwin-per {
+  flex: none;
+  width: max-content;
+  min-width: 0;
+}
+.mapwin-per .choice-button {
+  width: max-content;
+  min-width: 0;
+  white-space: nowrap;
+}
+.mapwin-per.on .choice-button {
+  border-color: #1f4b8e;
+  background: #dbe7f7;
+  color: #1f4b8e;
+  font-weight: 600;
+}
+.mapwin-per .choice-item[data-disabled] {
+  color: var(--muted, #5f6159);
 }

@@ -204,3 +204,37 @@ def test_what_bring_in_data_kept(client, pid):
 
     assert read("out:universe:@parcels") == ["Brought in"] * 5 + ["Left out"]
     assert read("out:universe:@sales") == ["Some left out", "", "All left out", "All brought in", "", ""]
+
+
+def test_a_value_per_size(client, pid):
+    """A number per each parcel's building size (here the area itself: 1 each), blank where a parcel has none; the
+    sales' prices per their parcel's size; the sizes there are listed."""
+    start_wizard(client, pid)
+    client.put(f"/api/projects/{pid}/wizard/files/cama", json={"holds": "parcels", "id_column": "PROP_ID"})
+    r = client.put(
+        f"/api/projects/{pid}/wizard/fields/bldg_area_finished_sqft",
+        json={"file": "cama", "column": "LIVING_AREA", "area_unit": "sqft"},
+    )
+    assert r.status_code == 200
+    m = _ready(client, pid)
+    loaded = {f["field"]: f["id"] for f in m["fields"] if f["field"]}
+    assert "bldg" in m["per"] and m["area_unit"] == "sqft"
+    area = loaded["bldg_area_finished_sqft"]
+    c = client.get(f"/api/projects/{pid}/map/column", params={"field": area, "per": "bldg"}).json()
+    v = np.frombuffer(base64.b64decode(c["values"]), dtype="<f4")
+    assert v[:5].tolist() == [1.0] * 5 and np.isnan(v[5]) and c["have"] == 5 and c["unsized"] == 0
+    d = client.get(f"/api/projects/{pid}/map/sales", params={"per": "bldg"}).json()
+    price = np.frombuffer(base64.b64decode(d["price"]), dtype="<f4")
+    # Sales on parcels 0, 0, 2, 3: areas 1500, 1500, 980, 1750.
+    assert np.allclose(price, [185000 / 1500, 210000 / 1500, 92500 / 980, 240000 / 1750])
+    assert client.get(f"/api/projects/{pid}/map/column", params={"field": area, "per": "nope"}).status_code == 404
+    # A land size loaded in acres is divided by in square feet (here YR_BLT read as acres, for a number to hand).
+    r = client.put(
+        f"/api/projects/{pid}/wizard/fields/land_area_sqft",
+        json={"file": "cama", "column": "YR_BLT", "area_unit": "acres"},
+    )
+    assert r.status_code == 200, r.text
+    c = client.get(f"/api/projects/{pid}/map/column", params={"field": area, "per": "land"}).json()
+    v = np.frombuffer(base64.b64decode(c["values"]), dtype="<f4")
+    want = np.array([1500, 2200, 980, 1750, 3100]) / (np.array([1987, 2003, 1954, 1968, 2011]) * 43_560)
+    assert np.allclose(v[:5], want)

@@ -36,17 +36,23 @@ def map_centres(project_id: str) -> FileResponse:
 
 
 @router.get("/api/projects/{project_id}/map/column")
-def map_column(project_id: str, field: str) -> mapdata.MapColumn:
-    """A field's value for each parcel (field: file:column, from the map's field list)."""
+def map_column(project_id: str, field: str, per: str = "") -> mapdata.MapColumn:
+    """A field's value for each parcel (field: file:column, from the map's field list); per: divided by each
+    parcel's building or land size (bldg, land)."""
     project = load_project(project_id)
-    return mapdata.column(project, projects.inputs_dir(project_id), field)
+    in_dir = projects.inputs_dir(project_id)
+    c = mapdata.column(project, in_dir, field)
+    return mapdata.per_size(project, in_dir, c, per) if per else c
 
 
 @router.get("/api/projects/{project_id}/map/sales")
-def map_sales(project_id: str) -> mapdata.MapSales:
-    """Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say)."""
+def map_sales(project_id: str, per: str = "") -> mapdata.MapSales:
+    """Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say);
+    per: its price divided by its parcel's building or land size (bldg, land)."""
     project = load_project(project_id)
-    return mapdata.sales_kept(project, projects.inputs_dir(project_id))
+    in_dir = projects.inputs_dir(project_id)
+    d = mapdata.sales_kept(project, in_dir)
+    return mapdata.sales_per_size(project, in_dir, d, per) if per else d
 
 
 @router.get("/api/projects/{project_id}/map/problems")

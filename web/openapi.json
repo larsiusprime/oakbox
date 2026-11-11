@@ -7794,7 +7794,7 @@
   "/api/projects/{project_id}/map/column": {
    "get": {
     "summary": "Map Column",
-    "description": "A field's value for each parcel (field: file:column, from the map's field list).",
+    "description": "A field's value for each parcel (field: file:column, from the map's field list); per: divided by each\nparcel's building or land size (bldg, land).",
     "operationId": "map_column_api_projects__project_id__map_column_get",
     "parameters": [
      {
@@ -7813,6 +7813,16 @@
       "schema": {
        "type": "string",
        "title": "Field"
+      }
+     },
+     {
+      "name": "per",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Per"
       }
      }
     ],
@@ -7843,7 +7853,7 @@
   "/api/projects/{project_id}/map/sales": {
    "get": {
     "summary": "Map Sales",
-    "description": "Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say).",
+    "description": "Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say);\nper: its price divided by its parcel's building or land size (bldg, land).",
     "operationId": "map_sales_api_projects__project_id__map_sales_get",
     "parameters": [
      {
@@ -7853,6 +7863,16 @@
       "schema": {
        "type": "string",
        "title": "Project Id"
+      }
+     },
+     {
+      "name": "per",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Per"
       }
      }
     ],
@@ -15546,6 +15566,12 @@
       "title": "Auto",
       "description": "Numbers: the automatic range, [low, high].",
       "default": []
+     },
+     "unsized": {
+      "type": "integer",
+      "title": "Unsized",
+      "description": "Per size: parcels with a value but no size (or zero), left blank.",
+      "default": 0
      }
     },
     "type": "object",
@@ -15557,7 +15583,8 @@
      "categories",
      "counts",
      "quantiles",
-     "auto"
+     "auto",
+     "unsized"
     ],
     "title": "MapColumn"
    },
@@ -15693,6 +15720,21 @@
       "title": "Outs",
       "description": "The app's own outputs' columns (out:<source>:<column>).",
       "default": []
+     },
+     "per": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Per",
+      "description": "The sizes a value can be shown per (bldg, land): the ones loaded on the parcels.",
+      "default": []
+     },
+     "area_unit": {
+      "type": "string",
+      "title": "Area Unit",
+      "description": "The project's small area unit, a size's: sqft or sqm.",
+      "default": "sqft"
      }
     },
     "type": "object",
@@ -15705,7 +15747,9 @@
      "stamp",
      "fields",
      "sales",
-     "outs"
+     "outs",
+     "per",
+     "area_unit"
     ],
     "title": "MapInfo"
    },
@@ -15940,6 +15984,12 @@
       "type": "array",
       "title": "Has",
       "description": "Which of price, year, valid, vacant, deed the sales file has."
+     },
+     "unsized": {
+      "type": "integer",
+      "title": "Unsized",
+      "description": "Per size: sales with a price on a parcel with no size, left blank.",
+      "default": 0
      }
     },
     "type": "object",
@@ -15956,7 +16006,8 @@
      "price_auto",
      "year_quantiles",
      "year_auto",
-     "has"
+     "has",
+     "unsized"
     ],
     "title": "MapSales",
     "description": "Each sale of the main sales file, at its parcel (a sale has no place of its own): base64 arrays, one entry a\nsale, in the file's order."

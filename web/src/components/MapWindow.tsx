@@ -9,7 +9,16 @@ import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { ExternalLink, Maximize2, Minimize2 } from "lucide-react";
 import type * as maplibregl from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Button, Header, ListBoxItem, ListBoxSection } from "react-aria-components";
+import {
+  Button,
+  Header,
+  ListBox,
+  ListBoxItem,
+  ListBoxSection,
+  Popover,
+  Select,
+  SelectValue,
+} from "react-aria-components";
 import {
   api,
   type MapColumn,
@@ -29,6 +38,7 @@ import {
   MAX,
   MIN,
   onGo,
+  type Per,
   publishWhere,
   type Side,
   setDock,
@@ -396,6 +406,19 @@ function MapPanel({
             onChange={(id) => setDock({ field: id, follow: false })}
           />
         )}
+        {!takeOver && m?.status === "ready" && field && isValue(field.id, m) && (
+          <PerPick
+            value={dock.per?.[field.id] ?? null}
+            sizes={m.per ?? []}
+            unit={m.area_unit ?? "sqft"}
+            onChange={(v) => {
+              const next = { ...(dock.per ?? {}) };
+              if (v) next[field.id] = v;
+              else delete next[field.id];
+              setDock({ per: next });
+            }}
+          />
+        )}
         <Tip text={dock.follow ? w.followOnTip : w.followOffTip}>
           <Button
             className={`mapwin-follow ${following ? "on" : ""}`}
@@ -508,6 +531,11 @@ function MapPanel({
           fieldId={field?.id ?? null}
           label={field?.label ?? ""}
           wizardStamp={stamp}
+          per={
+            field && m && isValue(field.id, m) && (m.per ?? []).includes(dock.per?.[field.id] ?? "")
+              ? (dock.per?.[field.id] ?? null)
+              : null
+          }
           unplaced={probs?.unplaced ?? 0}
           layerNames={layerNames}
           stepOf={stepOf}
@@ -691,6 +719,69 @@ function FieldPick({
 
 type Fold = "pu" | "sr" | "problems" | "differences" | "layers" | "permits" | "outs" | "columns";
 
+// ---------- A value per size ----------
+
+/** A value field, that a size can divide: a sale price, a value loaded (the roll's, a set of values), or a value or
+ * prediction from the steps. */
+function isValue(id: string, m: MapInfo): boolean {
+  if (id === "sr:price") return true;
+  const f = m.fields.find((x) => x.id === id);
+  if (f) return !!f.field && /(_value|^sale_price)$/.test(f.field);
+  const o = (m.outs ?? []).find((x) => x.id === id);
+  return !!o && /(_value$|^prediction|^sale_price)/.test(o.column);
+}
+
+/** After the field picker: the value as it is, or per building or land size (a size not loaded, greyed). */
+function PerPick({
+  value,
+  sizes,
+  unit,
+  onChange,
+}: {
+  value: Per | null;
+  sizes: string[];
+  unit: string;
+  onChange: (v: Per | null) => void;
+}) {
+  const u = w.per.unit[unit as keyof typeof w.per.unit] ?? unit;
+  const shown = value && sizes.includes(value) ? value : "asis";
+  const options: [string, string, string][] = [
+    ["asis", w.per.asIs, w.per.asIs],
+    ["bldg", w.per.bldg({ unit: u }), w.per.bldgShort({ unit: u })],
+    ["land", w.per.land({ unit: u }), w.per.landShort({ unit: u })],
+  ];
+  return (
+    <Select
+      className={`field choice mapwin-per ${shown !== "asis" ? "on" : ""}`}
+      aria-label={w.per.label}
+      selectedKey={shown}
+      disabledKeys={(["bldg", "land"] as const).filter((k) => !sizes.includes(k))}
+      onSelectionChange={(k) => onChange(k === "bldg" || k === "land" ? k : null)}
+    >
+      <Button className="choice-button">
+        <SelectValue className="choice-value">
+          {({ selectedText }) => options.find(([k]) => k === shown)?.[2] ?? selectedText}
+        </SelectValue>
+        <span className="combo-arrow" aria-hidden="true">
+          ▾
+        </span>
+      </Button>
+      <Popover className="popover choice-popover" offset={0}>
+        <ListBox className="choice-list">
+          {options.map(([k, label]) => (
+            <ListBoxItem key={k} id={k} className="choice-item" textValue={label}>
+              {label}
+              {k !== "asis" && !sizes.includes(k) && (
+                <span className="choice-aside">{k === "bldg" ? w.per.noBldg : w.per.noLand}</span>
+              )}
+            </ListBoxItem>
+          ))}
+        </ListBox>
+      </Popover>
+    </Select>
+  );
+}
+
 /** The choice that draws every map layer (Shapefiles) over the parcels. */
 const LAYERS = "ly:all";
 
@@ -817,6 +908,7 @@ function MapBody({
   fieldId,
   label,
   wizardStamp,
+  per,
   unplaced,
   layerNames,
   stepOf,
@@ -830,6 +922,8 @@ function MapBody({
   label: string;
   /** When the wizard last changed: the sales (their rules, their columns) read again. */
   wizardStamp: number;
+  /** A value shown per building or land size; null as it is. */
+  per: Per | null;
   /** Sales whose parcel isn't in the universe: said, as they can't be shown. */
   unplaced: number;
   layerNames: string[];
@@ -861,22 +955,22 @@ function MapBody({
     staleTime: Number.POSITIVE_INFINITY,
   });
   const col = useQuery({
-    queryKey: ["map-column", projectId, info.stamp, fieldId],
+    queryKey: ["map-column", projectId, info.stamp, fieldId, per],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/projects/{project_id}/map/column", {
-          params: { path: { project_id: projectId }, query: { field: fieldId ?? "" } },
+          params: { path: { project_id: projectId }, query: { field: fieldId ?? "", per: per ?? "" } },
         }),
       ),
     enabled: !!fieldId && !by && !prId && !lyOn,
     staleTime: Number.POSITIVE_INFINITY,
   });
   const sales = useQuery({
-    queryKey: ["map-sales", projectId, info.stamp, wizardStamp],
+    queryKey: ["map-sales", projectId, info.stamp, wizardStamp, by === "price" ? per : null],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/projects/{project_id}/map/sales", {
-          params: { path: { project_id: projectId } },
+          params: { path: { project_id: projectId }, query: { per: (by === "price" && per) || "" } },
         }),
       ),
     enabled: !!by || (!!prId && prId.startsWith("pr:differs:")),
@@ -912,7 +1006,8 @@ function MapBody({
   });
 
   // The colour of each parcel (and its place 0..1 on the ramp, for a cell's average), from the field and its range.
-  const linkKey = `map:${fieldId}`;
+  // Per a size: its own range (a price per sq ft isn't on a price's scale).
+  const linkKey = per ? `map:${fieldId}:per:${per}` : `map:${fieldId}`;
   const srSpread = by && sales.data ? spreadOf(sales.data, by) : undefined;
   const range = useRangeOf(linkKey, by ? srSpread : col.data);
   const hideOut = useDock().hideOut;
@@ -1123,6 +1218,11 @@ function MapBody({
                 label={w.spread({ field: label })}
                 extra={hideToggle}
               />
+              {per && by === "price" && (sales.data?.unsized ?? 0) > 0 && (
+                <small className="mapwin-share">
+                  {w.per.unsized({ n: sales.data?.unsized ?? 0, what: "sales", size: per })}
+                </small>
+              )}
             </>
           ) : (
             <>
@@ -1150,6 +1250,11 @@ function MapBody({
               label={w.spread({ field: label })}
               extra={hideToggle}
             />
+            {per && col.data.unsized > 0 && (
+              <small className="mapwin-share">
+                {w.per.unsized({ n: col.data.unsized, what: "parcels", size: per })}
+              </small>
+            )}
           </>
         ) : col.data?.kind === "category" ? (
           <ul className="mapwin-cats">
@@ -1557,6 +1662,7 @@ function spreadOf(d: MapSales, by: SrKey): MapColumn | undefined {
     kind: "number",
     values: "",
     have: d.placed,
+    unsized: by === "price" ? (d.unsized ?? 0) : 0,
     quantiles: q,
     auto,
     categories: [],

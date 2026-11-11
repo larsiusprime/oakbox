@@ -3391,6 +3391,18 @@
     "backToFollowing": "Back to following",
     "permitsTitle": "Permits",
     "hideOut": "Hide the rest",
+    "per": {
+      "label": "Per size",
+      "asIs": "As-is",
+      "bldg": "per building {unit}",
+      "land": "per land {unit}",
+      "bldgShort": "per bldg {unit}",
+      "landShort": "per land {unit}",
+      "noBldg": "building size not loaded",
+      "noLand": "land size not loaded",
+      "unit": { "sqft": "sq ft", "sqm": "m²" },
+      "unsized": "{n, number} {what, select, sales {{n, plural, =1 {sale} other {sales}}} other {{n, plural, =1 {parcel} other {parcels}}}} with no {size, select, bldg {building} other {land}} size: blank"
+    },
     "outsTitle": "From the steps",
     "outSource": {
       "universe": "As brought in (Inputs)",
