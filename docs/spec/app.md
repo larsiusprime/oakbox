@@ -152,6 +152,18 @@ spec the runs' names often stand for their steps.
 | 6. Models | Splits, spatial lag, **Try** models (repeatable) → how they did → small groups → **Finalize** → the model values checked against the sales, beside the roll's (F9). Main models only (`run_vacant=False`) | No |
 | 7. Report | Export (CSV, GeoPackage, Excel, Shapefile, GeoParquet) and a printable HTML report of the model values (F10). Runs nothing | No |
 
+**A tab that waits** (2026-11-11) on an earlier step, out of date or not yet accepted, is greyed in the tab bar but
+still opens: its page dimmed under a bar that names the step it waits on and goes there. Nothing ever moves you off
+the tab you're on; that step's Looks right (or Next on) brings you back to the tab you came from.
+
+**An exclusion is a filter, not a reason to run again** (2026-11-11). A sale excluded by hand (Check sales' review,
+Outliers' "invalid sale") leaves Check sales up to date: it changes no fill or equity cluster, and the time trend and
+the other sales' flags only slightly. Everything after leaves it out as it reads the sales (the models through
+OpenAVMKit's `load_cleaned_data_for_modeling`, Evaluate as it runs). A step whose results still have it says so
+("3 sales excluded since this ran") with Run again offered, never asked; out of date it isn't. A keep (a sale scrutiny
+set aside, brought back) still needs Check sales to run again. The models' part of the ratio study settings
+(`study_set_predictions`, `outside_models`) is no part of Check sales' either.
+
 **What each step's receipt shows:**
 - **Step 1:** rows read from each file; each attachment's match rate, against the Stitch prediction; rows collapsed by
   several-rows rules; sales removed as office-invalid. Then Data health and Field profile (§3.9).

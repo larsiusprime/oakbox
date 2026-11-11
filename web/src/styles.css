@@ -8673,3 +8673,26 @@ tr > td > .wiz-link[aria-pressed] {
 td.cs-day {
   white-space: nowrap;
 }
+
+/* A tab that waits on an earlier step (SPEC D, 2026-11-11): never moved off; greyed in the tab bar, still opened; its
+   page dimmed under a bar that says what it waits on and goes there. */
+.folder-tab-waits:not([data-selected]) {
+  background: #e9dcb4;
+  color: #8a7650;
+}
+.wait-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.8rem;
+  margin-bottom: calc(0.6 * var(--sp));
+  padding: 0.45rem 0.7rem;
+  background: var(--warn-tint, #fff4e0);
+  border: 1px solid var(--warn-edge, #f0c78a);
+  border-radius: 3px;
+  font-size: 0.92rem;
+}
+.folder-panel.waits > :not(.wait-bar) {
+  opacity: 0.6;
+}

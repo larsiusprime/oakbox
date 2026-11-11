@@ -271,6 +271,15 @@ def test_review_the_sales_set_aside(checked, brought_in_client, brought_in):
             assert client.post(f"{url}/accept").status_code == 409  # run again first
         finally:
             client.put(f"{url}/marks/{key}", json={"action": None})
+        # Excluding one is a filter downstream, never a reason to run Check sales again: up to date, the exclusion
+        # written for what reads the sales after, and said as excluded since the run.
+        try:
+            view = client.put(f"{url}/marks/{key}", json={"action": "exclude", "note": "Not arm's length"}).json()
+            assert not view["stale"] and view["excluded_since"] == 1
+            out = (projects.project_dir(pid) / "in" / "oakbox" / "exclude.csv").read_text(encoding="utf-8")
+            assert key in out
+        finally:
+            client.put(f"{url}/marks/{key}", json={"action": None})
 
 
 def test_the_time_adjustment_worked_out_alone(time_worked_out, assembled):
@@ -616,3 +625,22 @@ def test_a_deed_name_format_this_oak_box_doesnt_know_reads_as_not_decided():
     """A format renamed since it was saved: the guess is shown again, not an error on Data › Deeds or the project."""
     assert clean.CleanState(name_format="last_word").name_format == "last_word"
     assert clean.CleanState.model_validate({"name_format": "surname_first"}).name_format is None
+
+
+def test_the_models_ratio_study_settings_leave_check_sales_as_it_was():
+    """The models write their part of the ratio study (the holdout's predictions on the study set, the other value
+    sets judged beside the roll) once Prepare has run: none of it is Check sales', so it stays up to date."""
+    mine = {"analysis": {"sales_scrutiny": {"x": 1}}}
+    theirs = {
+        "analysis": {
+            "sales_scrutiny": {"x": 1},
+            "ratio_study": {"study_set_predictions": "holdout", "outside_models": ["vset2"]},
+        }
+    }
+    assert clean._analysis_key(mine) == clean._analysis_key(theirs)
+
+
+def test_excluded_since_a_run(tmp_path):
+    steps.note_excluded(tmp_path, {"a"})
+    assert steps.excluded_since(tmp_path, {"a", "b", "c"}) == 2
+    assert steps.excluded_since(tmp_path / "never-ran", {"a", "b"}) == 0  # a run from before it was noted

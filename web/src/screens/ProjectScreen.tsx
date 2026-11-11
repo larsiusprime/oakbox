@@ -12,6 +12,7 @@ import { StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { TabStrip } from "../components/TabStrip";
 import { desktop } from "../desktop";
 import { lastTab, record, rememberTab, setTabs, setWhere } from "../lib/place";
+import { setReturn } from "../lib/returnto";
 import { navigate, TABS, type TabId } from "../lib/route";
 import { lockedTabs } from "../lib/tabs";
 import { say, t } from "../wording";
@@ -97,18 +98,49 @@ function ProjectView({
   // A tab that waits on an earlier step shows the first step, in order, not accepted on an up-to-date run: where
   // something needs doing, the tab bar greys what waits (no notice: the user asked for none, 2026-11-10).
   const locked = lockedTabs({ accepted, grouped, checked, hasValues, prepared, finalized });
-  const tabLocked = tab !== null && locked.has(tab);
   const loaded = order.every((k) => views[k] !== undefined);
   // Opened without a tab: the one last open in this project here (if it's open to you), else Data.
   const last = lastTab(projectId) as TabId | null;
   const resume = last && (TABS as readonly string[]).includes(last) ? last : null;
-  const selected = !tab
-    ? (resume ?? "fields")
-    : !tabLocked || !loaded
-      ? tab
-      : tab === "check" && checked && !hasValues
-        ? "variables"
-        : (first ?? "bring");
+  // Never moved off the tab asked for (2026-11-11): a tab that waits shows what it has, dimmed, under a bar that
+  // says what it waits on and goes there; that step's Looks right brings you back (lib/returnto).
+  const selected = !tab ? (resume ?? "fields") : tab;
+  // What a tab waits on: the first step, in order, not accepted on an up-to-date run (Report: the model values).
+  const waitsOn = (id: TabId): { on: string; stale: boolean } | "no-values" | null => {
+    if (!loaded || !locked.has(id)) return null;
+    if (id === "check" && checked && !hasValues) return "no-values";
+    const at = (TABS as readonly string[]).indexOf(id);
+    const before = order.find((k) => (TABS as readonly string[]).indexOf(k) < at && !views[k]?.accepted);
+    if (before) return { on: before, stale: !!views[before]?.stale };
+    return id === "report" ? { on: "values", stale: false } : null;
+  };
+  const bar = (id: TabId) => {
+    const w = waitsOn(id);
+    if (!w) return null;
+    if (w === "no-values")
+      return (
+        <div className="wait-bar" role="status">
+          <span>{t.tabs.noValues}</span>
+        </div>
+      );
+    return (
+      <div className="wait-bar" role="status">
+        <span>
+          {t.tabs.waitsOn({ step: name(w.on) })} {w.stale ? t.tabs.waitsStale : t.tabs.waitsNotYet}
+        </span>
+        <Button
+          className="button button-small button-primary"
+          onPress={() => {
+            setReturn(projectId, id);
+            navigate({ name: "project", id: projectId, tab: w.on as TabId });
+          }}
+        >
+          {t.tabs.goTo({ step: name(w.on) })}
+        </Button>
+      </div>
+    );
+  };
+  const panel = (id: TabId) => (waitsOn(id) ? "folder-panel waits" : "folder-panel");
   // The plate: where you are, and the tabs it lists (each one's name, whether it waits, whether it's done).
   setWhere({ projectId, tab: selected });
   const done: Record<string, boolean> = {
@@ -141,36 +173,38 @@ function ProjectView({
         className="folder-tabs"
         selectedKey={selected}
         onSelectionChange={(key) => navigate({ name: "project", id: projectId, tab: key as TabId })}
-        disabledKeys={locked}
       >
         <TabStrip selected={selected}>
           <TabList className="folder-tab-list" aria-label={project.name}>
-            <Tab id="metadata" className="folder-tab">
+            <Tab
+              id="metadata"
+              className={locked.has("metadata") ? "folder-tab folder-tab-waits" : "folder-tab"}
+            >
               {t.tabs.metadata}
             </Tab>
-            <Tab id="fields" className="folder-tab">
+            <Tab id="fields" className={locked.has("fields") ? "folder-tab folder-tab-waits" : "folder-tab"}>
               {t.tabs.fields}
             </Tab>
-            <Tab id="bring" className="folder-tab">
+            <Tab id="bring" className={locked.has("bring") ? "folder-tab folder-tab-waits" : "folder-tab"}>
               {t.tabs.bring}
             </Tab>
             <Tab
               id="groups"
-              className="folder-tab"
+              className={locked.has("groups") ? "folder-tab folder-tab-waits" : "folder-tab"}
               aria-description={accepted ? undefined : t.tabs.groupsLocked}
             >
               {t.tabs.groups}
             </Tab>
             <Tab
               id="sales"
-              className="folder-tab"
+              className={locked.has("sales") ? "folder-tab folder-tab-waits" : "folder-tab"}
               aria-description={grouped ? undefined : t.tabs.salesLocked}
             >
               {t.tabs.sales}
             </Tab>
             <Tab
               id="check"
-              className="folder-tab"
+              className={locked.has("check") ? "folder-tab folder-tab-waits" : "folder-tab"}
               aria-description={!hasValues ? t.tabs.noValues : checked ? undefined : t.tabs.valuesLocked}
               {...(!hasValues ? { "aria-label": `${t.tabs.check}: ${t.tabs.noValues}` } : {})}
             >
@@ -178,21 +212,21 @@ function ProjectView({
             </Tab>
             <Tab
               id="variables"
-              className="folder-tab"
+              className={locked.has("variables") ? "folder-tab folder-tab-waits" : "folder-tab"}
               aria-description={checked ? undefined : t.tabs.valuesLocked}
             >
               {t.tabs.variables}
             </Tab>
             <Tab
               id="values"
-              className="folder-tab"
+              className={locked.has("values") ? "folder-tab folder-tab-waits" : "folder-tab"}
               aria-description={!checked ? t.tabs.valuesLocked : prepared ? undefined : t.tabs.modelsLocked}
             >
               {t.tabs.values}
             </Tab>
             <Tab
               id="report"
-              className="folder-tab"
+              className={locked.has("report") ? "folder-tab folder-tab-waits" : "folder-tab"}
               aria-description={finalized ? undefined : t.tabs.reportLocked}
             >
               {t.tabs.report}
@@ -205,29 +239,36 @@ function ProjectView({
         <TabPanel id="fields" className="folder-panel">
           <FieldsTab detail={detail} step={step} />
         </TabPanel>
-        <TabPanel id="bring" className="folder-panel">
+        <TabPanel id="bring" className={panel("bring")}>
+          {bar("bring")}
           <BringInTab projectId={projectId} />
         </TabPanel>
-        <TabPanel id="groups" className="folder-panel">
+        <TabPanel id="groups" className={panel("groups")}>
+          {bar("groups")}
           <ModelGroupsTab projectId={projectId} currency={project.currency} />
         </TabPanel>
-        <TabPanel id="sales" className="folder-panel">
+        <TabPanel id="sales" className={panel("sales")}>
+          {bar("sales")}
           <SalesTab
             projectId={projectId}
             currency={project.currency}
             place={`${project.jurisdiction}, ${project.region}`}
           />
         </TabPanel>
-        <TabPanel id="check" className="folder-panel">
+        <TabPanel id="check" className={panel("check")}>
+          {bar("check")}
           <CheckValuesTab projectId={projectId} currency={project.currency} />
         </TabPanel>
-        <TabPanel id="variables" className="folder-panel">
+        <TabPanel id="variables" className={panel("variables")}>
+          {bar("variables")}
           <VariablesTab projectId={projectId} />
         </TabPanel>
-        <TabPanel id="values" className="folder-panel">
+        <TabPanel id="values" className={panel("values")}>
+          {bar("values")}
           <ValuesTab projectId={projectId} currency={project.currency} units={project.units} />
         </TabPanel>
-        <TabPanel id="report" className="folder-panel">
+        <TabPanel id="report" className={panel("report")}>
+          {bar("report")}
           <ReportTab projectId={projectId} />
         </TabPanel>
       </Tabs>

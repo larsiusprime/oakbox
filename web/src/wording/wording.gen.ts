@@ -944,6 +944,10 @@ export type Wording = {
     };
   };
   tabs: {
+    waitsOn: (a: { step: string | number }) => string;
+    waitsStale: string;
+    waitsNotYet: string;
+    goTo: (a: { step: string | number }) => string;
     scrollLeft: string;
     scrollRight: string;
     metadata: string;
@@ -991,6 +995,9 @@ export type Wording = {
     preview: string;
   };
   step: {
+    runAgain: string;
+    excludedSince: (a: { n: number }) => string;
+    excludedSinceCheck: (a: { n: number }) => string;
     railToggle: string;
     next: string;
     notRun: string;

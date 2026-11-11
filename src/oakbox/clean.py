@@ -330,7 +330,7 @@ def write_marks(project: Project, project_dir: Path) -> None:
 
 
 # The ratio study's settings that only the models' figures read: a change there leaves Check sales as it was.
-MODEL_ONLY = ("study_set_predictions",)
+MODEL_ONLY = ("study_set_predictions", "outside_models")
 
 
 def _analysis_key(settings: dict) -> dict:
@@ -353,8 +353,15 @@ def settings_key(settings: dict, project: Project, project_dir: Path) -> dict:
         "process": {k: process.get(k) for k in bring_in.CLEAN_PROCESS if k not in FIELD_PROCESS},
         "use_sales_from": settings.get("modeling", {}).get("metadata", {}).get("use_sales_from"),
         "analysis": _analysis_key(settings),
-        "marks": {k: m.action for k, m in sorted(project.clean.marks.items())},
+        # Only the sales kept against scrutiny: an exclusion is a filter downstream (OpenAVMKit's own loader leaves
+        # them out for the models), never a reason to run this again (2026-11-11).
+        "marks": {k: m.action for k, m in sorted(project.clean.marks.items()) if m.action == "keep"},
     }
+
+
+def excluded(project: Project) -> set[str]:
+    """The sales excluded by hand now (Check sales' review, Outliers): left out wherever sales are read."""
+    return {k for k, m in project.clean.marks.items() if m.action == "exclude"}
 
 
 # The parts of data.process that prepare the fields for the models: the user's fills and rare categories.
@@ -919,6 +926,7 @@ def run(project_id: str) -> None:
     if not src.is_file():
         raise RuntimeError("Write step 2 first (Model groups): this starts from its hand-off.")
     tmp = steps.workdir(out_dir(pdir))
+    steps.note_excluded(tmp, excluded(project))
     depends = STEP.now(project, pdir)  # what it starts from, before anything can change
     settings_text = steps.settings_path(pdir).read_text(encoding="utf-8")
     os.chdir(pdir)
@@ -1299,6 +1307,7 @@ def view(project: Project, project_dir: Path) -> CleanView:
         stale=s.stale,
         blocked=blocked(project, project_dir),
         accepted=s.accepted,
+        excluded_since=steps.excluded_since(out_dir(project_dir), excluded(project)) if s.receipt else 0,
     )
 
 

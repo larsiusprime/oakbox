@@ -717,6 +717,8 @@ def run(project_id: str) -> None:
     s: RatioState = project.ratio
     start, end, _ = window(project, project_dir=pdir)
     tmp = steps.workdir(out_dir(pdir))
+    gone = clean.excluded(project)
+    steps.note_excluded(tmp, gone)
     depends = STEP.now(project, pdir)  # what it starts from, before anything can change
     os.chdir(pdir)
     from openavmkit import pipeline as pl
@@ -729,6 +731,11 @@ def run(project_id: str) -> None:
         warnings.simplefilter("always")
         steps.emit(step="load", fraction=0.0, message="Reading Check sales' hand-off")
         sup = cast(SalesUniversePair, pd.read_pickle(src))
+        if gone:  # excluded since Check sales ran (its review, Outliers): left out, as the models leave them
+            sup = SalesUniversePair(
+                sales=cast(pd.DataFrame, sup.sales[~sup.sales["key_sale"].astype(str).isin(sorted(gone))]),
+                universe=sup.universe,
+            )
         chosen = [g.id for g in checked_groups(project)]
         if len(chosen) < len(project.groups):  # only the groups chosen, overall too
             # The sales carry their parcel's key, not its group: kept by the parcels kept.
@@ -858,6 +865,7 @@ def view(project: Project, project_dir: Path) -> RatioView:
         accepted=s.accepted,
         has_values=bool(loaded_value_sets(project)),
         skipped=project.ratio.check is False,
+        excluded_since=steps.excluded_since(out_dir(project_dir), clean.excluded(project)) if s.receipt else 0,
     )
 
 

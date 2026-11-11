@@ -19,6 +19,7 @@ import { newGroup } from "../lib/groups";
 import { useSettled } from "../lib/hooks";
 import { dockNow, setDock } from "../lib/mapdock";
 import { useTakeOver } from "../lib/mapstep";
+import { onward as goOnTo } from "../lib/returnto";
 import { navigate } from "../lib/route";
 import { offerUndo } from "../lib/undo";
 import { t } from "../wording";
@@ -150,7 +151,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
   }));
   const prev = STEPS[STEPS.indexOf(current) - 1];
   const back = prev ? () => go(prev) : null;
-  const toSales = () => navigate({ name: "project", id: projectId, tab: "sales" });
+  const toSales = () => goOnTo(projectId, "sales");
   // Run, and open the results when it's done.
   const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("write") });
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ModelRow, ModelView, SalesSet } from "../api/client";
 import { type Column, DataTable, useWidths, type Widths } from "../components/DataTable";
+import { ExcludedSince } from "../components/ExcludedSince";
 import { Choice } from "../components/Form";
 import { OnTheMap } from "../components/OnTheMap";
 import { Pill } from "../components/Pill";
@@ -232,6 +233,7 @@ export function HowTheyDid({ view }: { view: ModelView }) {
   return (
     <div className="cs-receipt">
       {view.stale && <p className="wiz-warn">{m.stale}</p>}
+      <ExcludedSince n={view.excluded_since} />
       <div className="md-how-bar">
         <Choice
           label={m.group}

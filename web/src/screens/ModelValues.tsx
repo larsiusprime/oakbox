@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useStep, useStepAct, useStepNav, useStepSetup, useStepSkip } from "../api/steps";
+import { ExcludedSince } from "../components/ExcludedSince";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { LoadingBar } from "../components/Waiting";
 import { when } from "../lib/format";
@@ -160,6 +161,7 @@ export function ValuesTab({
                   </p>
                 )}
                 {mv.stale && <p className="wiz-warn">{m.model.stale}</p>}
+                <ExcludedSince n={mv.excluded_since} run={tryIt} />
                 {mFresh && mr && (
                   <p className="wiz-ok">{m.model.ran({ when: when(mr.ran_at), seconds: mr.seconds })}</p>
                 )}
@@ -223,6 +225,7 @@ export function ValuesTab({
                   </p>
                 )}
                 {fv?.stale && <p className="wiz-warn">{f.stale}</p>}
+                <ExcludedSince n={fv?.excluded_since} run={finalize} />
                 {fFresh && fr && (
                   <p className="wiz-ok">{say.values.final.ran(when(fr.ran_at), fr.seconds)}</p>
                 )}
@@ -252,6 +255,7 @@ export function ValuesTab({
         <>
           <StepBody title={m.steps.values} lede={f.valuesLede}>
             {fv?.stale && <p className="wiz-warn">{f.stale}</p>}
+            <ExcludedSince n={fv?.excluded_since} run={finalize} />
             <FinalValues projectId={projectId} receipt={fr} currency={currency} units={units} />
             {errors}
           </StepBody>
@@ -269,6 +273,7 @@ export function ValuesTab({
         <>
           <StepBody title={m.steps.outliers} lede={m.outliers.lede}>
             {fv?.stale && <p className="wiz-warn">{f.stale}</p>}
+            <ExcludedSince n={fv?.excluded_since} run={finalize} />
             <Outliers projectId={projectId} currency={currency} />
           </StepBody>
           <StepFoot back={back} next={null} />

@@ -9215,6 +9215,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -9248,6 +9254,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt",
      "exports",
      "accepted"
@@ -10481,6 +10488,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -10502,6 +10515,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt",
      "accepted"
     ],
@@ -13385,6 +13399,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -13406,6 +13426,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt",
      "accepted"
     ],
@@ -17343,6 +17364,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -17360,6 +17387,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt"
     ],
     "title": "ModelView"
@@ -20432,6 +20460,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -20453,6 +20487,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt",
      "accepted"
     ],
@@ -21383,6 +21418,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -21414,6 +21455,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt",
      "accepted",
      "has_values",
@@ -27165,6 +27207,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -27182,6 +27230,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt"
     ],
     "title": "VarTestView"
@@ -27400,6 +27449,12 @@
       "title": "Blocked",
       "description": "What stops it running."
      },
+     "excluded_since": {
+      "type": "integer",
+      "title": "Excluded Since",
+      "description": "Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.",
+      "default": 0
+     },
      "receipt": {
       "anyOf": [
        {
@@ -27433,6 +27488,7 @@
      "job",
      "stale",
      "blocked",
+     "excluded_since",
      "receipt",
      "changed",
      "accepted",

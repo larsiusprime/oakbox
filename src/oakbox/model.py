@@ -1391,6 +1391,9 @@ def run(project_id: str) -> None:
     if not (steps.handoff(pdir, "2-clean")).is_file():
         raise RuntimeError("Prepare the fields first: the models start from what it writes.")
     tmp = steps.workdir(out_dir(pdir))
+    from oakbox import clean as _clean
+
+    steps.note_excluded(tmp, _clean.excluded(project))
     depends = STEP.now(project, pdir)  # what it starts from, before anything can change
     settings_text = (steps.settings_path(pdir)).read_text(encoding="utf-8")
     os.chdir(pdir)
@@ -1638,8 +1641,15 @@ def engines_used(project: Project, project_dir: Path) -> set[str]:
 
 def view(project: Project, project_dir: Path) -> ModelView:
     s = STEP.state(project, project_dir)
+    from oakbox import clean
+
     return ModelView(
-        status=s.status, job=s.job, receipt=s.receipt, stale=s.stale, blocked=blocked(project, project_dir)
+        status=s.status,
+        job=s.job,
+        receipt=s.receipt,
+        stale=s.stale,
+        blocked=blocked(project, project_dir),
+        excluded_since=steps.excluded_since(out_dir(project_dir), clean.excluded(project)) if s.receipt else 0,
     )
 
 

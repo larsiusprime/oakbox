@@ -21,6 +21,7 @@ import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
 import { LoadingBar } from "../components/Waiting";
 import { band, num, pct, when } from "../lib/format";
+import { onward as goOnTo } from "../lib/returnto";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
 
@@ -64,7 +65,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
   const current = nav.current(v.status, fallback, "universe");
   const go = nav.go;
   const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("run") });
-  const toGroups = () => navigate({ name: "project", id: projectId, tab: "groups" });
+  const toGroups = () => goOnTo(projectId, "groups");
   const statusOf = (key: BiStep): StepStatus => {
     switch (key) {
       case "plan":

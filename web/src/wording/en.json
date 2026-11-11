@@ -1324,6 +1324,10 @@
     }
   },
   "tabs": {
+    "waitsOn": "This tab waits on {step}:",
+    "waitsStale": "something it depends on changed since it ran. What's here is from before.",
+    "waitsNotYet": "it hasn't been run, or Looks right pressed, yet.",
+    "goTo": "Go to {step}",
     "scrollLeft": "Tabs to the left",
     "scrollRight": "Tabs to the right",
     "metadata": "Metadata",
@@ -1375,6 +1379,9 @@
     "preview": "Report preview"
   },
   "step": {
+    "runAgain": "Run again",
+    "excludedSince": "{n, number} {n, plural, =1 {sale} other {sales}} excluded since this ran: left out from now on, but these results still have {n, plural, =1 {it} other {them}}.",
+    "excludedSinceCheck": "{n, number} {n, plural, =1 {sale} other {sales}} excluded since this ran: the steps after leave {n, plural, =1 {it} other {them}} out. Running again only refreshes the time trend and the other sales' flags.",
     "railToggle": "Narrow or widen the list of steps",
     "next": "Next ›",
     "notRun": "Not run yet",

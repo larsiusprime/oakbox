@@ -3559,6 +3559,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["AssembleReceipt"] | null;
             /** Exports */
             exports: ("gpkg" | "shp" | "csv")[];
@@ -4119,6 +4125,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["CleanReceipt"] | null;
             /** Accepted */
             accepted: boolean;
@@ -5423,6 +5435,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["FinalReceipt"] | null;
             /** Accepted */
             accepted: boolean;
@@ -7277,6 +7295,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["ModelReceipt"] | null;
         };
         /** NameFormat */
@@ -8686,6 +8710,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["PrepareReceipt"] | null;
             /** Accepted */
             accepted: boolean;
@@ -9082,6 +9112,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["RatioReceipt"] | null;
             /** Accepted */
             accepted: boolean;
@@ -11622,6 +11658,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["VarTestReceipt"] | null;
         };
         /** Variable */
@@ -11715,6 +11757,12 @@ export interface components {
              * @description What stops it running.
              */
             blocked: string[];
+            /**
+             * Excluded Since
+             * @description Sales excluded since it ran (Check sales' review, Outliers): left out from now on; its results still have them until it runs again. Never makes it out of date.
+             * @default 0
+             */
+            excluded_since: number;
             receipt: components["schemas"]["Receipt"] | null;
             /**
              * Changed

@@ -13,6 +13,7 @@ import {
 import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { DateField } from "../components/DateField";
 import { Disclose } from "../components/Disclose";
+import { ExcludedSince } from "../components/ExcludedSince";
 import { Choice, Radios } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { OnTheMap } from "../components/OnTheMap";
@@ -25,7 +26,7 @@ import { LoadingBar } from "../components/Waiting";
 import { BY_SALE } from "../lib/colours";
 import { day, money, num, ratioText, signed, when } from "../lib/format";
 import { setStepPick, useMapStep } from "../lib/mapstep";
-import { navigate } from "../lib/route";
+import { onward as goOnTo } from "../lib/returnto";
 import { t } from "../wording";
 import { ExtremeMap } from "./ExtremeMap";
 import { SavedGroupsOnMap } from "./GroupMap";
@@ -113,7 +114,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   const i = STEPS.indexOf(current);
   const prev = STEPS[i - 1];
   const back = prev ? () => go(prev) : null;
-  const toValues = () => navigate({ name: "project", id: projectId, tab: "values" });
+  const toValues = () => goOnTo(projectId, "values");
   const onward = { label: t.step.next, onPress: () => go(STEPS[i + 1] ?? current) };
   const u = setup.data;
   const set = (body: RatioPatch) => change.mutate(body);
@@ -219,6 +220,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
                   </p>
                 )}
                 {v.stale && <p className="wiz-warn">{r.run.stale}</p>}
+                <ExcludedSince n={v.excluded_since} run={runIt} />
                 {fresh && rc && (
                   <p className="wiz-ok">{r.run.ran({ when: when(rc.ran_at), seconds: rc.seconds })}</p>
                 )}
@@ -245,6 +247,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
           <StepBody {...(current === "prices" ? {} : { title: r.steps[current] })}>
             {which}
             {v.stale && <p className="wiz-warn">{r.run.stale}</p>}
+            <ExcludedSince n={v.excluded_since} run={runIt} />
             {/* Summary and On the map take the map over (SPEC §3.15): the ratios by group, the one whose Show on map
                 was pressed (or picked on the map), else every group. */}
             {(current === "summary" || current === "map") && (

@@ -3,12 +3,14 @@ import { useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import { api, type CleanPatch, unwrap } from "../api/client";
 import { setupKey, stepChanged, useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
+import { ExcludedSince } from "../components/ExcludedSince";
 import { Choice, Tick } from "../components/Form";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { LoadingBar } from "../components/Waiting";
 import { desktop, useCanPickFile } from "../desktop";
 import { num, when } from "../lib/format";
+import { onward as goOnTo } from "../lib/returnto";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
 import { Card, type CardProps, NumberBox } from "./CleanCards";
@@ -94,7 +96,7 @@ export function SalesTab({
   const prev = CS_STEPS[i - 1];
   const back = prev ? () => go(prev) : null;
   const onward = { label: t.step.next, onPress: () => go(CS_STEPS[i + 1] ?? current) };
-  const toValues = () => navigate({ name: "project", id: projectId, tab: "check" });
+  const toValues = () => goOnTo(projectId, "check");
   const loading = <LoadingBar error={setup.error} />;
   const errors = (
     <>
@@ -170,6 +172,7 @@ export function SalesTab({
                 )}
                 {v.status === "stopped" && <p className="wiz-from">{t.step.stopped}</p>}
                 {v.stale && <p className="wiz-warn">{s.stale}</p>}
+                <ExcludedSince n={v.excluded_since} run={runIt} check />
                 {fresh && r && (
                   <p className="wiz-ok">
                     {s.meter({ used: r.used, aside: r.set_aside })}{" "}
