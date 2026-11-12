@@ -550,7 +550,18 @@ apart: how many values are under and over the range shown (capped at the chart's
 alone (the row group holding it, or the one feature), not column by column: 0.2 s a card on Guilford, the first after
 opening a few seconds (the sales' comparison, shared with the problems).
 
-**The legend and its controls** (2026-11-11) sit under the field picker, over the map: the histogram, its range,
+**Layers and legend** (2026-11-12): one thing, over the map's bottom left. Closed, a chip with the legend in brief
+(the ramp or a category's first colours, a problem's count and share, the field's name); pressed, it opens up into a
+panel: **Colour by** (the field picker, and its size) at the top, then each layer on a line of its own with its 👁
+(shown or hidden, remembered): 🌐 Parcels (off: only the parcels with a sale; no sales record, none), 💰 Sales, and
+the Street map (off: the plain background; it starts as Settings says, then is this map's own). A layer's legend sits
+under its line (the sales' when they're what's coloured), its line says "squares now" while squares are drawn, and
+its options open from a ⚙ beside it (Parcels: Detail, the Map detail of SPEC §5). The panel's 📌 pins it as a drawer
+at the map's left, which narrows the map instead of covering it, and unpins it; ⌄ folds it back to the chip. Which of
+the three it is, is remembered. The map window's header is then only 🗺 Map · the field shown, Follow, and the window's
+buttons; the map itself has no corner box (its own maps elsewhere keep theirs).
+
+**The legend and its controls** (2026-11-11), now in the layers: the histogram, its range,
 Reset and **Hide the rest** (the parcels or sales outside the range not drawn, nor counted in a cell, rather than drawn
 at the ramp's ends). **Per size**: a value field (a sale price, a value loaded, a value or prediction from the steps)
 gets a box after the picker: **As-is**, **per building sq ft**, **per land sq ft** (m² in a metric project), a size

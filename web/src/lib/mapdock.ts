@@ -34,6 +34,11 @@ export type Dock = {
   /** What's drawn (SPEC §3.15): the parcel universe (off: only parcels with a sale) and the sales record. */
   showPu: boolean;
   showSr: boolean;
+  /** The layers and legend (SPEC §3.15): a chip over the map (closed), a panel over it (open), or a drawer beside
+   * it (pinned, 📌). */
+  layers: "closed" | "open" | "pinned";
+  /** The street map under it, on or off here; null: as Settings › Performance says. */
+  street: boolean | null;
 };
 
 export type Per = "bldg" | "land";
@@ -58,6 +63,8 @@ const START: Dock = {
   picks: {},
   showPu: true,
   showSr: true,
+  layers: "closed",
+  street: null,
 };
 
 function load<T>(key: string, fallback: T): T {

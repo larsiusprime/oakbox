@@ -6661,7 +6661,15 @@ html[data-map="top"] .oak-nav {
   background: var(--paper-2, #f4f1e8);
 }
 .mapwin-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+.mapwin-title-field {
+  font-weight: normal;
+  color: var(--muted, #5f6159);
 }
 /* Starts small and grows to fill the line (to 22rem): the per box and Follow fit beside it before anything wraps. */
 .mapwin-field {
@@ -6775,35 +6783,156 @@ html[data-map="top"] .oak-nav {
 .mapwin-map .map-street {
   z-index: 3;
 }
-/* Docked top or bottom: the legend beside the map, not under it. */
-.mapwin-top .mapwin-body,
-.mapwin-bottom .mapwin-body {
+/* The layers and legend (components/MapLayers): a chip at the map's bottom left (closed), a panel growing up from
+   it (open), or a drawer at the map's left that narrows it (pinned). */
+.mapwin-body.ly-pinned {
   flex-direction: row;
 }
-.mapwin-top .mapwin-legend,
-.mapwin-bottom .mapwin-legend {
-  width: min(24rem, 40%);
-  max-height: none;
-  border-top: none;
-  border-left: 1px solid var(--line, #c9ccc4);
-  align-content: start;
+.mapwin-ly-over {
+  position: absolute;
+  left: 0.6rem;
+  bottom: 0.6rem;
+  z-index: 4;
+  display: flex;
+  max-width: calc(100% - 1.2rem);
+  max-height: calc(100% - 1.2rem);
 }
-.mapwin-legend {
-  display: grid;
-  gap: 0.25rem;
-  padding: 0.35rem 0.6rem 0.45rem;
-  border-bottom: 1px solid var(--line, #c9ccc4);
+.mapwin-ly-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--line, #c9ccc4);
+  border-radius: 6px;
+  background: var(--paper, #fff);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+  font: inherit;
+  font-size: 0.8rem;
+  color: inherit;
+  cursor: pointer;
+}
+.mapwin-ly-chip[data-hovered] {
+  border-color: #1d5bb8;
+}
+.mapwin-ly-icon {
+  flex: none;
+  color: #1d5bb8;
+}
+.mapwin-ly {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--paper, #fff);
   font-size: 0.85rem;
-  max-height: 40%;
+}
+.mapwin-ly.floating {
+  width: 20rem;
+  max-width: 100%;
+  border: 1px solid var(--line, #c9ccc4);
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 18%);
+  overflow: hidden;
+}
+.mapwin-ly.pinned {
+  flex: none;
+  width: min(20rem, 45%);
+  border-right: 1px solid var(--line, #c9ccc4);
+}
+.mapwin-ly-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.6rem;
+  border-bottom: 1px solid var(--line, #c9ccc4);
+  background: var(--paper-2, #f4f1e8);
+}
+.mapwin-ly-head b {
+  flex: 1;
+}
+.mapwin-ly-scroll {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
 }
-.mapwin-legend .fh-chart {
+.mapwin-ly-by {
+  padding: 0.45rem 0.6rem;
+}
+.mapwin-by {
+  display: flex;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.mapwin-by .mapwin-field {
+  flex: 1 1 auto;
+  max-width: none;
+}
+.mapwin-ly-layer {
+  border-top: 1px solid var(--line, #c9ccc4);
+}
+.mapwin-ly-line {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.4rem;
+  min-width: 0;
+}
+.mapwin-ly-noeye {
+  width: 1.8rem;
+  flex: none;
+}
+.mapwin-ly-name {
+  flex: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.mapwin-ly-layer.off .mapwin-ly-name {
+  font-weight: normal;
+  color: var(--muted, #5f6159);
+}
+.mapwin-ly-brief {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.2rem 0.6rem;
+  color: var(--muted, #5f6159);
+  font-size: 0.8rem;
+}
+.mapwin-ly-chip .mapwin-ly-brief {
+  justify-content: flex-start;
+  color: inherit;
+}
+.mapwin-brief {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mapwin-ramp.mapwin-ramp-brief {
+  flex: none;
+  width: 2.5rem;
+}
+.mapwin-brief .mapwin-sw {
+  flex: none;
+}
+.mapwin-ly-legend,
+.mapwin-ly-opts {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0 0.6rem 0.5rem 2.6rem;
+}
+.mapwin-ly-legend .fh-chart {
   height: 2.6rem;
 }
-.mapwin-legend .fh-chart,
-.mapwin-legend .fh-axis,
-.mapwin-legend .fh-controls,
-.mapwin-legend .fh-track {
+.mapwin-ly-legend .fh-chart,
+.mapwin-ly-legend .fh-axis,
+.mapwin-ly-legend .fh-controls,
+.mapwin-ly-legend .fh-track {
   width: 100%;
 }
 /* The colours under the bars: the ramp, light to dark, across the range shown. */
@@ -8641,19 +8770,6 @@ tr.rv-picked > td {
   width: auto;
 }
 
-/* What the map draws: the parcel universe and the sales record, each on or off. */
-.mapwin-show {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.2rem 0.9rem;
-  font-size: 0.85rem;
-}
-.mapwin-show label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  white-space: nowrap;
-}
 /* "Every group on the map" in the header cell above the rows' Show on map. */
 th.rv-onmap {
   white-space: nowrap;

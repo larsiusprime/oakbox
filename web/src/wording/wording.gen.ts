@@ -2819,6 +2819,23 @@ export type Wording = {
     backToFollowing: string;
     permitsTitle: string;
     hideOut: string;
+    ly: {
+      title: string;
+      open: string;
+      pin: string;
+      unpin: string;
+      close: string;
+      show: (a: { what: string | number }) => string;
+      hide: (a: { what: string | number }) => string;
+      options: (a: { what: string | number }) => string;
+      hidden: string;
+      parcels: string;
+      sales: string;
+      street: string;
+      detail: string;
+      hot: string;
+      squares: string;
+    };
     showPu: string;
     showSr: string;
     per: {
@@ -2847,6 +2864,7 @@ export type Wording = {
     hold: (a: { shown: string | number }) => string;
     following: (a: { step: string | number }) => string;
     followIdle: string;
+    followOff: string;
     followOnTip: string;
     followOffTip: string;
     srTitle: string;

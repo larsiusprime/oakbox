@@ -8,7 +8,15 @@ import { GeoJsonLayer, PolygonLayer, ScatterplotLayer, SolidPolygonLayer } from 
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { ExternalLink, Maximize2, Minimize2 } from "lucide-react";
 import type * as maplibregl from "maplibre-gl";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   Button,
   Header,
@@ -62,7 +70,8 @@ import { t } from "../wording";
 import { CloseButton, SmallButton, ToolButton } from "./Buttons";
 import { Combo, Marked, matches } from "./Combo";
 import { MapCard } from "./MapCard";
-import { type Bounds, MapView, rgba } from "./MapView";
+import { MapLayers } from "./MapLayers";
+import { type Bounds, DetailSwitch, MapView, rgba } from "./MapView";
 import { Tip } from "./Tip";
 import { LoadingBar, Waiting } from "./Waiting";
 
@@ -404,22 +413,20 @@ function MapPanel({
     choices.find((f) => f.id === dock.field) ??
     m?.fields[0] ??
     null;
-  return (
-    <div className="mapwin-in">
-      <header className="mapwin-head">
-        <b className="mapwin-title">🗺 {w.title}</b>
-        {!takeOver && m?.status === "ready" && m.fields.length > 0 && (
-          <FieldPick
-            sales={m.sales}
-            problems={probs}
-            layers={layerNames.length}
-            fields={m.fields}
-            outs={m.outs ?? []}
-            value={field?.id ?? null}
-            onChange={(id) => setDock({ field: id, follow: false })}
-          />
-        )}
-        {!takeOver && m?.status === "ready" && field && isValue(field.id, m) && (
+  // What it's coloured by (in the layers, SPEC §3.15): the field, and a value's size to divide it by.
+  const colourBy =
+    m?.status === "ready" && m.fields.length > 0 ? (
+      <>
+        <FieldPick
+          sales={m.sales}
+          problems={probs}
+          layers={layerNames.length}
+          fields={m.fields}
+          outs={m.outs ?? []}
+          value={field?.id ?? null}
+          onChange={(id) => setDock({ field: id, follow: false })}
+        />
+        {field && isValue(field.id, m) && (
           <PerPick
             value={dock.per?.[field.id] ?? null}
             sizes={m.per ?? []}
@@ -432,19 +439,32 @@ function MapPanel({
             }}
           />
         )}
-        <Tip text={dock.follow ? w.followOnTip : w.followOffTip}>
-          <Button
-            className={`mapwin-follow ${following ? "on" : ""}`}
-            aria-pressed={dock.follow}
-            onPress={() => setDock({ follow: !dock.follow })}
-          >
-            {dock.follow
+      </>
+    ) : null;
+  return (
+    <div className="mapwin-in">
+      <header className="mapwin-head">
+        <b className="mapwin-title">
+          🗺 {w.title}
+          {!takeOver && field && <span className="mapwin-title-field"> · {field.label}</span>}
+        </b>
+        <Tip
+          text={`${
+            dock.follow
               ? takeOver
                 ? w.following({ step: takeOver.title })
                 : target
                   ? w.following({ step: target.title })
                   : w.followIdle
-              : w.backToFollowing}
+              : w.backToFollowing
+          }. ${dock.follow ? w.followOnTip : w.followOffTip}`}
+        >
+          <Button
+            className={`mapwin-follow ${following ? "on" : ""}`}
+            aria-pressed={dock.follow}
+            onPress={() => setDock({ follow: !dock.follow })}
+          >
+            {dock.follow ? w.followIdle : w.followOff}
           </Button>
         </Tip>
         <span className="mapwin-tools">
@@ -555,6 +575,7 @@ function MapPanel({
           onGo={onGo}
           side={side}
           size={dock.size}
+          colourBy={colourBy}
         />
       )}
     </div>
@@ -928,6 +949,7 @@ function MapBody({
   onGo,
   side,
   size,
+  colourBy,
 }: {
   projectId: string;
   info: MapInfo;
@@ -944,6 +966,8 @@ function MapBody({
   onGo: (step: string) => void;
   side: Side;
   size: number;
+  /** The field picker (and its size), for the layers. */
+  colourBy: ReactNode;
 }) {
   const prId = fieldId?.startsWith("pr:") ? fieldId : null;
   const lyOn = fieldId === LAYERS;
@@ -988,7 +1012,8 @@ function MapBody({
         }),
       ),
     // Also for 🌐 off (only the parcels with a sale drawn): which parcels have one.
-    enabled: !!by || (!!prId && prId.startsWith("pr:differs:")) || showPu === false,
+    enabled:
+      !!by || (!!prId && prId.startsWith("pr:differs:")) || (showPu === false && info.sales.length > 0),
     placeholderData: keepPreviousData,
     staleTime: Number.POSITIVE_INFINITY,
   });
@@ -1029,7 +1054,12 @@ function MapBody({
   const range = useRangeOf(linkKey, by ? srSpread : col.data);
   const hideOut = useDock().hideOut;
   // 🌐 off: only the parcels in the sales record (with a sale) are drawn; 💰 off: no sales drawn.
-  const soldParcels = useMemo(() => (showPu === false && sold ? new Set(sold.parcel) : null), [showPu, sold]);
+  // With no sales record, 🌐 off draws no parcels at all.
+  const noSales = info.sales.length === 0;
+  const soldParcels = useMemo(
+    () => (showPu === false ? (noSales ? new Set<number>() : sold ? new Set(sold.parcel) : null) : null),
+    [showPu, sold, noSales],
+  );
   const paint = useMemo(
     () =>
       onlySold(
@@ -1053,28 +1083,6 @@ function MapBody({
             : null,
     [by, sold, range, prPaint, onSales, hideOut, showSr],
   );
-  // What's drawn: the parcel universe, the sales record (each on or off), where there are sales.
-  const layerToggles =
-    info.sales.length > 0 ? (
-      <div className="mapwin-show">
-        <label>
-          <input
-            type="checkbox"
-            checked={showPu !== false}
-            onChange={(e) => setDock({ showPu: e.target.checked })}
-          />{" "}
-          {w.showPu}
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={showSr !== false}
-            onChange={(e) => setDock({ showSr: e.target.checked })}
-          />{" "}
-          {w.showSr}
-        </label>
-      </div>
-    ) : null;
   // Hide the rest, beside the range: the ones outside it aren't drawn.
   const hideToggle = (
     <label className="fh-linked">
@@ -1093,7 +1101,9 @@ function MapBody({
   useEffect(() => {
     planNow.current = plan;
   }, [plan]);
-  const detail = useResolved().map_detail;
+  const resolved = useResolved();
+  const detail = resolved.map_detail;
+  const streetSetting = resolved.street_map;
   const detailNow = useRef(detail);
   const lookNow = useRef<(() => void) | null>(null);
   // Another detail chosen: planned again at once, from scratch.
@@ -1228,117 +1238,188 @@ function MapBody({
     },
     [plan, paint, srPaint, sold, label],
   );
-  const pinned = useDock().cardPinned;
-  const docked = picked !== null && pinned;
-  return (
-    <div className="mapwin-body">
-      {centres.error && <p className="error mapwin-msg">{centres.error.message}</p>}
-      <div className="mapwin-legend">
-        {layerToggles}
-        {lyOn ? (
+  // The legend: what the colours mean, under the layer they colour (the sales', for a sale's field or a problem
+  // of the sales), and in brief on the closed chip.
+  const legendBody = (
+    <>
+      {lyOn ? (
+        <ul className="mapwin-cats">
+          {layerNames.map((name, k) => (
+            <li key={name}>
+              <span className="mapwin-sw" style={{ background: CATS[k % CATS.length] }} />
+              <span className="mono">{name}</span>
+              {lyQueries[k]?.isPending && <small>{w.readingLayer}</small>}
+              {lyQueries[k]?.error && <small className="error">{lyQueries[k]?.error?.message}</small>}
+            </li>
+          ))}
+        </ul>
+      ) : prId ? (
+        prob.isPending || (onSales && sales.isPending) ? (
+          <Waiting doing={w.readingProblem} />
+        ) : prob.error ? (
+          <p className="error">{prob.error.message}</p>
+        ) : prob.data ? (
           <ul className="mapwin-cats">
-            {layerNames.map((name, k) => (
-              <li key={name}>
-                <span className="mapwin-sw" style={{ background: CATS[k % CATS.length] }} />
-                <span className="mono">{name}</span>
-                {lyQueries[k]?.isPending && <small>{w.readingLayer}</small>}
-                {lyQueries[k]?.error && <small className="error">{lyQueries[k]?.error?.message}</small>}
-              </li>
-            ))}
+            <li>
+              <span className="mapwin-sw mapwin-sw-problem" />
+              {w.prHas[prob.data.on]({
+                n: prob.data.count,
+                of: prob.data.of,
+                share: pctOf(prob.data.count, prob.data.of),
+              })}
+            </li>
+            <li>
+              <span className="mapwin-sw mapwin-sw-hot" />
+              {w.prHot}
+            </li>
+            {onSales && unplaced > 0 && <li className="mapwin-note">{w.unplaced({ n: unplaced })}</li>}
           </ul>
-        ) : prId ? (
-          prob.isPending || (onSales && sales.isPending) ? (
-            <Waiting doing={w.readingProblem} />
-          ) : prob.error ? (
-            <p className="error">{prob.error.message}</p>
-          ) : prob.data ? (
-            <ul className="mapwin-cats">
-              <li>
-                <span className="mapwin-sw mapwin-sw-problem" />
-                {w.prHas[prob.data.on]({
-                  n: prob.data.count,
-                  of: prob.data.of,
-                  share: pctOf(prob.data.count, prob.data.of),
-                })}
-              </li>
-              <li>
-                <span className="mapwin-sw mapwin-sw-hot" />
-                {w.prHot}
-              </li>
-              {onSales && unplaced > 0 && <li className="mapwin-note">{w.unplaced({ n: unplaced })}</li>}
-            </ul>
-          ) : null
-        ) : by ? (
-          sales.isPending ? (
-            <Waiting doing={w.readingSales} />
-          ) : sales.error ? (
-            <p className="error">{sales.error.message}</p>
-          ) : srSpread && (by === "price" || by === "year") ? (
-            <>
-              <div className="mapwin-ramp" aria-hidden="true" />
-              <RangedBars
-                quantiles={srSpread.quantiles}
-                count={srSpread.have}
-                auto={srSpread.auto}
-                year={by === "year"}
-                unit=""
-                linkKey={linkKey}
-                label={w.spread({ field: label })}
-                extra={hideToggle}
-              />
-              {per && by === "price" && (sales.data?.unsized ?? 0) > 0 && (
-                <small className="mapwin-share">
-                  {w.per.unsized({ n: sales.data?.unsized ?? 0, what: "sales", size: per })}
-                </small>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="mapwin-ramp" aria-hidden="true" />
-              <small className="mapwin-share">
-                <span>{w.share0[by as "valid" | "vacant" | "deed"]}</span>
-                <span>{w.share1[by as "valid" | "vacant" | "deed"]}</span>
-              </small>
-            </>
-          )
-        ) : col.isPending && fieldId ? (
-          <Waiting doing={w.reading} />
-        ) : col.error ? (
-          <p className="error">{col.error.message}</p>
-        ) : col.data?.kind === "number" ? (
+        ) : null
+      ) : by ? (
+        sales.isPending ? (
+          <Waiting doing={w.readingSales} />
+        ) : sales.error ? (
+          <p className="error">{sales.error.message}</p>
+        ) : srSpread && (by === "price" || by === "year") ? (
           <>
             <div className="mapwin-ramp" aria-hidden="true" />
             <RangedBars
-              quantiles={col.data.quantiles}
-              count={col.data.have}
-              auto={col.data.auto}
-              year={/year/i.test(label)}
+              quantiles={srSpread.quantiles}
+              count={srSpread.have}
+              auto={srSpread.auto}
+              year={by === "year"}
               unit=""
               linkKey={linkKey}
               label={w.spread({ field: label })}
               extra={hideToggle}
             />
-            {per && col.data.unsized > 0 && (
+            {per && by === "price" && (sales.data?.unsized ?? 0) > 0 && (
               <small className="mapwin-share">
-                {w.per.unsized({ n: col.data.unsized, what: "parcels", size: per })}
+                {w.per.unsized({ n: sales.data?.unsized ?? 0, what: "sales", size: per })}
               </small>
             )}
           </>
-        ) : col.data?.kind === "category" ? (
-          <ul className="mapwin-cats">
-            {col.data.categories.map((c, k) => (
-              <li key={c}>
-                <span className="mapwin-sw" style={{ background: CATS[k % CATS.length] }} />
-                {c} <small>{col.data?.counts[k]?.toLocaleString()}</small>
-              </li>
-            ))}
-            <li>
-              <span className="mapwin-sw mapwin-sw-other" />
-              {w.other}
+        ) : (
+          <>
+            <div className="mapwin-ramp" aria-hidden="true" />
+            <small className="mapwin-share">
+              <span>{w.share0[by as "valid" | "vacant" | "deed"]}</span>
+              <span>{w.share1[by as "valid" | "vacant" | "deed"]}</span>
+            </small>
+          </>
+        )
+      ) : col.isPending && fieldId ? (
+        <Waiting doing={w.reading} />
+      ) : col.error ? (
+        <p className="error">{col.error.message}</p>
+      ) : col.data?.kind === "number" ? (
+        <>
+          <div className="mapwin-ramp" aria-hidden="true" />
+          <RangedBars
+            quantiles={col.data.quantiles}
+            count={col.data.have}
+            auto={col.data.auto}
+            year={/year/i.test(label)}
+            unit=""
+            linkKey={linkKey}
+            label={w.spread({ field: label })}
+            extra={hideToggle}
+          />
+          {per && col.data.unsized > 0 && (
+            <small className="mapwin-share">
+              {w.per.unsized({ n: col.data.unsized, what: "parcels", size: per })}
+            </small>
+          )}
+        </>
+      ) : col.data?.kind === "category" ? (
+        <ul className="mapwin-cats">
+          {col.data.categories.map((c, k) => (
+            <li key={c}>
+              <span className="mapwin-sw" style={{ background: CATS[k % CATS.length] }} />
+              {c} <small>{col.data?.counts[k]?.toLocaleString()}</small>
             </li>
-          </ul>
-        ) : null}
-      </div>
+          ))}
+          <li>
+            <span className="mapwin-sw mapwin-sw-other" />
+            {w.other}
+          </li>
+        </ul>
+      ) : null}
+    </>
+  );
+  const colouresSales = !!by || (!!prId && onSales);
+  const brief = lyOn ? (
+    <span className="mapwin-brief">
+      {layerNames.slice(0, 4).map((name, k) => (
+        <span key={name} className="mapwin-sw" style={{ background: CATS[k % CATS.length] }} />
+      ))}
+      {w.lyAll({ n: layerNames.length })}
+    </span>
+  ) : prId && prob.data ? (
+    <span className="mapwin-brief">
+      <span className="mapwin-sw mapwin-sw-problem" />
+      {label}: {prob.data.count.toLocaleString()} ({pctOf(prob.data.count, prob.data.of)})
+      <span className="mapwin-sw mapwin-sw-hot" />
+      {w.ly.hot}
+    </span>
+  ) : col.data?.kind === "category" && !by ? (
+    <span className="mapwin-brief">
+      {col.data.categories.slice(0, 4).map((c, k) => (
+        <span key={c} className="mapwin-sw" style={{ background: CATS[k % CATS.length] }} />
+      ))}
+      {label}
+    </span>
+  ) : (
+    <span className="mapwin-brief">
+      {fieldId && <span className="mapwin-ramp mapwin-ramp-brief" />}
+      {label}
+    </span>
+  );
+  const dock = useDock();
+  const streetOn = dock.street ?? streetSetting === "on";
+  const nowDetail = xy ? { squares: plan?.kind === "cells", parcels: xy.length / 2 } : null;
+  const layersPanel = (
+    <MapLayers
+      state={dock.layers}
+      onState={(s) => setDock({ layers: s })}
+      brief={brief}
+      colourBy={<div className="mapwin-by">{colourBy}</div>}
+      rows={[
+        {
+          id: "pu",
+          name: w.ly.parcels,
+          shown: showPu !== false,
+          onShown: (on) => setDock({ showPu: on }),
+          ...(colouresSales ? {} : { legend: legendBody }),
+          ...(nowDetail?.squares ? { brief: <small className="mapwin-how">{w.ly.squares}</small> } : {}),
+          ...(nowDetail ? { options: <DetailSwitch now={nowDetail} label={w.ly.detail} /> } : {}),
+        },
+        ...(noSales
+          ? []
+          : [
+              {
+                id: "sr",
+                name: w.ly.sales,
+                shown: showSr !== false,
+                onShown: (on: boolean) => setDock({ showSr: on }),
+                ...(colouresSales ? { legend: legendBody } : {}),
+              },
+            ]),
+        {
+          id: "street",
+          name: w.ly.street,
+          shown: streetOn,
+          onShown: (on) => setDock({ street: on }),
+        },
+      ]}
+    />
+  );
+  const pinned = useDock().cardPinned;
+  const docked = picked !== null && pinned;
+  return (
+    <div className={`mapwin-body ${dock.layers === "pinned" ? "ly-pinned" : ""}`}>
+      {centres.error && <p className="error mapwin-msg">{centres.error.message}</p>}
+      {dock.layers === "pinned" && layersPanel}
       <div className="mapwin-stage" ref={stage}>
         <MapView
           className="mapwin-map"
@@ -1347,12 +1428,15 @@ function MapBody({
           layers={layers}
           bounds={bounds}
           fitKey={info.stamp}
-          resizeKey={`${side}-${size}-${docked}`}
+          resizeKey={`${side}-${size}-${docked}-${dock.layers === "pinned"}`}
           onMap={watch}
           tooltip={tooltip}
           cursor={cursorOf}
-          detail={xy ? { squares: plan?.kind === "cells", parcels: xy.length / 2 } : undefined}
-        />
+          bare
+          streetOn={streetOn}
+        >
+          {dock.layers !== "pinned" && <div className="mapwin-ly-over">{layersPanel}</div>}
+        </MapView>
         {picked !== null && (
           <MapCard
             projectId={projectId}

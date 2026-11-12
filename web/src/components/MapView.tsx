@@ -130,6 +130,8 @@ function streetStyle(url: string): Promise<maplibregl.StyleSpecification> {
 type Props = Omit<Parameters<typeof MapCanvas>[0], "street"> & {
   /** Opened on purpose (the map window): that was the click, so it doesn't wait for another. */
   asked?: boolean;
+  /** The street map on or off, kept by the map's owner (with `bare`); otherwise as Settings says, then its box. */
+  streetOn?: boolean;
 };
 
 /** The map, or, where maps wait for a click (Settings › Performance), a panel in its place until Show map. */
@@ -153,8 +155,8 @@ export function MapView(props: Props) {
         </div>
       </div>
     );
-  const { asked: _, ...rest } = props;
-  return <MapCanvas {...rest} street={r.street_map === "on"} />;
+  const { asked: _, streetOn, ...rest } = props;
+  return <MapCanvas {...rest} street={streetOn ?? r.street_map === "on"} />;
 }
 
 function MapCanvas({
@@ -171,6 +173,7 @@ function MapCanvas({
   onMap,
   interleaved = false,
   detail,
+  bare = false,
   children,
 }: {
   /** What's drawn: deck.gl layers. */
@@ -200,12 +203,15 @@ function MapCanvas({
   /** A map of the parcels: the Parcels dropdown (Map detail) beside Street map, and whether squares are drawn now (a note says so),
    * and how many parcels there are (Parcels on a big county says, once, that it may be slow). */
   detail?: DetailNow | undefined;
+  /** No controls in its corner (the map window has its own, in its layers): the street map as `street` says. */
+  bare?: boolean;
   children?: React.ReactNode;
 }) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const overlay = useRef<MapboxOverlay | null>(null);
-  const [street, setStreet] = useState(startStreet);
+  const [streetOwn, setStreet] = useState(startStreet);
+  const street = bare ? startStreet : streetOwn;
   const [ready, setReady] = useState(false);
   const styleUrl = useAppSettings().data?.map_style;
   const first = useRef({ bounds, scrollZoom, onMap, interleaved });
@@ -323,14 +329,16 @@ function MapCanvas({
   return (
     <div className={`map-view ${className}`}>
       <div ref={el} className="map-canvas" role="img" aria-label={label} />
-      <div className="map-street">
-        {detail && <DetailSwitch now={detail} />}
-        <label className="map-street-box">
-          <input type="checkbox" checked={street} onChange={(e) => setStreet(e.target.checked)} />
-          <InfoTip label={t.map.basemap} text={t.map.basemapTip} />
-        </label>
-        {detail?.squares && <small className="map-detail-note">{t.map.squaresNote}</small>}
-      </div>
+      {!bare && (
+        <div className="map-street">
+          {detail && <DetailSwitch now={detail} />}
+          <label className="map-street-box">
+            <input type="checkbox" checked={street} onChange={(e) => setStreet(e.target.checked)} />
+            <InfoTip label={t.map.basemap} text={t.map.basemapTip} />
+          </label>
+          {detail?.squares && <small className="map-detail-note">{t.map.squaresNote}</small>}
+        </div>
+      )}
       {children}
     </div>
   );
@@ -355,7 +363,7 @@ function warnedBefore(): boolean {
 
 /** How far out the parcels are drawn (Max … Very low): the map detail, for every map (Settings › Performance's Map
  * detail). */
-function DetailSwitch({ now }: { now: DetailNow }) {
+export function DetailSwitch({ now, label }: { now: DetailNow; label?: string }) {
   const [detail, setDetail] = useDetail();
   const [warn, setWarn] = useState(false);
   const d = t.map;
@@ -381,10 +389,10 @@ function DetailSwitch({ now }: { now: DetailNow }) {
     <>
       <span className="map-detail">
         <span className="map-detail-label" aria-hidden="true">
-          {d.detail}
+          {label ?? d.detail}
         </span>
         <Choice<Detail>
-          label={d.detail}
+          label={label ?? d.detail}
           hideLabel
           value={detail}
           options={DETAILS.map((k) => [k, words[k]] as const)}
