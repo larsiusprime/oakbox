@@ -53,6 +53,13 @@ def ratio_boxes(project_id: str, field: str, group: str = "", region: str = "") 
     return ratio.vei_boxes(projects.project_dir(project_id), field, group or None, region or None)
 
 
+@router.get("/api/projects/{project_id}/ratio/levels")
+def ratio_levels(project_id: str, field: str, region: str, group: str = "") -> ratio.RegionStats | None:
+    """Neighbourhood price levels for a location field, worked out from the sales studied, at once (no run)."""
+    load_project(project_id)
+    return ratio.region_levels(projects.project_dir(project_id), field, region, group or None)
+
+
 @router.get("/api/projects/{project_id}/ratio/similar")
 def ratio_similar(project_id: str, field: str, group: str = "") -> ratio.SimilarPoints:
     """Every parcel with its group of similar parcels' spread of values (CHD), for Similar parcels' map."""

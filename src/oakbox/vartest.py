@@ -175,6 +175,7 @@ def run(project_id: str) -> None:
     from importlib.metadata import version
 
     import pandas as pd
+    import pyarrow.parquet as pq
 
     from oakbox import projects
 
@@ -216,6 +217,18 @@ def run(project_id: str) -> None:
             sup = areastats.stable(sup, spatiallag.sale_field(project))
         sales = get_hydrated_sales_from_sup(sup)
         universe = sup.universe
+        # What the tests worked out on the parcels (the nearby averages, the per area statistics), kept for the map:
+        # they're otherwise only on disk once the models have run.
+        look = steps.look_dir(pdir) / "2-clean-universe.parquet"
+        prepared = set(pq.read_schema(look).names) if look.is_file() else None
+        worked = [
+            c
+            for c in universe.columns
+            if c not in ("key", "model_group")
+            and (c not in prepared if prepared is not None else c.startswith(spatiallag.LAG))
+        ]
+        if worked:
+            universe[["key", *worked]].to_parquet(tmp / "universe.parquet", index=False)
         from oakbox import assemble
 
         modeled = assemble.modeled(project, pdir)

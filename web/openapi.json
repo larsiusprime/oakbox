@@ -5,6 +5,42 @@
   "version": "1"
  },
  "paths": {
+  "/api/log": {
+   "get": {
+    "summary": "Log Info",
+    "description": "Where OAK box's log is.",
+    "operationId": "log_info_api_log_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LogInfo"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/log/open": {
+   "post": {
+    "summary": "Log Open",
+    "description": "Show the log's folder in the file manager.",
+    "operationId": "log_open_api_log_open_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/version": {
    "get": {
     "summary": "Version",
@@ -6695,6 +6731,82 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/VeiBoxes"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/ratio/levels": {
+   "get": {
+    "summary": "Ratio Levels",
+    "description": "Neighbourhood price levels for a location field, worked out from the sales studied, at once (no run).",
+    "operationId": "ratio_levels_api_projects__project_id__ratio_levels_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "field",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Field"
+      }
+     },
+     {
+      "name": "region",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Region"
+      }
+     },
+     {
+      "name": "group",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Group"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "anyOf": [
+          {
+           "$ref": "#/components/schemas/RegionStats"
+          },
+          {
+           "type": "null"
+          }
+         ],
+         "title": "Response Ratio Levels Api Projects  Project Id  Ratio Levels Get"
         }
        }
       }
@@ -15504,6 +15616,24 @@
     "title": "LocationMap",
     "description": "A location field on the map: each parcel's centre and which of its areas it's in."
    },
+   "LogInfo": {
+    "properties": {
+     "folder": {
+      "type": "string",
+      "title": "Folder"
+     },
+     "file": {
+      "type": "string",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "folder",
+     "file"
+    ],
+    "title": "LogInfo"
+   },
    "Machine": {
     "properties": {
      "checked_at": {
@@ -20023,12 +20153,12 @@
       "type": "string",
       "enum": [
        "recommended",
-       "shapes",
-       "dots",
-       "auto"
+       "auto",
+       "squares",
+       "parcels"
       ],
       "title": "Map Detail",
-      "description": "Parcel shapes, dots, or dots above 20,000.",
+      "description": "Squares zoomed out and parcel shapes zoomed in (auto), squares always, or parcel shapes always.",
       "default": "recommended"
      },
      "street_map": {
@@ -22486,9 +22616,9 @@
      "map_detail": {
       "type": "string",
       "enum": [
-       "shapes",
-       "dots",
-       "auto"
+       "auto",
+       "squares",
+       "parcels"
       ],
       "title": "Map Detail"
      },
@@ -25298,16 +25428,6 @@
         "type": "null"
        }
       ]
-     },
-     "regions": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/RegionStats"
-       },
-       {
-        "type": "null"
-       }
-      ]
      }
     },
     "type": "object",
@@ -25334,8 +25454,7 @@
      "fifths",
      "clusters",
      "median_chd",
-     "verdict",
-     "regions"
+     "verdict"
     ],
     "title": "Study",
     "description": "One model group's (or all groups') study of one value field."

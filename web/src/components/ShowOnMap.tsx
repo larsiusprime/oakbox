@@ -130,7 +130,7 @@ export function MapVariable({ column, compact }: { column: string; compact?: boo
     meta: { quiet: true },
   });
   const outs = info.data?.outs ?? [];
-  const id = ["modeled", "prepared", "universe"]
+  const id = ["modeled", "tested", "prepared", "universe"]
     .map((s) => `out:${s}:${column}`)
     .find((x) => outs.some((o) => o.id === x));
   return id ? (

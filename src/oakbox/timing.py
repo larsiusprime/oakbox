@@ -248,4 +248,8 @@ def report(project_dir: Path) -> Path:
         s = project_dir / "in" / "settings.json"
         if s.is_file():
             z.write(s, "settings.json")
+        from oakbox import applog
+
+        if app_log := applog.tail():  # OAK box's own log: the requests that failed, with their tracebacks
+            z.writestr(f"logs/{applog.NAME}", app_log)
     return out

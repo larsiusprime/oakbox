@@ -1,7 +1,7 @@
 /** Model groups' map of the parcel shapes, coloured by group or by what moved, and the parcel inspector. */
 
 import type { Layer } from "@deck.gl/core";
-import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
+import { GeoJsonLayer, PolygonLayer, ScatterplotLayer, SolidPolygonLayer } from "@deck.gl/layers";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type * as maplibregl from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -10,10 +10,11 @@ import { api, type GroupsPreview, type ModelGroup, type ParcelInspect, unwrap } 
 import { CloseButton } from "../components/Buttons";
 import { Tick } from "../components/Form";
 import { MapInstruction } from "../components/MapInstruction";
-import { boundsOf, MapView, rgba } from "../components/MapView";
+import { type Bounds, boundsOf, MapView, rgba } from "../components/MapView";
 import { Seg } from "../components/Seg";
 import { Val } from "../components/Val";
 import { NO_COLOUR } from "../lib/colours";
+import { levelFor } from "../lib/detail";
 import { money, short } from "../lib/format";
 import { clearGroups, type GroupMap as GroupMapState, publishGroups, setGroupMap } from "../lib/groupmap";
 import { useResolved } from "../lib/machine";
@@ -27,9 +28,9 @@ export type MapMode = "docked" | "full" | "hidden";
 export type ColourBy = "group" | "changes";
 export const CHANGE_GREY = "#d9dcd4";
 export const SAME = "__same";
-// Map detail (Settings › Performance, SPEC §5): "dots above" this many parcels; and zoomed in to this many or fewer,
-// the shapes in view are drawn instead of their dots.
-const DOTS_ABOVE = 20_000;
+// Map detail Auto (lib/detail.ts, SPEC §5): every shape up to this many parcels; above it, squares, and zoomed in to
+// this many or fewer in view, the shapes in view.
+const SHAPES_ALL = 20_000;
 const SHAPES_IN_VIEW = 5_000;
 // Scattered specks of shapes (shapes.ts: some parcel files hold only a small square at each parcel's point) smaller
 // than this on screen fill no pixel: drawn as dots, or with Parcel shapes chosen, drawn at least this size.
@@ -37,6 +38,82 @@ const SHAPE_MIN_PX = 3;
 type Centre = [number, number] | null;
 const NONE: [number, number, number, number] = [0, 0, 0, 0];
 const parcelOf = (f: unknown) => (f as { properties: { parcel: number } }).properties.parcel;
+
+type Look = (i: number) => { fill: [number, number, number, number] } | null;
+type Square = { polygon: [number, number][]; fill: [number, number, number, number]; mixed: boolean };
+
+/** The parcels in squares of `level` metres, each its parcels' most common colour (group, or what moved); a square
+ * where under 80% share it, outlined in white: a mixed place to zoom into. A square clicked is zoomed to. */
+function groupSquares(all: Centre[], look: Look, level: number, onSquare: (b: Bounds) => void): Layer[] {
+  let lat = 0;
+  let k = 0;
+  for (const c of all)
+    if (c) {
+      lat += c[1];
+      k++;
+    }
+  const lat0 = ((k ? lat / k : 0) * Math.PI) / 180;
+  const dx = level / (111_320 * Math.cos(lat0));
+  const dy = level / 110_540;
+  const acc = new Map<string, { n: number; fills: Map<string, { c: number; fill: Square["fill"] }> }>();
+  for (let i = 0; i < all.length; i++) {
+    const c = all[i];
+    const l = c && look(i);
+    if (!c || !l) continue;
+    const key = `${Math.floor(c[0] / dx)}:${Math.floor(c[1] / dy)}`;
+    let a = acc.get(key);
+    if (!a) {
+      a = { n: 0, fills: new Map() };
+      acc.set(key, a);
+    }
+    a.n++;
+    const f = `${l.fill[0]},${l.fill[1]},${l.fill[2]}`;
+    const was = a.fills.get(f);
+    if (was) was.c++;
+    else a.fills.set(f, { c: 1, fill: l.fill });
+  }
+  const squares: Square[] = [];
+  for (const [key, a] of acc) {
+    const [gx = 0, gy = 0] = key.split(":").map(Number);
+    const top = [...a.fills.values()].sort((p, q) => q.c - p.c)[0];
+    if (!top) continue;
+    const x0 = gx * dx;
+    const y0 = gy * dy;
+    squares.push({
+      polygon: [
+        [x0, y0],
+        [x0 + dx, y0],
+        [x0 + dx, y0 + dy],
+        [x0, y0 + dy],
+      ],
+      fill: [top.fill[0], top.fill[1], top.fill[2], Math.max(top.fill[3], 200)],
+      mixed: top.c < 0.8 * a.n,
+    });
+  }
+  return [
+    new SolidPolygonLayer<Square>({
+      id: `squares-${level}`,
+      data: squares,
+      pickable: true,
+      getPolygon: (q) => q.polygon,
+      getFillColor: (q) => q.fill,
+      onClick: ({ object }) => {
+        const p = (object as Square | undefined)?.polygon;
+        if (p?.[0] && p[2]) onSquare([p[0], p[2]]);
+      },
+    }),
+    new PolygonLayer<Square>({
+      id: `squares-mixed-${level}`,
+      data: squares.filter((q) => q.mixed),
+      filled: false,
+      stroked: true,
+      lineWidthUnits: "pixels",
+      getLineWidth: 2,
+      getLineColor: [255, 255, 255, 220],
+      getPolygon: (q) => q.polygon,
+    }),
+  ];
+}
 
 /** The parcel shapes on OpenStreetMap (when online), coloured by group or by what moved. */
 export function ParcelMap({
@@ -75,8 +152,9 @@ export function ParcelMap({
     staleTime: Number.POSITIVE_INFINITY,
   });
   const n = centres.data?.length ?? 0;
-  const dots = detail === "dots" || (detail === "auto" && n > DOTS_ABOVE);
-  // Drawn as dots: zoomed in far enough, the parcels in view (few enough) are drawn as shapes.
+  // Squares, or Auto on a big county: drawn from the parcels' centres, following the view. Otherwise every shape.
+  const byCentres = detail === "squares" || (detail === "auto" && n > SHAPES_ALL);
+  // Auto: zoomed in far enough, the parcels in view (few enough) are drawn as shapes.
   const [inView, setInView] = useState<number[] | null>(null);
   const shapes = useQuery({
     queryKey: ["group-shapes", projectId],
@@ -86,34 +164,39 @@ export function ParcelMap({
       return readShapes(await r.arrayBuffer());
     },
     staleTime: Number.POSITIVE_INFINITY,
-    enabled: detail === "shapes" || (centres.isSuccess && (!dots || inView !== null)),
+    enabled:
+      detail === "parcels" ||
+      (detail === "auto" && centres.isSuccess && (n <= SHAPES_ALL || inView !== null)),
   });
   const sh = shapes.data;
   const whole = useMemo(() => (sh ? toBinary(sh) : null), [sh]);
   const bounds = useMemo(
     () =>
-      dots
-        ? boundsOf((centres.data ?? []).filter((c): c is [number, number] => !!c))
+      centres.data
+        ? boundsOf(centres.data.filter((c): c is [number, number] => !!c))
         : sh
           ? (shapesBounds(sh) ?? null)
           : null,
-    [dots, centres.data, sh],
+    [centres.data, sh],
   );
 
   const size = useMemo(() => (sh ? shapeSize(sh) : null), [sh]);
-  // Metres a pixel covers now (MapLibre's 512-pixel tiles), for whether the shapes would show.
+  // Metres a pixel covers now (MapLibre's 512-pixel tiles), for whether the shapes would show, and the squares' size.
   const [perPixel, setPerPixel] = useState<number | null>(null);
   const specks = !!size?.scattered && perPixel != null && size.metres / perPixel < SHAPE_MIN_PX;
-  // Parcel shapes chosen: shapes, always (specks drawn bigger). Otherwise specks are dots.
-  const asDots = dots || (specks && detail !== "shapes");
-  const swell = specks && detail === "shapes";
+  // Parcels chosen: shapes, always (specks drawn bigger). Otherwise specks are dots.
+  const swell = specks && detail === "parcels";
+  const level = levelFor(perPixel ?? 1000);
 
   // Which parcels are in view, when few enough to draw as shapes.
   const centresNow = useRef<Centre[] | undefined>(undefined);
   useEffect(() => {
     centresNow.current = centres.data;
   }, [centres.data]);
+  // The map, once made: kept as state (a square clicked zooms it; the centres coming late look at it).
+  const [mapObj, setMapObj] = useState<maplibregl.Map | null>(null);
   const watch = useCallback((m: maplibregl.Map | null) => {
+    setMapObj(m);
     if (!m) return;
     const look = () => {
       const lat = (m.getCenter().lat * Math.PI) / 180;
@@ -134,6 +217,10 @@ export function ParcelMap({
     m.on("moveend", look);
     m.once("load", look);
   }, []);
+  // The centres came after the map: looked at now.
+  useEffect(() => {
+    if (mapObj && centres.data) mapObj.fire("moveend");
+  }, [mapObj, centres.data]);
 
   // Each parcel's look: its group's colour (grey when it didn't move), dimmed off the highlight, hidden when its
   // legend entry is switched off.
@@ -157,8 +244,9 @@ export function ParcelMap({
     };
   }, [preview, colours, ids, hidden, unassigned, colourBy, highlight]);
 
-  // Followed only when drawn as dots: shapes drawn whole needn't be made again on every move.
-  const seen = asDots ? inView : null;
+  // What's drawn: squares (Squares; Auto on a big county until few enough are in view), else shapes.
+  const seen = byCentres && detail === "auto" ? inView : null;
+  const squares = byCentres && !(seen && sh);
   const layers = useMemo(() => {
     const shapesLayer = (data: BinaryShapes) =>
       new GeoJsonLayer({
@@ -181,32 +269,32 @@ export function ParcelMap({
           if (index >= 0 && look(index)) onPick(index);
         },
       });
+    const dotsLayer = (all: Centre[], idx: number[]) =>
+      new ScatterplotLayer<number>({
+        id: "dots",
+        data: idx,
+        pickable: true,
+        radiusUnits: "pixels",
+        getRadius: 2.5,
+        getPosition: (i) => all[i] as [number, number],
+        getFillColor: (i) => look(i)?.fill ?? NONE,
+        updateTriggers: { getFillColor: look },
+        onClick: ({ object }) => {
+          if (object != null && look(object)) onPick(object);
+        },
+      });
     const out: Layer[] = [];
     const all = centres.data;
     let drawnAsShapes = false;
-    if (asDots && all) {
-      if (!specks && sh && seen) {
-        out.push(shapesLayer(toBinary(sh, seen)));
-        drawnAsShapes = true;
-      } else {
-        const idx = all.flatMap((c, i) => (c ? [i] : []));
-        out.push(
-          new ScatterplotLayer<number>({
-            id: "dots",
-            data: idx,
-            pickable: true,
-            radiusUnits: "pixels",
-            getRadius: 2.5,
-            getPosition: (i) => all[i] as [number, number],
-            getFillColor: (i) => look(i)?.fill ?? NONE,
-            updateTriggers: { getFillColor: look },
-            onClick: ({ object }) => {
-              if (object != null && look(object)) onPick(object);
-            },
-          }),
-        );
-      }
-    } else if (!asDots && whole) {
+    if (squares && all) {
+      out.push(...groupSquares(all, look, level, (b) => mapObj?.fitBounds(b, { padding: 24, maxZoom: 17 })));
+    } else if (specks && !swell && all) {
+      // Specks too small to see: a dot at each parcel's centre.
+      out.push(dotsLayer(all, seen ?? all.flatMap((c, i) => (c ? [i] : []))));
+    } else if (seen && sh) {
+      out.push(shapesLayer(toBinary(sh, seen)));
+      drawnAsShapes = true;
+    } else if (whole) {
       out.push(shapesLayer(whole));
       drawnAsShapes = true;
     }
@@ -239,10 +327,10 @@ export function ParcelMap({
         }),
       );
     return out;
-  }, [asDots, specks, swell, centres.data, seen, sh, whole, look, picked, onPick]);
+  }, [squares, specks, swell, level, mapObj, centres.data, seen, sh, whole, look, picked, onPick]);
 
-  const ready = dots ? !!centres.data : !!sh;
-  const failed = (dots ? centres.error : shapes.error)?.message;
+  const ready = byCentres ? !!centres.data : !!sh;
+  const failed = (byCentres ? centres.error : shapes.error)?.message;
   return (
     <div className="mg-map-body">
       {ready && (
@@ -251,9 +339,10 @@ export function ParcelMap({
           label={g.mapLabel}
           layers={layers}
           bounds={bounds}
-          fitKey={dots ? "centres" : "shapes"}
+          fitKey="parcels"
           resizeKey={mode}
           onMap={watch}
+          detail={centres.data ? { squares, parcels: n } : undefined}
         />
       )}
       {!ready && <p className="mg-map-msg">{failed ?? g.loadingMap}</p>}

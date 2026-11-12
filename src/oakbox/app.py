@@ -18,7 +18,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from oakbox import __version__
+from oakbox import __version__, applog
 from oakbox.datafiles import BaseModel
 from oakbox.errors import NotFound, NotReady
 from oakbox.routes import (
@@ -65,6 +65,11 @@ class Versions(BaseModel):
     openavmkit: str
 
 
+class LogInfo(BaseModel):
+    folder: str
+    file: str
+
+
 def _openavmkit_version() -> str:
     from importlib.metadata import PackageNotFoundError
     from importlib.metadata import version as package_version
@@ -83,6 +88,7 @@ def _warm_engine() -> None:
 async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     # Importing OpenAVMKit takes seconds; start it now so the first project opened doesn't wait.
     threading.Thread(target=_warm_engine, daemon=True).start()
+    applog.logger().info("OAK box %s started (OpenAVMKit %s)", __version__, _openavmkit_version())
     yield
     from oakbox import steps
 
@@ -104,6 +110,24 @@ def create_app() -> FastAPI:
     @app.exception_handler(NotFound)
     def not_found(_request: Request, e: NotFound) -> JSONResponse:
         return JSONResponse({"detail": f"Not found: {e}"}, status_code=404)
+
+    # Anything else is a bug: its traceback goes to OAK box's log (applog), and the page gets a reference to it,
+    # with what failed, to copy. Starlette still raises it afterwards, so a console shows it too.
+    @app.exception_handler(Exception)
+    def failed(request: Request, e: Exception) -> JSONResponse:
+        return JSONResponse(
+            {"detail": None, "failure": applog.failure(request.method, request.url.path, e)}, status_code=500
+        )
+
+    @app.get("/api/log")
+    def log_info() -> LogInfo:
+        """Where OAK box's log is."""
+        return LogInfo(folder=str(applog.log_dir()), file=str(applog.log_file()))
+
+    @app.post("/api/log/open")
+    def log_open() -> None:
+        """Show the log's folder in the file manager."""
+        applog.open_folder()
 
     @app.get("/api/version")
     def version() -> Versions:

@@ -19,7 +19,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 Tier = Literal["light", "standard", "strong"]
 
@@ -59,7 +59,7 @@ class Machine(BaseModel):
 
 FoldChoice = Literal["recommended", "one", "two", "cores"]
 MapsChoice = Literal["recommended", "now", "click"]
-DetailChoice = Literal["recommended", "shapes", "dots", "auto"]
+DetailChoice = Literal["recommended", "auto", "squares", "parcels"]
 StreetChoice = Literal["recommended", "on", "off"]
 
 
@@ -68,8 +68,17 @@ class Performance(BaseModel):
 
     fold_workers: FoldChoice = Field(default="recommended", description="Model training: folds at once.")
     maps: MapsChoice = Field(default="recommended", description="Maps right away, or when Show map is clicked.")
-    map_detail: DetailChoice = Field(default="recommended", description="Parcel shapes, dots, or dots above 20,000.")
+    map_detail: DetailChoice = Field(
+        default="recommended",
+        description="Squares zoomed out and parcel shapes zoomed in (auto), squares always, or parcel shapes always.",
+    )
     street_map: StreetChoice = Field(default="recommended", description="The street map under every map.")
+
+    @field_validator("map_detail", mode="before")
+    @classmethod
+    def _old_detail(cls, v: object) -> object:
+        """Saved before squares (2026-11-12): parcel shapes are Parcels; dots, gone, are Squares."""
+        return {"shapes": "parcels", "dots": "squares"}.get(v, v) if isinstance(v, str) else v
 
 
 class Resolved(BaseModel):
@@ -78,7 +87,7 @@ class Resolved(BaseModel):
     fold_workers: Literal["one", "two", "cores"]
     folds_at_once: int = Field(description="How many cross-validation folds run at once.")
     maps: Literal["now", "click"]
-    map_detail: Literal["shapes", "dots", "auto"]
+    map_detail: Literal["auto", "squares", "parcels"]
     street_map: Literal["on", "off"]
 
 
@@ -112,7 +121,7 @@ def recommended(m: Machine | None) -> Resolved:
         fold_workers=folds,
         folds_at_once=_folds(folds, m),
         maps="click" if light else "now",
-        map_detail="dots" if light else ("auto" if tier == "standard" else "shapes"),
+        map_detail="squares" if light else "auto",
         street_map="off" if light else "on",
     )
 

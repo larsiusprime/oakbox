@@ -346,6 +346,12 @@ def test_step_4_checks_the_values_against_the_sales_kept(own_time_files, assembl
         assert len(points) == result["overall"]["sales"] + result["overall"]["trimmed"]
         assert all({"lat", "lon", "ratio"} <= set(x) for x in points)
         assert client.post(f"{rv}/accept").json()["accepted"]
+        # Neighbourhood price levels: any location field, at once; choosing one leaves the values checked.
+        for loc in setup["regions"]:
+            client.patch(f"{rv}/setup", json={"region": loc["value"]})
+            assert not client.get(rv).json()["stale"]
+            levels = client.get(f"{rv}/levels", params={"field": "assr_market_value", "region": loc["value"]}).json()
+            assert levels["field"] == loc["value"] and levels["sales"] <= result["overall"]["sales"]
         stds = [x | {"level_low": 0.5} if i == 0 else x for i, x in enumerate(setup["standards"])]
         client.patch(f"{rv}/setup", json={"price": "sold", "standards": stds})
         assert client.get(rv).json()["stale"]
@@ -467,6 +473,10 @@ def test_the_variables_tested_one_test_at_a_time(prepared, brought_in_client, br
         assert row["reason"] == (None if row["passed"] else "no_correlation")
     assert all("to_price" in d and "overlaps" in d for d in tested[0]["corr"].values())
     assert not tv["stale"] and tv["receipt"]["tests"] == ["corr", "vif"]
+    # What the tests worked out (the nearby averages) can be mapped before the models run.
+    lags = [v for v in tv["receipt"]["variables"] if v.startswith("spatial_lag_")]
+    outs = {o["id"] for o in client.get(f"/api/projects/{pid}/map").json()["outs"]}
+    assert lags and all(f"out:tested:{v}" in outs for v in lags), (lags, sorted(outs))
     # Only the tests picked run; a change of tests makes the results out of date.
     assert client.patch(f"{mdl}/setup", json={"tests": []}).status_code == 422
     assert client.patch(f"{mdl}/setup", json={"tests": ["vif"]}).json()["tests"] == ["vif"]

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AppMenus } from "./AppMenus";
 import { Activity } from "./components/Activity";
+import { FailureBar } from "./components/FailureBar";
 import { MapAlone } from "./components/MapWindow";
 import { OakFrame } from "./components/OakFrame";
 import { SettingsDialog } from "./components/SettingsDialog";
@@ -93,6 +94,7 @@ export function App() {
       />
       <UndoToast />
       <Activity />
+      <FailureBar />
       {route.name !== "map" && <OakFrame />}
       {route.name !== "map" && <AppMenus route={route} />}
     </div>

@@ -4,6 +4,46 @@
  */
 
 export interface paths {
+    "/api/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Log Info
+         * @description Where OAK box's log is.
+         */
+        get: operations["log_info_api_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/log/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log Open
+         * @description Show the log's folder in the file manager.
+         */
+        post: operations["log_open_api_log_open_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/version": {
         parameters: {
             query?: never;
@@ -2531,6 +2571,26 @@ export interface paths {
          * @description Each VEI group's ratios as a box, by sale and by the price level of the sale's region, for their charts.
          */
         get: operations["ratio_boxes_api_projects__project_id__ratio_boxes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/ratio/levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ratio Levels
+         * @description Neighbourhood price levels for a location field, worked out from the sales studied, at once (no run).
+         */
+        get: operations["ratio_levels_api_projects__project_id__ratio_levels_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6429,6 +6489,13 @@ export interface components {
             /** Parcels */
             parcels: number;
         };
+        /** LogInfo */
+        LogInfo: {
+            /** Folder */
+            folder: string;
+            /** File */
+            file: string;
+        };
         /**
          * Machine
          * @description What the check found.
@@ -8528,11 +8595,11 @@ export interface components {
             maps: "recommended" | "now" | "click";
             /**
              * Map Detail
-             * @description Parcel shapes, dots, or dots above 20,000.
+             * @description Squares zoomed out and parcel shapes zoomed in (auto), squares always, or parcel shapes always.
              * @default recommended
              * @enum {string}
              */
-            map_detail: "recommended" | "shapes" | "dots" | "auto";
+            map_detail: "recommended" | "auto" | "squares" | "parcels";
             /**
              * Street Map
              * @description The street map under every map.
@@ -9576,7 +9643,7 @@ export interface components {
              * Map Detail
              * @enum {string}
              */
-            map_detail: "shapes" | "dots" | "auto";
+            map_detail: "auto" | "squares" | "parcels";
             /**
              * Street Map
              * @enum {string}
@@ -10807,7 +10874,6 @@ export interface components {
              */
             median_chd: number | null;
             verdict: components["schemas"]["Verdict"] | null;
-            regions: components["schemas"]["RegionStats"] | null;
         };
         /** Suggestion */
         Suggestion: {
@@ -12495,6 +12561,46 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    log_info_api_log_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogInfo"];
+                };
+            };
+        };
+    };
+    log_open_api_log_open_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     version_api_version_get: {
         parameters: {
             query?: never;
@@ -17067,6 +17173,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VeiBoxes"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_levels_api_projects__project_id__ratio_levels_get: {
+        parameters: {
+            query: {
+                field: string;
+                region: string;
+                group?: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegionStats"] | null;
                 };
             };
             /** @description Validation Error */

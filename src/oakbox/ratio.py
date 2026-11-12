@@ -562,7 +562,6 @@ class Study(BaseModel):
     clusters: int | None = Field(default=None, description="Groups of similar parcels (equity clusters).")
     median_chd: float | None = Field(default=None, description="Their median spread of values (CHD).")
     verdict: Verdict | None = None
-    regions: RegionStats | None = None
 
 
 class Trimmed(BaseModel):
@@ -599,8 +598,9 @@ class RatioReceipt(BaseModel):
 
 def study_calls(project: Project, project_dir: Path) -> dict:
     """The calls that decide how values are studied against the sales: the window, the price, the trimming, the
-    standards, the classes and the region. Checking the roll's values and Finalize's study of the model values both
-    depend on them, so a new call goes here, for both."""
+    standards and the classes. Not the location field of neighbourhood price levels: those are worked out from the
+    studied sales when they're shown (region_levels), for whichever field is chosen. Checking the roll's values and
+    Finalize's study of the model values both depend on them, so a new call goes here, for both."""
     start, end, _ = window(project, project_dir=project_dir)
     s: RatioState = project.ratio
     return {
@@ -609,7 +609,6 @@ def study_calls(project: Project, project_dir: Path) -> dict:
         "trim": s.trim,
         "standards": [x.model_dump(exclude={"groups"}) for x in standards(project)],
         "classes": classes(project),
-        "region": region(project),
     }
 
 
@@ -697,7 +696,6 @@ def study_view(gid: str, name: str, color: str, cls, data: dict, table) -> Study
         clusters=h.get("clusters"),
         median_chd=h.get("median_chd"),
         verdict=f.verdict,
-        regions=RegionStats.model_validate(main["regions"]) if main.get("regions") else None,
     )
 
 
@@ -756,7 +754,6 @@ def run(project_id: str) -> None:
             trim_outliers=s.trim,
             median_ci="iaao",
             standards=engine_standards(project),
-            region=region(project) or None,
             classes={g: (None if c == "none" else c) for g, c in cls.items()},
             outpath=str(tmp / "studies"),
         )
@@ -770,9 +767,7 @@ def run(project_id: str) -> None:
     names = {g.id: g.name for g in project.groups}
     results = []
     for field, study in studies.items():
-        table = pd.read_parquet(tmp / "studies" / f"{field}.sales.parquet") if s.trim else None
-        if table is None:
-            table = pd.DataFrame({c: [] for c in ("model_group", "sale_price", "ratio", "trimmed")})
+        table = pd.read_parquet(tmp / "studies" / f"{field}.sales.parquet")
         groups = [
             study_view(g.id, g.name, g.color, cls[g.id], study["groups"][g.id], table)
             for g in checked_groups(project)
@@ -1020,6 +1015,40 @@ class RegionPoints(BaseModel):
     overall: float | None = Field(default=None, description="The median ratio of all of them, the same way.")
 
 
+def _with_region(t, project_dir: Path, region: str):
+    """The studied sales with a location field: joined from the sales Check sales kept, by sale, when the study
+    didn't carry it (any field can be chosen after the run)."""
+    import pandas as pd
+
+    if not region or region in t:
+        return t
+    sales = _sales(project_dir)
+    if sales is None or region not in sales or "key_sale" not in t:
+        return t
+    where = cast(pd.DataFrame, sales[["key_sale", region]]).drop_duplicates(subset=["key_sale"])
+    where = where.assign(key_sale=where["key_sale"].astype(str))
+    return cast(pd.DataFrame, t.assign(key_sale=t["key_sale"].astype(str)).merge(where, on="key_sale", how="left"))
+
+
+def region_levels(project_dir: Path, field: str, region: str, group: str | None) -> RegionStats | None:
+    """Neighbourhood price levels for a location field, from the sales the run studied (without the trimmed ones):
+    OpenAVMKit's region_stats, the figures its study would give for that field, at once, without a run."""
+    import pandas as pd
+    from openavmkit.value_studies import region_stats
+
+    path = out_dir(project_dir) / "studies" / f"{field}.sales.parquet"
+    if not region or not path.is_file():
+        return None
+    t = _with_region(pd.read_parquet(path), project_dir, region)
+    if region not in t:
+        return None
+    if "trimmed" in t:
+        t = t[~t["trimmed"].astype(bool)]
+    if group:
+        t = t[t["model_group"].astype(str) == group]
+    return RegionStats.model_validate(region_stats(cast(pd.DataFrame, t), "value", region))
+
+
 def region_points(project_dir: Path, field: str, region: str, group: str | None) -> RegionPoints:
     import numpy as np
     import pandas as pd
@@ -1028,7 +1057,7 @@ def region_points(project_dir: Path, field: str, region: str, group: str | None)
     path = out_dir(project_dir) / "studies" / f"{field}.sales.parquet"
     if not region or not path.is_file():
         return empty
-    t = pd.read_parquet(path)
+    t = _with_region(pd.read_parquet(path), project_dir, region or "")
     if any(c not in t for c in ("latitude", "longitude", "ratio", region)):
         return empty
     if group:
@@ -1241,7 +1270,7 @@ def vei_boxes(project_dir: Path, field: str, group: str | None, region: str | No
     path = out_dir(project_dir) / "studies" / f"{field}.sales.parquet"
     if not path.is_file():
         return empty
-    t = pd.read_parquet(path)
+    t = _with_region(pd.read_parquet(path), project_dir, region or "")
     if group:
         t = t[t["model_group"].astype(str) == group]
     gone: list[tuple[float, float]] = []

@@ -1109,6 +1109,15 @@ export type Wording = {
     show: string;
     waitNote: string;
     waitSettings: string;
+    detail: string;
+    detailAuto: string;
+    detailSquares: string;
+    detailParcels: string;
+    detailAutoTip: string;
+    detailSquaresTip: string;
+    detailParcelsTip: string;
+    squaresNote: string;
+    manyShapes: (a: { n: number }) => string;
   };
   multiPick: {
     plusOthers: (a: { first: string | number; n: number }) => string;
@@ -1841,6 +1850,7 @@ export type Wording = {
       boxTip: (a: { group: string | number; n: number; hi: string | number; q3: string | number; median: string | number; q1: string | number; lo: string | number }) => string;
       ciTip: (a: { group: string | number; median: string | number; low: string | number; high: string | number }) => string;
       ctTip: (a: { group: string | number; median: string | number }) => string;
+      outlier: (a: { ratio: string | number }) => string;
     };
     prices: {
       title: (a: { name: string | number }) => string;
@@ -1934,7 +1944,6 @@ export type Wording = {
       noField: string;
       choose: string;
       noLocations: string;
-      notRun: string;
       few: (a: { sales: number; regions: number }) => string;
       reading: (a: { sales: number; regions: number; vei: string | number; verdict: string | number }) => string;
       compare: (a: { vei: string | number }) => string;
@@ -2605,6 +2614,16 @@ export type Wording = {
     taxYear: (a: { year: string | number }) => string;
     loading: string;
     serverError: string;
+    serverErrorRef: (a: { ref: string | number }) => string;
+  };
+  failure: {
+    title: string;
+    what: (a: { ref: string | number; what: string | number }) => string;
+    more: (a: { n: number }) => string;
+    copy: string;
+    copied: string;
+    openLog: string;
+    dismiss: string;
   };
   callout: {
     show: string;
@@ -2723,9 +2742,9 @@ export type Wording = {
     mapsClick: string;
     mapsHint: string;
     detail: string;
-    detailShapes: string;
-    detailDots: string;
     detailAuto: string;
+    detailSquares: string;
+    detailParcels: string;
     detailHint: string;
     street: string;
     streetOn: string;
@@ -2820,6 +2839,7 @@ export type Wording = {
     outSource: {
       universe: string;
       prepared: string;
+      tested: string;
       modeled: string;
       sales: string;
     };

@@ -1,15 +1,17 @@
 /** Check my values' map of each sale's ratio, and the median ratio by its region's price level. */
 
 import { ScatterplotLayer } from "@deck.gl/layers";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { api, type FieldResult, type RatioSetup, unwrap } from "../api/client";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
 import { OnTheMap } from "../components/OnTheMap";
 import { Seg } from "../components/Seg";
+import { LoadingBar } from "../components/Waiting";
 import { ratioColor, ratioStroke, TRIMMED } from "../lib/colours";
 import { money, num, ratioText, signed } from "../lib/format";
+import { useAtOnce } from "../lib/hooks";
 import { t } from "../wording";
 import { RegionMap } from "./RegionMap";
 import { useVeiBoxes, VeiChart } from "./VeiChart";
@@ -165,8 +167,29 @@ export function Regions({
   const studied = result.groups.filter((g) => g.sales > 0);
   const [gid, setGid] = useState("");
   const g = result.groups.find((x) => x.id === gid) ?? result.overall;
-  const rg = g.regions;
-  const boxes = useVeiBoxes(projectId, result.field, gid, rg?.field ?? "");
+  // The field chosen shows at once (AGENTS.md), and its figures come from the sales studied: no run.
+  const [region, pick] = useAtOnce(setup?.region ?? "");
+  const levels = useQuery({
+    queryKey: [
+      "ratio-levels",
+      projectId,
+      result.field,
+      region,
+      gid,
+      result.overall.sales,
+      result.overall.median,
+    ],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/ratio/levels", {
+          params: { path: { project_id: projectId }, query: { field: result.field, region, group: gid } },
+        }),
+      ),
+    enabled: !!region,
+    placeholderData: keepPreviousData,
+  });
+  const rg = region ? (levels.data ?? null) : null;
+  const boxes = useVeiBoxes(projectId, result.field, gid, region);
   const rr = r.regions;
   return (
     <div className="rv-cards">
@@ -175,13 +198,16 @@ export function Regions({
         {setup && (
           <Choice
             label={rr.field}
-            value={setup.region}
+            value={region}
             isDisabled={busy}
             options={[
               ["", rr.noField] as [string, string],
               ...setup.regions.map((x) => [x.value, x.label] as [string, string]),
             ]}
-            onChange={choose}
+            onChange={(v) => {
+              pick(v);
+              choose(v);
+            }}
           />
         )}
         <Choice
@@ -201,13 +227,13 @@ export function Regions({
           title={rr.mapInstruction}
           sub={rr.mapInstructionSub}
         >
-          <RegionMap projectId={projectId} field={result.field} region={rg.field} group={gid} />
+          <RegionMap projectId={projectId} field={result.field} region={region} group={gid} />
         </OnTheMap>
       )}
-      {!rg ? (
-        <p className="wiz-from">
-          {setup?.region ? rr.notRun : setup && setup.regions.length === 0 ? rr.noLocations : rr.choose}
-        </p>
+      {region && levels.isPending ? (
+        <LoadingBar />
+      ) : !rg ? (
+        <p className="wiz-from">{setup && setup.regions.length === 0 ? rr.noLocations : rr.choose}</p>
       ) : rg.strata.length < 2 ? (
         <p className="wiz-from">{rr.few({ sales: rg.sales, regions: rg.regions })}</p>
       ) : (

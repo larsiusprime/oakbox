@@ -5254,6 +5254,7 @@ under what it's about; a file appended as rows {
   position: relative;
   isolation: isolate;
   overflow: hidden;
+  container-type: inline-size;
 }
 .map-canvas {
   position: absolute;
@@ -5275,6 +5276,36 @@ under what it's about; a file appended as rows {
 .map-street input {
   margin: 0;
 }
+/* The Detail switch beside Street map; a note under them both, the width of the box. */
+.map-street {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.map-street-box,
+.map-detail {
+  display: inline-flex;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
+  align-items: center;
+}
+.map-detail .seg-b {
+  padding: 0 calc(0.4 * var(--sp));
+}
+.map-detail-note {
+  flex-basis: 100%;
+  max-width: 22rem;
+  margin-left: auto;
+  color: var(--muted);
+  text-align: right;
+}
+.map-detail-warn {
+  color: var(--warn);
+}
+/* A narrow map: the switch's word goes first. */
+@container (max-width: 30rem) {
+  .map-detail-label {
+    display: none;
+  }
+}
 /* Over the dots: deck.gl draws in a corner control box, above MapLibre's markers unless they're lifted. */
 .map-view .maplibregl-marker:has(> .wiz-pin),
 .map-view .maplibregl-marker.wiz-pin {
@@ -5282,9 +5313,17 @@ under what it's about; a file appended as rows {
      (interleaved), which loses the dots when the street map is switched. */
   z-index: 10;
 }
-/* The zoom buttons over the dots too: their corner comes before deck.gl's (top right) at the same z-index. */
-.map-view .maplibregl-ctrl-top-left {
-  z-index: 3;
+/* The zoom buttons over the dots and squares too: deck.gl's drawing goes into their corner, after them (top left,
+   at the corner's z-index), so the buttons are lifted inside it. */
+.map-view .maplibregl-ctrl-top-left > .maplibregl-ctrl {
+  position: relative;
+  z-index: 1;
+}
+/* The Detail switch and Street map box over the drawing too: it's outside the map's corners, so above them all. */
+.map-view > .map-street {
+  z-index: 5;
+  /* Clear of the zoom buttons (the map's own rule lets its boxes be any width). */
+  max-width: calc(100% - 3.5rem);
 }
 .wiz-pin {
   width: 22px;
@@ -8951,4 +8990,86 @@ th.vt-map {
   display: inline-flex;
   align-items: center;
   gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
+}
+
+/* ---------- A bug on OAK box's side (components/FailureBar.tsx): bottom right, until dismissed ---------- */
+.failure-bar {
+  position: fixed;
+  z-index: 46;
+  right: 0.8rem;
+  bottom: 0.8rem;
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  max-width: min(34rem, calc(100% - 1.6rem));
+  padding: 0.6rem 0.5rem 0.6rem 0.8rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-left: 4px solid var(--bad);
+  border-radius: var(--radius);
+  box-shadow: var(--paper-shadow);
+}
+.failure-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.failure-what {
+  margin-top: 0.2em;
+}
+.failure-req {
+  font-size: 0.8em;
+}
+.failure-acts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: none;
+}
+
+/* Variables › What to keep: a column per model group, however many; the variable and its map button stay in view. */
+.vt-keep {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.vt-keep > .tbl {
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+}
+.vt-keep .vt-keep-var {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 12rem;
+  max-width: 18rem;
+  background: var(--panel);
+}
+.vt-keep-name {
+  display: flex;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
+  align-items: center;
+  justify-content: space-between;
+}
+.vt-keep-name .mono {
+  display: block;
+  font-size: 0.74rem;
+}
+.vt-keep tbody > tr:nth-child(even) > .vt-keep-var {
+  background: var(--zebra);
+}
+.vt-keep .vt-keep-g {
+  min-width: 4.5rem;
+  max-width: 7rem;
+  white-space: normal;
+  vertical-align: bottom;
+}
+.vt-keep td.vt-keep-on {
+  color: var(--ok);
+  font-weight: 600;
+  background: var(--ok-tint);
+}
+.vt-keep-tick {
+  margin-right: 0.3em;
 }
