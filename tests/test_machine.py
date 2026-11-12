@@ -27,21 +27,21 @@ def test_each_tier_recommends():
         "one",
         1,
         "click",
-        "squares",
+        "low",
         "off",
     )
     std = machine.recommended(found(memory_gb=15.8))
-    assert (std.fold_workers, std.maps, std.map_detail, std.street_map) == ("two", "now", "auto", "on")
+    assert (std.fold_workers, std.maps, std.map_detail, std.street_map) == ("two", "now", "medium", "on")
     strong = machine.recommended(found(memory_gb=31.8, cores=8, threads=16))
     # 16 threads: OpenAVMKit runs no more fold workers than folds (5), so 5, not 14
-    assert (strong.fold_workers, strong.folds_at_once, strong.map_detail) == ("cores", 5, "auto")
+    assert (strong.fold_workers, strong.folds_at_once, strong.map_detail) == ("cores", 5, "medium")
 
 
 def test_graphics_in_software_draw_maps_simply_on_any_tier():
     m = found(memory_gb=31.8, cores=8, threads=16, graphics="Google SwiftShader")
     assert m.graphics_software and m.tier == "strong"
     r = machine.recommended(m)
-    assert (r.fold_workers, r.maps, r.map_detail, r.street_map) == ("cores", "click", "squares", "off")
+    assert (r.fold_workers, r.maps, r.map_detail, r.street_map) == ("cores", "click", "low", "off")
     assert found(graphics=None).graphics_software  # no WebGL at all
     assert not found(graphics="ANGLE (NVIDIA GeForce GTX 1650)").graphics_software
 
@@ -111,7 +111,11 @@ def test_one_fold_at_a_time_runs_its_tuning_trials_one_at_a_time(monkeypatch):
     assert os.environ["OPENAVMKIT_TUNE_WORKERS"] == "1"
 
 
-def test_detail_saved_before_squares_reads_as_the_new_choices():
-    assert machine.Performance.model_validate({"map_detail": "shapes"}).map_detail == "parcels"
-    assert machine.Performance.model_validate({"map_detail": "dots"}).map_detail == "squares"
-    assert machine.Performance.model_validate({"map_detail": "auto"}).map_detail == "auto"
+def test_detail_saved_before_the_levels_reads_as_one():
+    def read(v: str) -> str:
+        return machine.Performance.model_validate({"map_detail": v}).map_detail
+
+    assert (read("shapes"), read("parcels")) == ("max", "max")
+    assert read("auto") == "medium"
+    assert (read("squares"), read("dots")) == ("verylow", "verylow")
+    assert (read("high"), read("recommended")) == ("high", "recommended")

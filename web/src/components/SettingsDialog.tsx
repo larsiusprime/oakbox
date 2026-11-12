@@ -15,6 +15,7 @@ import {
   Tabs,
 } from "react-aria-components";
 import { api, type Performance, type Resolved, unwrap } from "../api/client";
+import { DETAILS, type Detail } from "../lib/detail";
 import { type SettingsSection, useMachine, useSetPerformance } from "../lib/machine";
 import { say, t } from "../wording";
 import { CensusKey } from "./CensusKey";
@@ -38,7 +39,13 @@ export function choiceLabel(kind: Kind, value: string, cores = 1): string {
     case "maps":
       return value === "now" ? s.mapsNow : s.mapsClick;
     case "map_detail":
-      return value === "parcels" ? s.detailParcels : value === "squares" ? s.detailSquares : s.detailAuto;
+      return {
+        max: s.detailMax,
+        high: s.detailHigh,
+        medium: s.detailMedium,
+        low: s.detailLow,
+        verylow: s.detailVerylow,
+      }[value as Detail];
     case "street_map":
       return value === "on" ? s.streetOn : s.streetOff;
   }
@@ -47,7 +54,7 @@ export function choiceLabel(kind: Kind, value: string, cores = 1): string {
 const CHOICES: Record<Kind, readonly string[]> = {
   fold_workers: ["one", "two", "cores"],
   maps: ["now", "click"],
-  map_detail: ["auto", "squares", "parcels"],
+  map_detail: DETAILS,
   street_map: ["on", "off"],
 };
 

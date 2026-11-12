@@ -59,7 +59,8 @@ class Machine(BaseModel):
 
 FoldChoice = Literal["recommended", "one", "two", "cores"]
 MapsChoice = Literal["recommended", "now", "click"]
-DetailChoice = Literal["recommended", "auto", "squares", "parcels"]
+Detail = Literal["max", "high", "medium", "low", "verylow"]
+DetailChoice = Literal["recommended", "max", "high", "medium", "low", "verylow"]
 StreetChoice = Literal["recommended", "on", "off"]
 
 
@@ -70,15 +71,20 @@ class Performance(BaseModel):
     maps: MapsChoice = Field(default="recommended", description="Maps right away, or when Show map is clicked.")
     map_detail: DetailChoice = Field(
         default="recommended",
-        description="Squares zoomed out and parcel shapes zoomed in (auto), squares always, or parcel shapes always.",
+        description=(
+            "How far zoomed out parcel shapes are still drawn (squares beyond): max always; high until a quarter-acre"
+            " lot is 2 px across, medium 8 px, low 16 px, verylow 32 px."
+        ),
     )
     street_map: StreetChoice = Field(default="recommended", description="The street map under every map.")
 
     @field_validator("map_detail", mode="before")
     @classmethod
     def _old_detail(cls, v: object) -> object:
-        """Saved before squares (2026-11-12): parcel shapes are Parcels; dots, gone, are Squares."""
-        return {"shapes": "parcels", "dots": "squares"}.get(v, v) if isinstance(v, str) else v
+        """Saved before the levels (2026-11-12): always parcels (or shapes) is Max, Auto is Medium, and always squares
+        (or dots), gone, the fewest parcels, Very low."""
+        old = {"shapes": "max", "parcels": "max", "auto": "medium", "squares": "verylow", "dots": "verylow"}
+        return old.get(v, v) if isinstance(v, str) else v
 
 
 class Resolved(BaseModel):
@@ -87,7 +93,7 @@ class Resolved(BaseModel):
     fold_workers: Literal["one", "two", "cores"]
     folds_at_once: int = Field(description="How many cross-validation folds run at once.")
     maps: Literal["now", "click"]
-    map_detail: Literal["auto", "squares", "parcels"]
+    map_detail: Detail
     street_map: Literal["on", "off"]
 
 
@@ -121,7 +127,7 @@ def recommended(m: Machine | None) -> Resolved:
         fold_workers=folds,
         folds_at_once=_folds(folds, m),
         maps="click" if light else "now",
-        map_detail="squares" if light else "auto",
+        map_detail="low" if light else "medium",
         street_map="off" if light else "on",
     )
 

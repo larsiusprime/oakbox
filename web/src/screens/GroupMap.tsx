@@ -4,7 +4,7 @@ import type { Layer } from "@deck.gl/core";
 import { GeoJsonLayer, PolygonLayer, ScatterplotLayer, SolidPolygonLayer } from "@deck.gl/layers";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type * as maplibregl from "maplibre-gl";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "react-aria-components";
 import { api, type GroupsPreview, type ModelGroup, type ParcelInspect, unwrap } from "../api/client";
 import { CloseButton } from "../components/Buttons";
@@ -14,7 +14,7 @@ import { type Bounds, boundsOf, MapView, rgba } from "../components/MapView";
 import { Seg } from "../components/Seg";
 import { Val } from "../components/Val";
 import { NO_COLOUR } from "../lib/colours";
-import { edgeShare, levelFor } from "../lib/detail";
+import { edgeShare, levelFor, shapesAt } from "../lib/detail";
 import { money, short } from "../lib/format";
 import { clearGroups, type GroupMap as GroupMapState, publishGroups, setGroupMap } from "../lib/groupmap";
 import { useResolved } from "../lib/machine";
@@ -28,10 +28,6 @@ export type MapMode = "docked" | "full" | "hidden";
 export type ColourBy = "group" | "changes";
 export const CHANGE_GREY = "#d9dcd4";
 export const SAME = "__same";
-// Map detail Auto (lib/detail.ts, SPEC §5): every shape up to this many parcels; above it, squares, and zoomed in to
-// this many or fewer in view, the shapes in view.
-const SHAPES_ALL = 20_000;
-const SHAPES_IN_VIEW = 5_000;
 // Scattered specks of shapes (shapes.ts: some parcel files hold only a small square at each parcel's point) smaller
 // than this on screen fill no pixel: drawn as dots, or with Parcel shapes chosen, drawn at least this size.
 const SHAPE_MIN_PX = 3;
@@ -152,10 +148,10 @@ export function ParcelMap({
     staleTime: Number.POSITIVE_INFINITY,
   });
   const n = centres.data?.length ?? 0;
-  // Squares, or Auto on a big county: drawn from the parcels' centres, following the view. Otherwise every shape.
-  const byCentres = detail === "squares" || (detail === "auto" && n > SHAPES_ALL);
-  // Auto: zoomed in far enough, the parcels in view (few enough) are drawn as shapes.
-  const [inView, setInView] = useState<number[] | null>(null);
+  // Metres a pixel covers now (MapLibre's 512-pixel tiles): whether the Map detail draws shapes at this zoom
+  // (lib/detail.ts; squares from the parcels' centres zoomed out past it), and the squares' size.
+  const [perPixel, setPerPixel] = useState<number | null>(null);
+  const shapesNow = perPixel == null ? detail === "max" : shapesAt(detail, perPixel);
   const shapes = useQuery({
     queryKey: ["group-shapes", projectId],
     queryFn: async () => {
@@ -164,9 +160,8 @@ export function ParcelMap({
       return readShapes(await r.arrayBuffer());
     },
     staleTime: Number.POSITIVE_INFINITY,
-    enabled:
-      detail === "parcels" ||
-      (detail === "auto" && centres.isSuccess && (n <= SHAPES_ALL || inView !== null)),
+    // Fetched the first time they're wanted, then kept.
+    enabled: shapesNow,
   });
   const sh = shapes.data;
   const whole = useMemo(() => (sh ? toBinary(sh) : null), [sh]);
@@ -181,18 +176,11 @@ export function ParcelMap({
   );
 
   const size = useMemo(() => (sh ? shapeSize(sh) : null), [sh]);
-  // Metres a pixel covers now (MapLibre's 512-pixel tiles), for whether the shapes would show, and the squares' size.
-  const [perPixel, setPerPixel] = useState<number | null>(null);
   const specks = !!size?.scattered && perPixel != null && size.metres / perPixel < SHAPE_MIN_PX;
-  // Parcels chosen: shapes, always (specks drawn bigger). Otherwise specks are dots.
-  const swell = specks && detail === "parcels";
+  // Max: shapes, always (specks drawn bigger). Otherwise specks are dots.
+  const swell = specks && detail === "max";
   const level = levelFor(perPixel ?? 1000);
 
-  // Which parcels are in view, when few enough to draw as shapes.
-  const centresNow = useRef<Centre[] | undefined>(undefined);
-  useEffect(() => {
-    centresNow.current = centres.data;
-  }, [centres.data]);
   // The map, once made: kept as state (a square clicked zooms it; the centres coming late look at it).
   const [mapObj, setMapObj] = useState<maplibregl.Map | null>(null);
   const watch = useCallback((m: maplibregl.Map | null) => {
@@ -201,26 +189,10 @@ export function ParcelMap({
     const look = () => {
       const lat = (m.getCenter().lat * Math.PI) / 180;
       setPerPixel((40_075_016.686 * Math.cos(lat)) / (512 * 2 ** m.getZoom()));
-      const all = centresNow.current;
-      if (!all) return;
-      const b = m.getBounds();
-      const seen: number[] = [];
-      for (let i = 0; i < all.length; i++) {
-        const c = all[i];
-        if (c && b.contains(c)) {
-          seen.push(i);
-          if (seen.length > SHAPES_IN_VIEW) return setInView(null);
-        }
-      }
-      setInView(seen);
     };
     m.on("moveend", look);
     m.once("load", look);
   }, []);
-  // The centres came after the map: looked at now.
-  useEffect(() => {
-    if (mapObj && centres.data) mapObj.fire("moveend");
-  }, [mapObj, centres.data]);
 
   // Parcels' white edges fade out as parcels shrink on screen (zoomed out they'd be all edge); in steps, so not every
   // zoom redraws.
@@ -247,9 +219,8 @@ export function ParcelMap({
     };
   }, [preview, colours, ids, hidden, unassigned, colourBy, highlight, edge]);
 
-  // What's drawn: squares (Squares; Auto on a big county until few enough are in view), else shapes.
-  const seen = byCentres && detail === "auto" ? inView : null;
-  const squares = byCentres && !(seen && sh);
+  // What's drawn: squares zoomed out past the Map detail's level (and while the shapes come), else shapes.
+  const squares = !!centres.data && !(shapesNow && sh);
   const layers = useMemo(() => {
     const shapesLayer = (data: BinaryShapes) =>
       new GeoJsonLayer({
@@ -293,10 +264,12 @@ export function ParcelMap({
       out.push(...groupSquares(all, look, level, (b) => mapObj?.fitBounds(b, { padding: 24, maxZoom: 17 })));
     } else if (specks && !swell && all) {
       // Specks too small to see: a dot at each parcel's centre.
-      out.push(dotsLayer(all, seen ?? all.flatMap((c, i) => (c ? [i] : []))));
-    } else if (seen && sh) {
-      out.push(shapesLayer(toBinary(sh, seen)));
-      drawnAsShapes = true;
+      out.push(
+        dotsLayer(
+          all,
+          all.flatMap((c, i) => (c ? [i] : [])),
+        ),
+      );
     } else if (whole) {
       out.push(shapesLayer(whole));
       drawnAsShapes = true;
@@ -330,10 +303,10 @@ export function ParcelMap({
         }),
       );
     return out;
-  }, [squares, specks, swell, level, mapObj, centres.data, seen, sh, whole, look, picked, onPick]);
+  }, [squares, specks, swell, level, mapObj, centres.data, sh, whole, look, picked, onPick]);
 
-  const ready = byCentres ? !!centres.data : !!sh;
-  const failed = (byCentres ? centres.error : shapes.error)?.message;
+  const ready = !!centres.data || !!sh;
+  const failed = (centres.error ?? shapes.error)?.message;
   return (
     <div className="mg-map-body">
       {ready && (

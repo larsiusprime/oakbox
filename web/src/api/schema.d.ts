@@ -8595,11 +8595,11 @@ export interface components {
             maps: "recommended" | "now" | "click";
             /**
              * Map Detail
-             * @description Squares zoomed out and parcel shapes zoomed in (auto), squares always, or parcel shapes always.
+             * @description How far zoomed out parcel shapes are still drawn (squares beyond): max always; high until a quarter-acre lot is 2 px across, medium 8 px, low 16 px, verylow 32 px.
              * @default recommended
              * @enum {string}
              */
-            map_detail: "recommended" | "auto" | "squares" | "parcels";
+            map_detail: "recommended" | "max" | "high" | "medium" | "low" | "verylow";
             /**
              * Street Map
              * @description The street map under every map.
@@ -9643,7 +9643,7 @@ export interface components {
              * Map Detail
              * @enum {string}
              */
-            map_detail: "auto" | "squares" | "parcels";
+            map_detail: "max" | "high" | "medium" | "low" | "verylow";
             /**
              * Street Map
              * @enum {string}

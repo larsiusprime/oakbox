@@ -12,10 +12,10 @@ import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import { useAppSettings } from "../api/app";
-import { type Detail, MANY_SHAPES, useDetail } from "../lib/detail";
+import { DETAILS, type Detail, MANY_SHAPES, useDetail } from "../lib/detail";
 import { openSettings, useResolved } from "../lib/machine";
 import { t } from "../wording";
-import { Seg } from "./Seg";
+import { Choice } from "./Form";
 import { InfoTip } from "./Tip";
 
 // MapLibre looks for its worker beside its own file, which the bundle doesn't keep: here it is, bundled.
@@ -197,7 +197,7 @@ function MapCanvas({
   /** What's drawn goes into the map's own canvas (deck.gl interleaved), so a marker of its own (the centre's pin) is
    * always over it, whatever stacks the page's layers. */
   interleaved?: boolean;
-  /** A map of the parcels: the Detail switch beside Street map, and whether squares are drawn now (a note says so),
+  /** A map of the parcels: the Parcels dropdown (Map detail) beside Street map, and whether squares are drawn now (a note says so),
    * and how many parcels there are (Parcels on a big county says, once, that it may be slow). */
   detail?: DetailNow | undefined;
   children?: React.ReactNode;
@@ -353,14 +353,15 @@ function warnedBefore(): boolean {
   }
 }
 
-/** Auto, Squares or Parcels: the map detail, for every map (Settings › Performance's Map detail). */
+/** How far out the parcels are drawn (Max … Very low): the map detail, for every map (Settings › Performance's Map
+ * detail). */
 function DetailSwitch({ now }: { now: DetailNow }) {
   const [detail, setDetail] = useDetail();
   const [warn, setWarn] = useState(false);
   const d = t.map;
   const choose = (v: Detail) => {
     setDetail(v);
-    if (v === "parcels" && now.parcels > MANY_SHAPES && !warnedBefore()) {
+    if (v === "max" && now.parcels > MANY_SHAPES && !warnedBefore()) {
       setWarn(true);
       try {
         localStorage.setItem(WARNED, "1");
@@ -369,23 +370,29 @@ function DetailSwitch({ now }: { now: DetailNow }) {
       }
     } else setWarn(false);
   };
+  const words: Record<Detail, [string, string]> = {
+    max: [d.detailMax, d.detailMaxTip],
+    high: [d.detailHigh, d.detailHighTip],
+    medium: [d.detailMedium, d.detailMediumTip],
+    low: [d.detailLow, d.detailLowTip],
+    verylow: [d.detailVerylow, d.detailVerylowTip],
+  };
   return (
     <>
       <span className="map-detail">
-        <span className="map-detail-label">{d.detail}</span>
-        <Seg<Detail>
+        <span className="map-detail-label" aria-hidden="true">
+          {d.detail}
+        </span>
+        <Choice<Detail>
           label={d.detail}
+          hideLabel
           value={detail}
-          options={[
-            ["auto", d.detailAuto],
-            ["squares", d.detailSquares],
-            ["parcels", d.detailParcels],
-          ]}
-          titles={{ auto: d.detailAutoTip, squares: d.detailSquaresTip, parcels: d.detailParcelsTip }}
+          options={DETAILS.map((k) => [k, words[k][0]] as const)}
+          aside={Object.fromEntries(DETAILS.map((k) => [k, words[k][1]]))}
           onChange={choose}
         />
       </span>
-      {warn && detail === "parcels" && (
+      {warn && detail === "max" && (
         <small className="map-detail-note map-detail-warn" role="status">
           {d.manyShapes({ n: now.parcels })}
         </small>

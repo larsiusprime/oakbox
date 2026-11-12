@@ -1,8 +1,8 @@
 /** The map window (SPEC §3.15): one map of the 🌐 Parcel Universe, docked on a side of the main window (or closed),
  * its size set with the divider, remembered on this computer. Zoomed out, the parcels are drawn as cells sized to the
- * zoom (each coloured by its parcels' figure); once a few thousand parcels are in view, their shapes. Coloured by any
- * field of the parcel files, with the histogram's live range as its legend. Tested on Guilford's 220,000 parcels
- * (docs/spec/app.md §3.15): what costs is the number of shapes drawn, so never more than a few thousand. */
+ * zoom (each coloured by its parcels' figure); zoomed in past the Map detail's level (lib/detail.ts), their shapes.
+ * Coloured by any field of the parcel files, with the histogram's live range as its legend. Tested on Guilford's
+ * 220,000 parcels (docs/spec/app.md §3.15): what costs is the number of shapes drawn. */
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import { GeoJsonLayer, PolygonLayer, ScatterplotLayer, SolidPolygonLayer } from "@deck.gl/layers";
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
@@ -30,7 +30,7 @@ import {
   type Wizard,
 } from "../api/client";
 import { desktop } from "../desktop";
-import { type Detail, edgeShare, levelFor } from "../lib/detail";
+import { type Detail, edgeShare, levelFor, shapesAt } from "../lib/detail";
 import { pct } from "../lib/format";
 import { useGroupMap } from "../lib/groupmap";
 import { useResolved } from "../lib/machine";
@@ -68,8 +68,6 @@ import { LoadingBar, Waiting } from "./Waiting";
 
 const w = t.mapWindow;
 
-/** Shapes once this few parcels are in view (and around it); cells before. */
-const SHAPES_UPTO = 8000;
 /** Sequential, light to dark (ColorBrewer YlGnBu): readable on the street map and without it. */
 const RAMP: [number, number, number][] = [
   [255, 255, 204],
@@ -1390,16 +1388,12 @@ function parcelOf(f: unknown): number {
 }
 
 /** The plan for this view: the last one while it still fits; otherwise, for a box a quarter of the view's size
- * bigger each side, cells sized to the zoom (Squares, or Auto with too many parcels in it) or the shapes (Parcels, or
- * Auto with few enough). */
+ * bigger each side, the parcel shapes in it while the detail draws them at this zoom (lib/detail.ts), else squares
+ * sized to the zoom. */
 function planFor(v: View, xy: Float32Array, last: Plan | null, detail: Detail): Plan {
   const level = levelFor(v.mpp);
-  if (detail === "squares") {
-    if (last?.kind === "cells" && last.level === level) {
-      const b = last.box;
-      if (v.w >= b.w && v.e <= b.e && v.s >= b.s && v.n <= b.n) return last;
-    }
-  } else if (last) {
+  const shapes = shapesAt(detail, v.mpp);
+  if (last && (last.kind === "shapes") === shapes) {
     const b = last.box;
     const inside = v.w >= b.w && v.e <= b.e && v.s >= b.s && v.n <= b.n;
     const sameZoom =
@@ -1409,15 +1403,12 @@ function planFor(v: View, xy: Float32Array, last: Plan | null, detail: Detail): 
   const dx = (v.e - v.w) / 4;
   const dy = (v.n - v.s) / 4;
   const box = { w: v.w - dx, e: v.e + dx, s: v.s - dy, n: v.n + dy, mpp: v.mpp };
-  if (detail === "squares") return { kind: "cells", level, box };
+  if (!shapes) return { kind: "cells", level, box };
   const ids: number[] = [];
   for (let i = 0; i < xy.length / 2; i++) {
     const x = xy[2 * i] ?? Number.NaN;
     const y = xy[2 * i + 1] ?? Number.NaN;
-    if (x >= box.w && x <= box.e && y >= box.s && y <= box.n) {
-      ids.push(i);
-      if (detail === "auto" && ids.length > SHAPES_UPTO) return { kind: "cells", level, box };
-    }
+    if (x >= box.w && x <= box.e && y >= box.s && y <= box.n) ids.push(i);
   }
   return { kind: "shapes", box, ids };
 }

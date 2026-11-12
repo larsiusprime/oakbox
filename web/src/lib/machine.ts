@@ -20,7 +20,7 @@ export function useResolved(): Resolved {
       fold_workers: "two",
       folds_at_once: 2,
       maps: "now",
-      map_detail: "auto",
+      map_detail: "medium",
       street_map: "on",
     }
   );

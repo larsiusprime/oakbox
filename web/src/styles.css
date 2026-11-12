@@ -5287,8 +5287,9 @@ under what it's about; a file appended as rows {
   gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
   align-items: center;
 }
-.map-detail .seg-b {
-  padding: 0 calc(0.4 * var(--sp));
+/* The chosen level alone on the button; what each means is in the list. */
+.map-detail .choice-value .choice-aside {
+  display: none;
 }
 .map-detail-note {
   flex-basis: 100%;
@@ -5300,7 +5301,7 @@ under what it's about; a file appended as rows {
 .map-detail-warn {
   color: var(--warn);
 }
-/* A narrow map: the switch's word goes first. */
+/* A narrow map: the dropdown's word goes first. */
 @container (max-width: 30rem) {
   .map-detail-label {
     display: none;

@@ -511,8 +511,8 @@ the Big five first among them; numbers on a light-to-dark scale over the histogr
 commonest values of a category in their own colours). Its data (`mapdata.py`, `out/oakbox/map/`) is made in the
 background from the universe file when it's set: each shape simplified to a metre, its centre, the box around them all
 (Guilford: 24 s). Cells from 8 km down to 30 m, the finest at least 16 pixels across, only around the view; the shapes
-once 8,000 or fewer parcels are in the view and a quarter more each side (Map detail Auto; Squares keeps the cells,
-Parcels the shapes at any zoom: docs/spec/platform.md, Maps). The shapes file comes to the browser once,
+of the parcels in the view and a quarter more each side once zoomed in past the Map detail's level
+(docs/spec/platform.md, Maps). The shapes file comes to the browser once,
 the first time it zooms in that far, and the parcels in view are picked out there (what the test timed), not asked
 for view by view. Its divider is a thin oak stile (or rail, docked top or bottom), grained as the frame, the map a pane
 set into the box.

@@ -42,7 +42,7 @@ changed. Settings › Performance › Check again does the same any time.
 | Computer | under 12 GB, or 2 cores, or speed under 60 | 12 to 24 GB | 24 GB or more and 6 cores or more | any tier |
 | Model training | One fold at a time | Two at a time | As many as the cores allow (logical − 2, OpenAVMKit's default; at most 5, its folds, as it never runs more) | — |
 | Maps | When Show map is clicked | Right away | Right away | When clicked |
-| Map detail | Squares | Auto | Auto | Squares |
+| Map detail | Low | Medium | Medium | Low |
 | Street map | Off | On | On | Off |
 
 **Settings** (a gear on the plate, File › Settings…, Ctrl+,): Performance first (what the check found, Check again,
@@ -57,17 +57,20 @@ floating-point exception, never memory: 7 runs in 11 on two slow cores, 1 in 3 o
 the same time).
 
 **Maps.** Where maps wait, each starts as a panel the map's size (its name, Show map, and a link to Settings).
-**Map detail** (2026-11-12) is one setting for every map of the parcels, also a switch on each, Detail: **Auto ·
-Squares · Parcels**, beside Street map; changing it there changes it everywhere, Settings too. Auto: squares zoomed
-out, the parcels' shapes zoomed in (the Map window: 8,000 or fewer in view; Model groups' map: every shape up to
-20,000 parcels, above that 5,000 or fewer in view). Squares: squares at every zoom. Parcels: every shape at any zoom;
-the first time on more than 50,000 parcels the switch says it can make the map slow to move, and draws them. While
-squares are drawn, a line under the switch says what they are. On the Model groups map each square takes its parcels'
+**Map detail** (2026-11-12, levels the same day) is one setting for every map of the parcels, also a dropdown on
+each, Parcels: **Max · High · Medium · Low · Very low**, beside Street map; changing it there changes it everywhere,
+Settings too. Each says how far zoomed out the parcels' shapes are still drawn, by how many pixels across a
+quarter-acre lot (31.8 m a side) is on screen; zoomed out past it, squares. Every level shows the parcels zoomed in
+far enough (there's no squares-only level). Max: shapes at every zoom (the first time on more than 50,000 parcels it
+says it can make the map slow to move, and draws them). High: until the lot is 2 pixels, barely seen. Medium: until
+it's 8, still a little bigger than the hand pointer's fingertip, so a parcel is easy to click. Low: 16. Very low:
+32. All by zoom alone, not by how many parcels are in view. While squares are drawn, a line under the dropdown says
+what they are. On the Model groups map each square takes its parcels'
 most common group's colour (or what moved), outlined in white where under 80% of them share it, so a mixed place
-shows; a square clicked is zoomed to. Saved before (Parcel shapes, Dots): read as Parcels and Squares. Some parcel files hold only a small square at each parcel's point
+shows; a square clicked is zoomed to. Saved before: Parcels and Parcel shapes read as Max, Auto as Medium, Squares and Dots as Very low. Some parcel files hold only a small square at each parcel's point
 (Manassas Park: a 20-foot square each); when the shapes are such scattered specks (covering under a tenth of the ground
 they're spread over) and smaller than 3 pixels on screen, a whole-county view can't show them: with Parcels chosen
-each is drawn at least 3 pixels across, otherwise as a dot. Every other parcel map already draws points. A street map that's
+each is drawn at least 3 pixels across with Max, otherwise as a dot. Every other parcel map already draws points. A street map that's
 off isn't fetched.
 
 **Where a run's time goes** (built 2026-11-07, `timing.py`). Every step's run leaves a record in

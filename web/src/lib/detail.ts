@@ -1,10 +1,27 @@
-/** Map detail (SPEC §5, §3.15): squares zoomed out and parcel shapes zoomed in (Auto), squares always, or parcel
- * shapes always. One setting for every parcel map: Settings › Performance, or the Detail switch on a map. */
+/** Map detail (SPEC §5, §3.15): how far out parcel shapes are still drawn; zoomed out past that, squares. Zoomed in
+ * enough, every level draws the parcels. One setting for every parcel map: Settings › Performance, or the Parcels
+ * dropdown on a map. */
 import { useQueryClient } from "@tanstack/react-query";
 import type { MachineView } from "../api/client";
 import { useMachine, useResolved, useSetPerformance } from "./machine";
 
-export type Detail = "auto" | "squares" | "parcels";
+export type Detail = "max" | "high" | "medium" | "low" | "verylow";
+
+/** The levels, most parcels first. */
+export const DETAILS: readonly Detail[] = ["max", "high", "medium", "low", "verylow"];
+
+/** A quarter-acre lot's side, metres. */
+export const LOT_M = Math.sqrt(4046.8564224 / 4);
+
+/** How many pixels across a quarter-acre lot must be for parcel shapes; smaller, squares. Max: any size. High: until
+ * it would be barely seen (2 px). Medium: while it's still a bit bigger than the hand pointer's fingertip (8 px), so
+ * still easy to click. Low and Very low: half as far out each time. */
+export const LOT_PX: Record<Detail, number> = { max: 0, high: 2, medium: 8, low: 16, verylow: 32 };
+
+/** Parcel shapes at this zoom (metres a pixel covers)? */
+export function shapesAt(detail: Detail, mpp: number): boolean {
+  return LOT_M / mpp >= LOT_PX[detail];
+}
 
 /** Square sizes in metres, coarsest first: the finest at least CELL_PX pixels across is drawn. */
 export const LEVELS = [8000, 4000, 2000, 1000, 500, 250, 125, 60, 30];
