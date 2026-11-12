@@ -12,8 +12,10 @@ import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import { useAppSettings } from "../api/app";
+import { type Detail, MANY_SHAPES, useDetail } from "../lib/detail";
 import { openSettings, useResolved } from "../lib/machine";
 import { t } from "../wording";
+import { Seg } from "./Seg";
 import { InfoTip } from "./Tip";
 
 // MapLibre looks for its worker beside its own file, which the bundle doesn't keep: here it is, bundled.
@@ -168,6 +170,7 @@ function MapCanvas({
   cursor,
   onMap,
   interleaved = false,
+  detail,
   children,
 }: {
   /** What's drawn: deck.gl layers. */
@@ -194,6 +197,9 @@ function MapCanvas({
   /** What's drawn goes into the map's own canvas (deck.gl interleaved), so a marker of its own (the centre's pin) is
    * always over it, whatever stacks the page's layers. */
   interleaved?: boolean;
+  /** A map of the parcels: the Detail switch beside Street map, and whether squares are drawn now (a note says so),
+   * and how many parcels there are (Parcels on a big county says, once, that it may be slow). */
+  detail?: DetailNow | undefined;
   children?: React.ReactNode;
 }) {
   const el = useRef<HTMLDivElement>(null);
@@ -317,11 +323,73 @@ function MapCanvas({
   return (
     <div className={`map-view ${className}`}>
       <div ref={el} className="map-canvas" role="img" aria-label={label} />
-      <label className="map-street">
-        <input type="checkbox" checked={street} onChange={(e) => setStreet(e.target.checked)} />
-        <InfoTip label={t.map.basemap} text={t.map.basemapTip} />
-      </label>
+      <div className="map-street">
+        {detail && <DetailSwitch now={detail} />}
+        <label className="map-street-box">
+          <input type="checkbox" checked={street} onChange={(e) => setStreet(e.target.checked)} />
+          <InfoTip label={t.map.basemap} text={t.map.basemapTip} />
+        </label>
+        {detail?.squares && <small className="map-detail-note">{t.map.squaresNote}</small>}
+      </div>
       {children}
     </div>
+  );
+}
+
+export type DetailNow = {
+  /** Squares are drawn now. */
+  squares: boolean;
+  /** Parcels: how many there are. */
+  parcels: number;
+};
+
+const WARNED = "oakbox-many-shapes-warned";
+
+function warnedBefore(): boolean {
+  try {
+    return localStorage.getItem(WARNED) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Auto, Squares or Parcels: the map detail, for every map (Settings › Performance's Map detail). */
+function DetailSwitch({ now }: { now: DetailNow }) {
+  const [detail, setDetail] = useDetail();
+  const [warn, setWarn] = useState(false);
+  const d = t.map;
+  const choose = (v: Detail) => {
+    setDetail(v);
+    if (v === "parcels" && now.parcels > MANY_SHAPES && !warnedBefore()) {
+      setWarn(true);
+      try {
+        localStorage.setItem(WARNED, "1");
+      } catch {
+        // Not remembered: said again next time.
+      }
+    } else setWarn(false);
+  };
+  return (
+    <>
+      <span className="map-detail">
+        <span className="map-detail-label">{d.detail}</span>
+        <Seg<Detail>
+          label={d.detail}
+          value={detail}
+          options={[
+            ["auto", d.detailAuto],
+            ["squares", d.detailSquares],
+            ["parcels", d.detailParcels],
+          ]}
+          titles={{ auto: d.detailAutoTip, squares: d.detailSquaresTip, parcels: d.detailParcelsTip }}
+          onChange={choose}
+        />
+      </span>
+      {warn && detail === "parcels" && (
+        <small className="map-detail-note map-detail-warn" role="status">
+          {d.manyShapes({ n: now.parcels })}
+        </small>
+      )}
+    </>
   );
 }

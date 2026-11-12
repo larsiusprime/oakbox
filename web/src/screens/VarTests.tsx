@@ -270,44 +270,51 @@ export function WhatToKeep({ view, setup }: { view: VarTestView; setup: ModelSet
   return (
     <div className="cs-step">
       <p className="wiz-lede">{vt.verdictLede}</p>
-      <table className="tbl">
-        <thead>
-          <tr>
-            <th>{vt.variable}</th>
-            <th className="vt-map" aria-label={t.mapWindow.step.showOnMap} />
-            {tested.map((g) => (
-              <th key={g.id} className="cs-n">
-                <span className="mg-sw ab-sw" style={{ background: g.color }} />
-                {g.name}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((x) => (
-            <tr key={x.field}>
-              <td>
-                {x.name} <span className="mono wiz-from">{x.field}</span>
-              </td>
-              <td className="vt-map">
-                <MapVariable column={x.field} compact />
-              </td>
+      {/* Any number of model groups: a column each, narrow (a tick and the score), the table in a scroll of its own
+          with the variable kept in view. */}
+      <div className="vt-keep">
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th className="vt-keep-var">{vt.variable}</th>
               {tested.map((g) => (
-                <td key={g.id} className="cs-n">
-                  <span className="rv-cell">
-                    <span className="rv-cell-pill">
-                      {g.recommended.includes(x.field) && (
-                        <span className="pill pill-ok">✓ {vt.recommended}</span>
-                      )}
-                    </span>
-                    <span>{g.scores[x.field] == null ? "—" : num(g.scores[x.field], 0)}</span>
-                  </span>
-                </td>
+                <th key={g.id} className="cs-n vt-keep-g">
+                  <span className="mg-sw ab-sw" style={{ background: g.color }} />
+                  {g.name}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((x) => (
+              <tr key={x.field}>
+                <td className="vt-keep-var">
+                  <span className="vt-keep-name">
+                    <span>
+                      {x.name} <span className="mono wiz-from">{x.field}</span>
+                    </span>
+                    <MapVariable column={x.field} compact />
+                  </span>
+                </td>
+                {tested.map((g) => {
+                  const kept = g.recommended.includes(x.field);
+                  return (
+                    <td
+                      key={g.id}
+                      className={kept ? "cs-n vt-keep-on" : "cs-n"}
+                      title={kept ? vt.recommended : undefined}
+                    >
+                      {kept && <span className="vt-keep-tick">✓</span>}
+                      {g.scores[x.field] == null ? "—" : num(g.scores[x.field], 0)}
+                      {kept && <span className="visually-hidden"> {vt.recommended}</span>}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

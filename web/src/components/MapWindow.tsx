@@ -30,8 +30,10 @@ import {
   type Wizard,
 } from "../api/client";
 import { desktop } from "../desktop";
+import { type Detail, levelFor } from "../lib/detail";
 import { pct } from "../lib/format";
 import { useGroupMap } from "../lib/groupmap";
+import { useResolved } from "../lib/machine";
 import {
   askGo,
   type Dock,
@@ -68,9 +70,6 @@ const w = t.mapWindow;
 
 /** Shapes once this few parcels are in view (and around it); cells before. */
 const SHAPES_UPTO = 8000;
-/** Cell sizes in metres, coarsest first: the finest at least 16 pixels across is drawn. */
-const LEVELS = [8000, 4000, 2000, 1000, 500, 250, 125, 60, 30];
-const CELL_PX = 16;
 /** Sequential, light to dark (ColorBrewer YlGnBu): readable on the street map and without it. */
 const RAMP: [number, number, number][] = [
   [255, 255, 204],
@@ -1094,7 +1093,16 @@ function MapBody({
   useEffect(() => {
     planNow.current = plan;
   }, [plan]);
+  const detail = useResolved().map_detail;
+  const detailNow = useRef(detail);
   const lookNow = useRef<(() => void) | null>(null);
+  // Another detail chosen: planned again at once, from scratch.
+  useEffect(() => {
+    if (detailNow.current === detail) return;
+    detailNow.current = detail;
+    planNow.current = null;
+    lookNow.current?.();
+  }, [detail]);
   // Given to the map once, when it's made (MapView's onMap): what follows the view.
   const watch = (m: maplibregl.Map | null) => {
     setMapObj(m);
@@ -1116,7 +1124,7 @@ function MapBody({
         n: b.getNorth(),
         mpp: (40_075_016.686 * Math.cos(lat)) / (512 * 2 ** m.getZoom()),
       };
-      const next = planFor(v, all, planNow.current);
+      const next = planFor(v, all, planNow.current, detailNow.current);
       if (next !== planNow.current) {
         planNow.current = next;
         setPlan(next);
@@ -1335,6 +1343,7 @@ function MapBody({
           onMap={watch}
           tooltip={tooltip}
           cursor={cursorOf}
+          detail={xy ? { squares: plan?.kind === "cells", parcels: xy.length / 2 } : undefined}
         />
         {picked !== null && (
           <MapCard
@@ -1370,15 +1379,17 @@ function parcelOf(f: unknown): number {
   return typeof p === "number" ? p : -1;
 }
 
-function levelFor(mpp: number): number {
-  return [...LEVELS].reverse().find((s) => s / mpp >= CELL_PX) ?? LEVELS[0] ?? 8000;
-}
-
-/** The plan for this view: the last one while it still fits; otherwise shapes when few enough parcels are in a box
- * a quarter of the view's size bigger each side, or cells sized to the zoom. */
-function planFor(v: View, xy: Float32Array, last: Plan | null): Plan {
+/** The plan for this view: the last one while it still fits; otherwise, for a box a quarter of the view's size
+ * bigger each side, cells sized to the zoom (Squares, or Auto with too many parcels in it) or the shapes (Parcels, or
+ * Auto with few enough). */
+function planFor(v: View, xy: Float32Array, last: Plan | null, detail: Detail): Plan {
   const level = levelFor(v.mpp);
-  if (last) {
+  if (detail === "squares") {
+    if (last?.kind === "cells" && last.level === level) {
+      const b = last.box;
+      if (v.w >= b.w && v.e <= b.e && v.s >= b.s && v.n <= b.n) return last;
+    }
+  } else if (last) {
     const b = last.box;
     const inside = v.w >= b.w && v.e <= b.e && v.s >= b.s && v.n <= b.n;
     const sameZoom =
@@ -1388,13 +1399,14 @@ function planFor(v: View, xy: Float32Array, last: Plan | null): Plan {
   const dx = (v.e - v.w) / 4;
   const dy = (v.n - v.s) / 4;
   const box = { w: v.w - dx, e: v.e + dx, s: v.s - dy, n: v.n + dy, mpp: v.mpp };
+  if (detail === "squares") return { kind: "cells", level, box };
   const ids: number[] = [];
   for (let i = 0; i < xy.length / 2; i++) {
     const x = xy[2 * i] ?? Number.NaN;
     const y = xy[2 * i + 1] ?? Number.NaN;
     if (x >= box.w && x <= box.e && y >= box.s && y <= box.n) {
       ids.push(i);
-      if (ids.length > SHAPES_UPTO) return { kind: "cells", level, box };
+      if (detail === "auto" && ids.length > SHAPES_UPTO) return { kind: "cells", level, box };
     }
   }
   return { kind: "shapes", box, ids };

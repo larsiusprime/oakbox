@@ -467,6 +467,10 @@ def test_the_variables_tested_one_test_at_a_time(prepared, brought_in_client, br
         assert row["reason"] == (None if row["passed"] else "no_correlation")
     assert all("to_price" in d and "overlaps" in d for d in tested[0]["corr"].values())
     assert not tv["stale"] and tv["receipt"]["tests"] == ["corr", "vif"]
+    # What the tests worked out (the nearby averages) can be mapped before the models run.
+    lags = [v for v in tv["receipt"]["variables"] if v.startswith("spatial_lag_")]
+    outs = {o["id"] for o in client.get(f"/api/projects/{pid}/map").json()["outs"]}
+    assert lags and all(f"out:tested:{v}" in outs for v in lags), (lags, sorted(outs))
     # Only the tests picked run; a change of tests makes the results out of date.
     assert client.patch(f"{mdl}/setup", json={"tests": []}).status_code == 422
     assert client.patch(f"{mdl}/setup", json={"tests": ["vif"]}).json()["tests"] == ["vif"]

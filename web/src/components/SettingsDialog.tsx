@@ -38,7 +38,7 @@ export function choiceLabel(kind: Kind, value: string, cores = 1): string {
     case "maps":
       return value === "now" ? s.mapsNow : s.mapsClick;
     case "map_detail":
-      return value === "shapes" ? s.detailShapes : value === "dots" ? s.detailDots : s.detailAuto;
+      return value === "parcels" ? s.detailParcels : value === "squares" ? s.detailSquares : s.detailAuto;
     case "street_map":
       return value === "on" ? s.streetOn : s.streetOff;
   }
@@ -47,7 +47,7 @@ export function choiceLabel(kind: Kind, value: string, cores = 1): string {
 const CHOICES: Record<Kind, readonly string[]> = {
   fold_workers: ["one", "two", "cores"],
   maps: ["now", "click"],
-  map_detail: ["shapes", "dots", "auto"],
+  map_detail: ["auto", "squares", "parcels"],
   street_map: ["on", "off"],
 };
 

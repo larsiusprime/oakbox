@@ -20077,12 +20077,12 @@
       "type": "string",
       "enum": [
        "recommended",
-       "shapes",
-       "dots",
-       "auto"
+       "auto",
+       "squares",
+       "parcels"
       ],
       "title": "Map Detail",
-      "description": "Parcel shapes, dots, or dots above 20,000.",
+      "description": "Squares zoomed out and parcel shapes zoomed in (auto), squares always, or parcel shapes always.",
       "default": "recommended"
      },
      "street_map": {
@@ -22540,9 +22540,9 @@
      "map_detail": {
       "type": "string",
       "enum": [
-       "shapes",
-       "dots",
-       "auto"
+       "auto",
+       "squares",
+       "parcels"
       ],
       "title": "Map Detail"
      },

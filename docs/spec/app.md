@@ -406,8 +406,10 @@ moves, a parcel is picked) and the screen's matching row updates with it.
 **Every screen says what it does with the map** (planned 2026-11-10), so the user learns the map always follows where
 they are. A screen with nothing spatial holds the last view, and the map's header says so ("Nothing on this step to
 map: still showing …"). The steps' own outputs are on the map too, any column of them: Bring in data's parcels,
-Variables' prepared ones and the models' try (`out:<universe|prepared|modeled>:<column>`, by `key`; the map picker's
-**From the steps**). The plan, screen by screen (✓ built; **data**: needs data the server doesn't serve yet):
+Variables' prepared ones, what Variables' tests worked out (the nearby averages and per area statistics, which
+otherwise reach the disk only with the models' try: `out/oakbox/vartest/universe.parquet`, 2026-11-12) and the models'
+try (`out:<universe|prepared|tested|modeled>:<column>`, by `key`; the map picker's **From the steps**). Northerliness
+and Easterliness (`latitude_norm`, `longitude_norm`) are among them. The plan, screen by screen (✓ built; **data**: needs data the server doesn't serve yet):
 
 | Tab | Screen | The map |
 |---|---|---|
@@ -509,7 +511,8 @@ the Big five first among them; numbers on a light-to-dark scale over the histogr
 commonest values of a category in their own colours). Its data (`mapdata.py`, `out/oakbox/map/`) is made in the
 background from the universe file when it's set: each shape simplified to a metre, its centre, the box around them all
 (Guilford: 24 s). Cells from 8 km down to 30 m, the finest at least 16 pixels across, only around the view; the shapes
-once 8,000 or fewer parcels are in the view and a quarter more each side. The shapes file comes to the browser once,
+once 8,000 or fewer parcels are in the view and a quarter more each side (Map detail Auto; Squares keeps the cells,
+Parcels the shapes at any zoom: docs/spec/platform.md, Maps). The shapes file comes to the browser once,
 the first time it zooms in that far, and the parcels in view are picked out there (what the test timed), not asked
 for view by view. Its divider is a thin oak stile (or rail, docked top or bottom), grained as the frame, the map a pane
 set into the box.

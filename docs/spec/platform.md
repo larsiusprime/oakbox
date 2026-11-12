@@ -42,7 +42,7 @@ changed. Settings › Performance › Check again does the same any time.
 | Computer | under 12 GB, or 2 cores, or speed under 60 | 12 to 24 GB | 24 GB or more and 6 cores or more | any tier |
 | Model training | One fold at a time | Two at a time | As many as the cores allow (logical − 2, OpenAVMKit's default; at most 5, its folds, as it never runs more) | — |
 | Maps | When Show map is clicked | Right away | Right away | When clicked |
-| Map detail | Dots | Dots above 20,000 parcels | Shapes | Dots |
+| Map detail | Squares | Auto | Auto | Squares |
 | Street map | Off | On | On | Off |
 
 **Settings** (a gear on the plate, File › Settings…, Ctrl+,): Performance first (what the check found, Check again,
@@ -56,11 +56,17 @@ pool in the one process, and two LightGBM trials at once crashed it now and then
 floating-point exception, never memory: 7 runs in 11 on two slow cores, 1 in 3 on four; none in 11 one at a time, in
 the same time).
 
-**Maps.** Where maps wait, each starts as a panel the map's size (its name, Show map, and a link to Settings). Drawn
-as dots, the Model groups map shows each parcel's centre in its group's colour, clickable; zoomed in to 5,000 parcels
-or fewer in view, their shapes are drawn instead. Some parcel files hold only a small square at each parcel's point
+**Maps.** Where maps wait, each starts as a panel the map's size (its name, Show map, and a link to Settings).
+**Map detail** (2026-11-12) is one setting for every map of the parcels, also a switch on each, Detail: **Auto ·
+Squares · Parcels**, beside Street map; changing it there changes it everywhere, Settings too. Auto: squares zoomed
+out, the parcels' shapes zoomed in (the Map window: 8,000 or fewer in view; Model groups' map: every shape up to
+20,000 parcels, above that 5,000 or fewer in view). Squares: squares at every zoom. Parcels: every shape at any zoom;
+the first time on more than 50,000 parcels the switch says it can make the map slow to move, and draws them. While
+squares are drawn, a line under the switch says what they are. On the Model groups map each square takes its parcels'
+most common group's colour (or what moved), outlined in white where under 80% of them share it, so a mixed place
+shows; a square clicked is zoomed to. Saved before (Parcel shapes, Dots): read as Parcels and Squares. Some parcel files hold only a small square at each parcel's point
 (Manassas Park: a 20-foot square each); when the shapes are such scattered specks (covering under a tenth of the ground
-they're spread over) and smaller than 3 pixels on screen, a whole-county view can't show them: with Parcel shapes chosen
+they're spread over) and smaller than 3 pixels on screen, a whole-county view can't show them: with Parcels chosen
 each is drawn at least 3 pixels across, otherwise as a dot. Every other parcel map already draws points. A street map that's
 off isn't fetched.
 

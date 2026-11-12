@@ -365,10 +365,11 @@ export function VeiChart({
                         cx={cx(k)}
                         cy={y(o)}
                         r="2.5"
-                        fill={ORS.boxMarker}
-                        opacity="0.8"
+                        fill="none"
+                        stroke={ORS.boxLine}
+                        strokeWidth="1.2"
                       >
-                        <title>{o.toFixed(4)}</title>
+                        <title>{v.outlier({ ratio: o.toFixed(4) })}</title>
                       </circle>
                     ))}
                 </g>

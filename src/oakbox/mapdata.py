@@ -504,6 +504,8 @@ OUTS: dict[str, tuple[str, ...]] = {
     # The sales as brought in: a parcel takes its latest sale's value.
     "sales": ("out", "oakbox", "bring_in", "sales.parquet"),
     "prepared": ("out", "look", "2-clean-universe.parquet"),
+    # What Variables' tests worked out: the nearby averages and per area statistics, before the models run.
+    "tested": ("out", "oakbox", "vartest", "universe.parquet"),
     "modeled": ("out", "models", "all_model_groups", "universe.parquet"),
 }
 SKIP = {
@@ -512,8 +514,6 @@ SKIP = {
     "geometry",
     "latitude",
     "longitude",
-    "latitude_norm",
-    "longitude_norm",
     "he_id",
     "land_he_id",
     "impr_he_id",

@@ -1502,7 +1502,16 @@
     "waitTitle": "{label}",
     "show": "Show map",
     "waitNote": "Maps wait for a click on this computer.",
-    "waitSettings": "Settings"
+    "waitSettings": "Settings",
+    "detail": "Detail",
+    "detailAuto": "Auto",
+    "detailSquares": "Squares",
+    "detailParcels": "Parcels",
+    "detailAutoTip": "Squares zoomed out; parcel shapes once few enough are in view.",
+    "detailSquaresTip": "Squares at every zoom: the lightest, for a slow computer.",
+    "detailParcelsTip": "Every parcel''s shape, at any zoom.",
+    "squaresNote": "Squares, each summing up its parcels. Zoom in, or choose Parcels, for the shapes.",
+    "manyShapes": "Drawing {n, number} shapes can make the map slow to move."
   },
   "multiPick": {
     "plusOthers": "{first} + {n} other field{n, plural, =1 {} other {s}}",
@@ -2333,7 +2342,8 @@
       "bottom": "Lowest ratio shown",
       "boxTip": "{group}: {n, number} sales\nupper fence {hi}\nq3 {q3}\nmedian {median}\nq1 {q1}\nlower fence {lo}",
       "ciTip": "{group}\nMedian: {median}\n90% CI: [{low}, {high}]",
-      "ctTip": "{group}\nMedian: {median}"
+      "ctTip": "{group}\nMedian: {median}",
+      "outlier": "Past the whisker (part of the box): ratio {ratio}"
     },
     "prices": {
       "title": "Across prices: {name}",
@@ -3372,10 +3382,10 @@
     "mapsClick": "When I click Show map",
     "mapsHint": "Right away, or wait for Show map on each one.",
     "detail": "Map detail",
-    "detailShapes": "Parcel shapes",
-    "detailDots": "Dots at each parcel's centre",
-    "detailAuto": "Dots above 20,000 parcels, shapes below",
-    "detailHint": "Dots draw much faster. Zoomed in far enough, the shapes are drawn.",
+    "detailAuto": "Auto: squares zoomed out, parcel shapes zoomed in",
+    "detailSquares": "Squares at every zoom",
+    "detailParcels": "Parcel shapes at every zoom",
+    "detailHint": "Zoomed out, each square sums up its parcels and draws much faster. The Detail switch on each map changes this too.",
     "street": "Street map",
     "streetOn": "On",
     "streetOff": "Off",
@@ -3466,6 +3476,7 @@
     "outSource": {
       "universe": "As brought in (Inputs)",
       "prepared": "As prepared (Variables)",
+      "tested": "Worked out by the tests (Variables): nearby averages, per area statistics",
       "modeled": "As the models saw them (Try them)",
       "sales": "The sales as brought in: a parcel by its latest sale"
     },

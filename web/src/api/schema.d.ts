@@ -8575,11 +8575,11 @@ export interface components {
             maps: "recommended" | "now" | "click";
             /**
              * Map Detail
-             * @description Parcel shapes, dots, or dots above 20,000.
+             * @description Squares zoomed out and parcel shapes zoomed in (auto), squares always, or parcel shapes always.
              * @default recommended
              * @enum {string}
              */
-            map_detail: "recommended" | "shapes" | "dots" | "auto";
+            map_detail: "recommended" | "auto" | "squares" | "parcels";
             /**
              * Street Map
              * @description The street map under every map.
@@ -9623,7 +9623,7 @@ export interface components {
              * Map Detail
              * @enum {string}
              */
-            map_detail: "shapes" | "dots" | "auto";
+            map_detail: "auto" | "squares" | "parcels";
             /**
              * Street Map
              * @enum {string}

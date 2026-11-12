@@ -27,21 +27,21 @@ def test_each_tier_recommends():
         "one",
         1,
         "click",
-        "dots",
+        "squares",
         "off",
     )
     std = machine.recommended(found(memory_gb=15.8))
     assert (std.fold_workers, std.maps, std.map_detail, std.street_map) == ("two", "now", "auto", "on")
     strong = machine.recommended(found(memory_gb=31.8, cores=8, threads=16))
     # 16 threads: OpenAVMKit runs no more fold workers than folds (5), so 5, not 14
-    assert (strong.fold_workers, strong.folds_at_once, strong.map_detail) == ("cores", 5, "shapes")
+    assert (strong.fold_workers, strong.folds_at_once, strong.map_detail) == ("cores", 5, "auto")
 
 
 def test_graphics_in_software_draw_maps_simply_on_any_tier():
     m = found(memory_gb=31.8, cores=8, threads=16, graphics="Google SwiftShader")
     assert m.graphics_software and m.tier == "strong"
     r = machine.recommended(m)
-    assert (r.fold_workers, r.maps, r.map_detail, r.street_map) == ("cores", "click", "dots", "off")
+    assert (r.fold_workers, r.maps, r.map_detail, r.street_map) == ("cores", "click", "squares", "off")
     assert found(graphics=None).graphics_software  # no WebGL at all
     assert not found(graphics="ANGLE (NVIDIA GeForce GTX 1650)").graphics_software
 
@@ -109,3 +109,9 @@ def test_one_fold_at_a_time_runs_its_tuning_trials_one_at_a_time(monkeypatch):
     assert machine.apply_folds(settings, 1) == 1
     assert settings["modeling"]["instructions"]["cv_max_workers"] == 1
     assert os.environ["OPENAVMKIT_TUNE_WORKERS"] == "1"
+
+
+def test_detail_saved_before_squares_reads_as_the_new_choices():
+    assert machine.Performance.model_validate({"map_detail": "shapes"}).map_detail == "parcels"
+    assert machine.Performance.model_validate({"map_detail": "dots"}).map_detail == "squares"
+    assert machine.Performance.model_validate({"map_detail": "auto"}).map_detail == "auto"
