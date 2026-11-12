@@ -88,8 +88,12 @@ statistics and views.
   proxy), sales grouped as openratiostudy groups them (2, 4 or 10 groups by the number of sales, as the VEI; a
   neighbourhood never split), cheapest to dearest, drawn as the VEI chart (openratiostudy draws it alone, so the chart
   by each sale's own price level is on Across prices), then the table: flat by neighbourhood while the VEI by sale
-  isn't points to invalid sales, not real inequity. Neighbourhoods by a location field (Check sales' by default;
-  changing it checks again); without one it points to Data › Location. Engine: `region` on `run_value_field_studies`.
+  isn't points to invalid sales, not real inequity. Neighbourhoods by a location field (Check sales' by default);
+  without one it points to Data › Location. Changing the field shows its figures at once and never checks again
+  (2026-11-12): they're worked out when shown (`ratio/levels`), from the sales the run studied
+  (`studies/<field>.sales.parquet`, the trimmed left out) with the field joined from Check sales' sales by sale, by
+  OpenAVMKit's `region_stats`, the same figures its study gives for that field; the field isn't one of the run's
+  calls.
 - **Similar parcels:** horizontal equity from the equity clusters: parcels, groups of similar parcels, the median spread
   (CHD); shown, not judged (the IAAO sets no target). Takes the map over (2026-11-10): every parcel in the colour of its
   group of similar parcels' CHD (`ratio/similar`: 100 x mean absolute difference from the group's median over the

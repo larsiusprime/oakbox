@@ -127,6 +127,51 @@ def test_sales_by_their_neighbourhood_on_the_map(tmp_path):
     assert ratio.region_points(tmp_path, "v", "zone", None).lon == []  # not a column of the study
 
 
+def test_neighbourhood_price_levels_for_any_field_at_once(tmp_path):
+    """Neighbourhood price levels are worked out when shown, from the sales studied: for the field the study carried
+    or any other, joined from Check sales' sales by sale; the trimmed left out, a model group picked keeps its own.
+    The figures are OpenAVMKit's (region_stats); the field isn't one of the run's calls, so choosing it never makes
+    the values out of date."""
+    import numpy as np
+    import pandas as pd
+    from openavmkit.value_studies import region_stats
+
+    from oakbox import clean
+
+    rng = np.random.default_rng(7)
+    n = 90
+    price = rng.uniform(1e5, 9e5, n)
+    value = price * rng.normal(0.95, 0.12, n)
+    keys = [f"s{i}" for i in range(n)]
+    trimmed = np.zeros(n, dtype=bool)
+    trimmed[:4] = True
+    studies = ratio.out_dir(tmp_path) / "studies"
+    studies.mkdir(parents=True)
+    pd.DataFrame(
+        {
+            "key_sale": keys,
+            "model_group": np.where(np.arange(n) % 3, "sf", "condo"),
+            "sale_price": price,
+            "value": value,
+            "ratio": value / price,
+            "trimmed": trimmed,
+        }
+    ).to_parquet(studies / "v.sales.parquet")
+    where = clean.out_dir(tmp_path)
+    where.mkdir(parents=True)
+    hood = rng.choice(["a", "b", "c", "d", "e", "f"], n)
+    pd.DataFrame({"key_sale": keys, "sale_date": "2025-06-01", "hood": hood}).to_parquet(where / clean.SALES_KEPT)
+
+    got = ratio.region_levels(tmp_path, "v", "hood", None)
+    kept = pd.DataFrame(pd.DataFrame({"sale_price": price, "value": value, "hood": hood})[~trimmed])
+    assert got is not None and got.model_dump() == region_stats(kept, "value", "hood")
+    assert got.sales == n - 4 and len(got.strata) >= 2
+    sf = ratio.region_levels(tmp_path, "v", "hood", "sf")
+    assert sf is not None and sf.sales == int(((np.arange(n) % 3 != 0) & ~trimmed).sum())
+    assert ratio.region_levels(tmp_path, "v", "zone", None) is None  # not a field of the sales
+    assert ratio.region_levels(tmp_path, "v", "", None) is None
+
+
 def test_a_group_of_similar_parcels(tmp_path):
     """Similar parcels' map: each parcel's group (its model group and cluster) and that group's spread (CHD); a
     group clicked, its parcels with their places and values, dearest first."""
@@ -160,7 +205,7 @@ def test_vei_boxes_group_sales_as_the_engine_does(tmp_path):
     price levels; the trimmed left out."""
     import numpy as np
     import pandas as pd
-    from openavmkit.value_studies import _region_stats
+    from openavmkit.value_studies import region_stats
     from openavmkit.vertical_equity_study import get_vertical_equity_scores
 
     rng = np.random.default_rng(3)
@@ -189,7 +234,7 @@ def test_vei_boxes_group_sales_as_the_engine_does(tmp_path):
     want: Any = get_vertical_equity_scores(kept, "sale_price", "v")["group_stats"]
     assert [b.n for b in got.by_sale] == want["n"].tolist()
     assert [b.median for b in got.by_sale] == pytest.approx(want["ratio"].tolist())
-    regions = _region_stats(kept, "v", "hood")["strata"]
+    regions = region_stats(kept, "v", "hood")["strata"]
     assert [b.n for b in got.by_region] == [x["n"] for x in regions]
     assert [b.median for b in got.by_region] == pytest.approx([x["median"] for x in regions])
     for b in got.by_sale + got.by_region:

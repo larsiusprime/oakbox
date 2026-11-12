@@ -270,7 +270,6 @@ def run(project_id: str) -> None:
             trim_outliers=s.trim,
             median_ci="iaao",
             standards=ratio.engine_standards(project),
-            region=ratio.region(project) or None,
             classes={g: (None if c == "none" else c) for g, c in cls.items()},
             outpath=str(tmp / "studies"),
         )
@@ -291,7 +290,7 @@ def run(project_id: str) -> None:
         if not study or not int((study["overall"].get("ratio") or {}).get("count") or 0):
             return None
         path = tmp / "studies" / f"{field}.sales.parquet"
-        table = pd.read_parquet(path) if s.trim and path.is_file() else None
+        table = pd.read_parquet(path) if path.is_file() else None
         if table is None:
             table = pd.DataFrame({c: [] for c in ("model_group", "sale_price", "ratio", "trimmed")})
         return ratio.FieldResult(

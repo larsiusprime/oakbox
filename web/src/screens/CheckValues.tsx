@@ -313,8 +313,8 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
                 result={result}
                 setup={u}
                 currency={currency}
-                choose={(region) => change.mutate({ region }, { onSuccess: runIt })}
-                busy={change.isPending || act.isPending}
+                choose={(region) => change.mutate({ region })}
+                busy={act.isPending}
               />
             )}
             {current === "similar" && (

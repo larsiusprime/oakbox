@@ -2579,6 +2579,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/ratio/levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ratio Levels
+         * @description Neighbourhood price levels for a location field, worked out from the sales studied, at once (no run).
+         */
+        get: operations["ratio_levels_api_projects__project_id__ratio_levels_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/ratio/similar": {
         parameters: {
             query?: never;
@@ -10854,7 +10874,6 @@ export interface components {
              */
             median_chd: number | null;
             verdict: components["schemas"]["Verdict"] | null;
-            regions: components["schemas"]["RegionStats"] | null;
         };
         /** Suggestion */
         Suggestion: {
@@ -17154,6 +17173,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VeiBoxes"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_levels_api_projects__project_id__ratio_levels_get: {
+        parameters: {
+            query: {
+                field: string;
+                region: string;
+                group?: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegionStats"] | null;
                 };
             };
             /** @description Validation Error */

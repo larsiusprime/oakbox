@@ -1944,7 +1944,6 @@ export type Wording = {
       noField: string;
       choose: string;
       noLocations: string;
-      notRun: string;
       few: (a: { sales: number; regions: number }) => string;
       reading: (a: { sales: number; regions: number; vei: string | number; verdict: string | number }) => string;
       compare: (a: { vei: string | number }) => string;

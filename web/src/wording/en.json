@@ -2458,7 +2458,6 @@
       "noField": "none",
       "choose": "Choose a location field to group sales by neighbourhood.",
       "noLocations": "There''s no location field yet: add one on Data › Location (a neighbourhood, a school district, a census block group), then check again.",
-      "notRun": "Check again to see it.",
       "few": "Too few to compare: {sales, number} sales in {regions, number} neighbourhoods (it needs 20 sales in 2 or more).",
       "reading": "{sales, number} sales in {regions, number} neighbourhoods. From the cheapest neighbourhoods to the dearest, the median ratio moves {vei}: {verdict}.",
       "compare": "By each sale''s own price, the VEI is {vei}.",
