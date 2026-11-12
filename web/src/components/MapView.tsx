@@ -370,12 +370,12 @@ function DetailSwitch({ now }: { now: DetailNow }) {
       }
     } else setWarn(false);
   };
-  const words: Record<Detail, [string, string]> = {
-    max: [d.detailMax, d.detailMaxTip],
-    high: [d.detailHigh, d.detailHighTip],
-    medium: [d.detailMedium, d.detailMediumTip],
-    low: [d.detailLow, d.detailLowTip],
-    verylow: [d.detailVerylow, d.detailVerylowTip],
+  const words: Record<Detail, string> = {
+    max: d.detailMax,
+    high: d.detailHigh,
+    medium: d.detailMedium,
+    low: d.detailLow,
+    verylow: d.detailVerylow,
   };
   return (
     <>
@@ -387,8 +387,7 @@ function DetailSwitch({ now }: { now: DetailNow }) {
           label={d.detail}
           hideLabel
           value={detail}
-          options={DETAILS.map((k) => [k, words[k][0]] as const)}
-          aside={Object.fromEntries(DETAILS.map((k) => [k, words[k][1]]))}
+          options={DETAILS.map((k) => [k, words[k]] as const)}
           onChange={choose}
         />
       </span>

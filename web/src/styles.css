@@ -5287,10 +5287,6 @@ under what it's about; a file appended as rows {
   gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
   align-items: center;
 }
-/* The chosen level alone on the button; what each means is in the list. */
-.map-detail .choice-value .choice-aside {
-  display: none;
-}
 .map-detail-note {
   flex-basis: 100%;
   max-width: 22rem;

@@ -14,9 +14,9 @@ export const DETAILS: readonly Detail[] = ["max", "high", "medium", "low", "very
 export const LOT_M = Math.sqrt(4046.8564224 / 4);
 
 /** How many pixels across a quarter-acre lot must be for parcel shapes; smaller, squares. Max: any size. High: until
- * it would be barely seen (2 px). Medium: while it's still a bit bigger than the hand pointer's fingertip (8 px), so
+ * it's about a pixel, barely seen (1 px). Medium: while it's still a bit bigger than the hand pointer's fingertip (8 px), so
  * still easy to click. Low and Very low: half as far out each time. */
-export const LOT_PX: Record<Detail, number> = { max: 0, high: 2, medium: 8, low: 16, verylow: 32 };
+export const LOT_PX: Record<Detail, number> = { max: 0, high: 1, medium: 8, low: 16, verylow: 32 };
 
 /** Parcel shapes at this zoom (metres a pixel covers)? */
 export function shapesAt(detail: Detail, mpp: number): boolean {

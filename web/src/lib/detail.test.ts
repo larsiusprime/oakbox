@@ -24,7 +24,7 @@ describe("shapesAt", () => {
   });
   it("tiles out at a quarter-acre lot 2, 8, 16 and 32 pixels across", () => {
     for (const [d, px] of [
-      ["high", 2],
+      ["high", 1],
       ["medium", 8],
       ["low", 16],
       ["verylow", 32],
@@ -37,6 +37,8 @@ describe("shapesAt", () => {
     for (const d of DETAILS) expect(shapesAt(d, 0.1)).toBe(true);
     const shown = (mpp: number) => DETAILS.filter((d) => shapesAt(d, mpp)).length;
     expect(shown(at(4))).toBe(2);
+    expect(shown(at(1.5))).toBe(2);
+    expect(shown(at(0.5))).toBe(1);
     expect(shown(at(12))).toBe(3);
   });
 });

@@ -62,7 +62,7 @@ each, Parcels: **Max · High · Medium · Low · Very low**, beside Street map; 
 Settings too. Each says how far zoomed out the parcels' shapes are still drawn, by how many pixels across a
 quarter-acre lot (31.8 m a side) is on screen; zoomed out past it, squares. Every level shows the parcels zoomed in
 far enough (there's no squares-only level). Max: shapes at every zoom (the first time on more than 50,000 parcels it
-says it can make the map slow to move, and draws them). High: until the lot is 2 pixels, barely seen. Medium: until
+says it can make the map slow to move, and draws them). High: until the lot is about a pixel, barely seen. Medium: until
 it's 8, still a little bigger than the hand pointer's fingertip, so a parcel is easy to click. Low: 16. Very low:
 32. All by zoom alone, not by how many parcels are in view. While squares are drawn, a line under the dropdown says
 what they are. On the Model groups map each square takes its parcels'

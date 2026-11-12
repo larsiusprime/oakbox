@@ -1115,11 +1115,6 @@ export type Wording = {
     detailMedium: string;
     detailLow: string;
     detailVerylow: string;
-    detailMaxTip: string;
-    detailHighTip: string;
-    detailMediumTip: string;
-    detailLowTip: string;
-    detailVerylowTip: string;
     squaresNote: string;
     manyShapes: (a: { n: number }) => string;
   };

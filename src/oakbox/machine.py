@@ -73,7 +73,7 @@ class Performance(BaseModel):
         default="recommended",
         description=(
             "How far zoomed out parcel shapes are still drawn (squares beyond): max always; high until a quarter-acre"
-            " lot is 2 px across, medium 8 px, low 16 px, verylow 32 px."
+            " lot is 1 px across, medium 8 px, low 16 px, verylow 32 px."
         ),
     )
     street_map: StreetChoice = Field(default="recommended", description="The street map under every map.")

@@ -8595,7 +8595,7 @@ export interface components {
             maps: "recommended" | "now" | "click";
             /**
              * Map Detail
-             * @description How far zoomed out parcel shapes are still drawn (squares beyond): max always; high until a quarter-acre lot is 2 px across, medium 8 px, low 16 px, verylow 32 px.
+             * @description How far zoomed out parcel shapes are still drawn (squares beyond): max always; high until a quarter-acre lot is 1 px across, medium 8 px, low 16 px, verylow 32 px.
              * @default recommended
              * @enum {string}
              */

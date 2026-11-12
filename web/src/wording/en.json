@@ -1509,11 +1509,6 @@
     "detailMedium": "Medium",
     "detailLow": "Low",
     "detailVerylow": "Very low",
-    "detailMaxTip": "at every zoom",
-    "detailHighTip": "until too small to see",
-    "detailMediumTip": "while easy to click",
-    "detailLowTip": "zoomed in twice as far",
-    "detailVerylowTip": "zoomed in four times as far",
     "squaresNote": "Squares, each summing up its parcels. Zoom in for the shapes.",
     "manyShapes": "Drawing {n, number} shapes can make the map slow to move."
   },
