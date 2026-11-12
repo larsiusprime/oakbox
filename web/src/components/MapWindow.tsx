@@ -30,7 +30,7 @@ import {
   type Wizard,
 } from "../api/client";
 import { desktop } from "../desktop";
-import { type Detail, levelFor } from "../lib/detail";
+import { type Detail, edgeShare, levelFor } from "../lib/detail";
 import { pct } from "../lib/format";
 import { useGroupMap } from "../lib/groupmap";
 import { useResolved } from "../lib/machine";
@@ -1014,6 +1014,8 @@ function MapBody({
   const stage = useRef<HTMLDivElement>(null);
   // The map, once made: kept as state (read in what's drawn: a cell clicked zooms it).
   const [mapObj, setMapObj] = useState<maplibregl.Map | null>(null);
+  // Metres a pixel covers now, in quarter-zoom steps (for how strongly parcels' edges are drawn).
+  const [mpp, setMpp] = useState<number | null>(null);
   const zoomTo = (b: Bounds) => mapObj?.fitBounds(b, { padding: 24, maxZoom: 17 });
   const shapes = useQuery({
     queryKey: ["map-shapes", projectId, info.stamp],
@@ -1124,6 +1126,7 @@ function MapBody({
         n: b.getNorth(),
         mpp: (40_075_016.686 * Math.cos(lat)) / (512 * 2 ** m.getZoom()),
       };
+      setMpp(2 ** (Math.round(Math.log2(v.mpp) * 4) / 4));
       const next = planFor(v, all, planNow.current, detailNow.current);
       if (next !== planNow.current) {
         planNow.current = next;
@@ -1172,7 +1175,10 @@ function MapBody({
     : [];
   // Some parcel files hold only a small square at each parcel's point (scattered specks): drawn as shapes, they're
   // lost under a pixel until zoomed right in, so each is also a dot, at least a few pixels across, under its shape.
-  const specks = shapes.data ? !!shapeSize(shapes.data)?.scattered : false;
+  const shapeSz = useMemo(() => (shapes.data ? shapeSize(shapes.data) : null), [shapes.data]);
+  const specks = !!shapeSz?.scattered;
+  // Parcels' edges fade out as parcels shrink on screen: zoomed out they'd be all edge, and not their colour.
+  const edge = Math.round(edgeShare(shapeSz?.metres, mpp) * 4) / 4;
   const parcels = ((): Layer[] => {
     if (!xy || !plan) return [] as Layer[];
     if (plan.kind === "shapes" && shapes.data) {
@@ -1189,10 +1195,14 @@ function MapBody({
           getFillColor: (f) => paint.fill(parcelOf(f)),
           getLineColor: (f) => {
             const i = parcelOf(f);
-            return paint.hidden?.(i) ? GONE : paint.has(i) ? [255, 255, 255, 200] : BLANK_LINE;
+            return paint.hidden?.(i)
+              ? GONE
+              : paint.has(i)
+                ? [255, 255, 255, Math.round(200 * edge)]
+                : [BLANK_LINE[0], BLANK_LINE[1], BLANK_LINE[2], Math.round(BLANK_LINE[3] * edge)];
           },
           getLineWidth: 0.5,
-          updateTriggers: { getFillColor: paint, getLineColor: paint },
+          updateTriggers: { getFillColor: paint, getLineColor: [paint, edge] },
           onClick: ({ index }) => {
             if (index >= 0) setPicked(index);
           },

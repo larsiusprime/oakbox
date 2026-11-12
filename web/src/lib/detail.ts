@@ -35,3 +35,14 @@ export function useDetail(): [Detail, (d: Detail) => void] {
   };
   return [detail, set];
 }
+
+/** How strongly to draw parcels' outlines (0–1) when a typical parcel (its side in metres) is this many metres a pixel:
+ * none while parcels are a few pixels across, so zoomed out each is its colour and not a tangle of edges; full once
+ * they're EDGE_FULL_PX across. */
+export const EDGE_NONE_PX = 5;
+export const EDGE_FULL_PX = 20;
+export function edgeShare(metres: number | null | undefined, mpp: number | null | undefined): number {
+  if (!metres || !mpp) return 1;
+  const px = metres / mpp;
+  return Math.min(1, Math.max(0, (px - EDGE_NONE_PX) / (EDGE_FULL_PX - EDGE_NONE_PX)));
+}

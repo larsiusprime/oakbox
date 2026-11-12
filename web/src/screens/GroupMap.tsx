@@ -14,7 +14,7 @@ import { type Bounds, boundsOf, MapView, rgba } from "../components/MapView";
 import { Seg } from "../components/Seg";
 import { Val } from "../components/Val";
 import { NO_COLOUR } from "../lib/colours";
-import { levelFor } from "../lib/detail";
+import { edgeShare, levelFor } from "../lib/detail";
 import { money, short } from "../lib/format";
 import { clearGroups, type GroupMap as GroupMapState, publishGroups, setGroupMap } from "../lib/groupmap";
 import { useResolved } from "../lib/machine";
@@ -222,6 +222,9 @@ export function ParcelMap({
     if (mapObj && centres.data) mapObj.fire("moveend");
   }, [mapObj, centres.data]);
 
+  // Parcels' white edges fade out as parcels shrink on screen (zoomed out they'd be all edge); in steps, so not every
+  // zoom redraws.
+  const edge = Math.round(edgeShare(size?.metres, perPixel) * 4) / 4;
   // Each parcel's look: its group's colour (grey when it didn't move), dimmed off the highlight, hidden when its
   // legend entry is switched off.
   const look = useMemo(() => {
@@ -238,11 +241,11 @@ export function ParcelMap({
       const dim = !!hl && !hl.has(i);
       return {
         fill: rgba(fill, dim ? 0.18 : 0.72),
-        line: hl?.has(i) ? rgba("#111111") : rgba("#ffffff", dim ? 0.3 : 0.9),
+        line: hl?.has(i) ? rgba("#111111") : rgba("#ffffff", (dim ? 0.3 : 0.9) * edge),
         width: hl?.has(i) ? 1.4 : 0.4,
       };
     };
-  }, [preview, colours, ids, hidden, unassigned, colourBy, highlight]);
+  }, [preview, colours, ids, hidden, unassigned, colourBy, highlight, edge]);
 
   // What's drawn: squares (Squares; Auto on a big county until few enough are in view), else shapes.
   const seen = byCentres && detail === "auto" ? inView : null;
