@@ -21,8 +21,8 @@ export function GroupChecks({
   preview: GroupsPreview | undefined;
   unassignedColor: string;
   setModeled: (id: string, modeled: boolean) => void;
-  /** The group shown alone on the map ("" Unassigned, null every group), and showing one. */
-  onMap?: { shown: string | null; show: (id: string) => void };
+  /** The group shown alone on the map ("" Unassigned, null every group), showing one, and every group again. */
+  onMap?: { shown: string | null; show: (id: string) => void; all: () => void };
 }) {
   if (!p) return <LoadingBar />;
   const rows = [
@@ -42,7 +42,17 @@ export function GroupChecks({
             <th className="cs-n">{g.run.sales}</th>
             <th className="cs-n">{g.run.vacantSales}</th>
             <th>{g.checksCol}</th>
-            {onMap && <th />}
+            {/* Above the rows' Show on map: every group at once again. */}
+            {onMap && (
+              <th className="rv-onmap">
+                <ShowOnMapButton
+                  compact
+                  shown={onMap.shown === null}
+                  onPress={onMap.all}
+                  label={g.allOnMap}
+                />
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>

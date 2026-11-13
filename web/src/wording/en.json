@@ -1628,6 +1628,7 @@
     "modelItTip": "Model this group: values are worked out for its parcels. Proposed for groups with enough improved sales to model (15 or more); a group not modeled is shown greyed, as not modeled, in the steps after.",
     "notModeled": "Not modeled",
     "checksCol": "To look at",
+    "allOnMap": "Every group on the map",
     "backToBuild": "Build the groups",
     "writeTitle": "Tag the parcels and write notebook 1''s output",
     "looksRightNext": "Looks right › Sales",

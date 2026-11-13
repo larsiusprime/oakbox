@@ -1234,6 +1234,7 @@ export type Wording = {
     modelItTip: string;
     notModeled: string;
     checksCol: string;
+    allOnMap: string;
     backToBuild: string;
     writeTitle: string;
     looksRightNext: string;

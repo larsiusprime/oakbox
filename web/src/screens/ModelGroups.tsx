@@ -263,6 +263,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
                     hidden: alone === id ? [] : [...saved.map((x) => x.id), ""].filter((k) => k !== id),
                     highlight: null,
                   }),
+                all: () => setGroupMap({ hidden: [], highlight: null }),
               }}
             />
             {save.error && (
