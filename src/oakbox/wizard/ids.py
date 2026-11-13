@@ -82,7 +82,7 @@ def _sides(project: Project, in_dir: Path, name: str) -> tuple[Files, DataFile, 
     return files, entry, target, entry.match
 
 
-def _matched(file_ids: tuple[str, ...], base_set: set[str]) -> int:
+def _matched(file_ids: tuple[str, ...], base_set: set[str] | frozenset[str]) -> int:
     return sum(1 for v in file_ids if v and v in base_set)
 
 

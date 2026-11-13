@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-import re
+import string
 from functools import lru_cache
 
 from oakbox.datafiles import (
@@ -25,10 +25,25 @@ MISSING_GAIN = 0.02  # a clean-up that matches this many more rows makes it a ma
 MISSING_FEW = 10  # fewer parcels than this: odd rows (a parcel combined away), not parcels left out of the map
 
 
+_SHAPES = str.maketrans(
+    {
+        **{c: "9" for c in "0123456789"},
+        **{c: "A" for c in string.ascii_uppercase},
+        **{c: "a" for c in string.ascii_lowercase},
+    }
+)
+
+
 def _shape(v: str) -> str:
     """How an ID is written: digits as 9, capitals as A, small letters as a, the rest as is ("0012-001" →
     "9999-999", "r0123456" → "a9999999")."""
-    return re.sub(r"[a-z]", "a", re.sub(r"[A-Z]", "A", re.sub(r"\d", "9", v)))
+    return v.translate(_SHAPES)
+
+
+@lru_cache(maxsize=8)
+def _shapes_of(ids: frozenset[str]) -> frozenset[str]:
+    """Every way the parcel universe writes its IDs: worked out once (500,000 IDs, every wizard click, took 2 s)."""
+    return frozenset(v.translate(_SHAPES) for v in ids)
 
 
 def _near(v: str, known: set[str] | frozenset[str]) -> bool:
@@ -41,7 +56,7 @@ def _near(v: str, known: set[str] | frozenset[str]) -> bool:
     return False
 
 
-def _slips(missing: set[str], known: set[str], matched: list[str]) -> int:
+def _slips(missing: set[str], known: set[str] | frozenset[str], matched: list[str]) -> int:
     """About how many of the missing IDs are keying slips. Where IDs are packed close (short numbers), plenty of
     real IDs are one digit off another too: what counts is how much more often the missing ones are than the
     matched ones."""
@@ -61,9 +76,13 @@ def _column_ids(stamp: tuple[str, float, int], layer: str | None, column: str, s
 
 def _unmatched(files: Files, f: DataFile, base: DataFile) -> tuple[set[str], int]:
     """(the parcel IDs a file's rows have that the parcel universe lacks, how many rows have one)."""
-    ids = [v for v in files.ids(f.name, f.match) if v]
     known = parcel_ids(files, base.name, f.match) | (unit_ids(files) if f.match == "key" else set())
-    missing = [v for v in ids if v not in known]
+    return _missing_of(files.ids(f.name, f.match), frozenset(known))
+
+
+@lru_cache(maxsize=16)
+def _missing_of(ids: tuple[str, ...], known: frozenset[str]) -> tuple[set[str], int]:
+    missing = [v for v in ids if v and v not in known]
     return set(missing), len(missing)
 
 
@@ -83,7 +102,7 @@ def diagnose_missing(project: Project, files: Files, out: list[WizardFile]) -> N
         if wf.holds not in ("sales", "parcels", "permits"):
             continue
         gaps[wf.name] = _unmatched(files, f, base)
-    base_shapes = {_shape(v) for v in parcel_ids(files, base.name)}
+    base_shapes: frozenset[str] | None = None  # only worked out when a file needs it
     for wf in out:
         if wf.name not in gaps or wf.id_check is None or (wf.id_check.share or 0) >= MATCH_OK:
             continue
@@ -94,6 +113,8 @@ def diagnose_missing(project: Project, files: Files, out: list[WizardFile]) -> N
         total = len(files.ids(f.name, f.match))
         now = (total - rows) / total if total else 0.0
         shapeless = wf.holds == "parcels" and wf.unshaped >= 0.5 * (wf.rows or 1) and wf.units is None
+        if base_shapes is None:
+            base_shapes = _shapes_of(parcel_ids(files, base.name))
         shaped = sum(1 for v in missing if _shape(v) in base_shapes) / len(missing)
         if (wf.id_check.share or 0) < MATCH_MIN and not shapeless and shaped >= MISSING_SHAPED:
             # Fewer than half, written like parcel IDs: more likely another numbering than half the parcels

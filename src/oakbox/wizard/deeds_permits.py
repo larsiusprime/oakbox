@@ -5,6 +5,7 @@ file, the meaning of each permit type and the fields it needs.
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 from pathlib import Path
 from typing import cast
 
@@ -26,7 +27,6 @@ from oakbox.wizard.rules import VALUES_SHOWN, date_check, parse_dates, value_cou
 def deeds_check(project: Project, files: Files) -> DeedsCheck | None:
     """What sales scrutiny will find (notebook 2): sales sharing a deed ID and a sale date are one sale of several
     parcels. Worked out from the sales file the deed fields and the sale date are both in."""
-    import pandas as pd
 
     deed = projects.deed_field(project)
     if deed is None:
@@ -37,19 +37,24 @@ def deeds_check(project: Project, files: Files) -> DeedsCheck | None:
     if f is None or f.name not in files.preview:
         return None
     stamp = file_stamp(files.in_dir / f.filename)
+    return _deeds(stamp, f.layer, tuple(f.load[k][0] for k in wanted), tuple(f.load["sale_date"]))
 
-    def text(key: str) -> pd.Series:
-        return pd.Series(values_of(stamp, f.layer, f.load[key][0], raw=True)).astype(str).str.strip()
 
-    parts = [text(k) for k in wanted]
+@lru_cache(maxsize=8)
+def _deeds(
+    stamp: tuple[str, float, int], layer: str | None, columns: tuple[str, ...], spec: tuple[str, ...]
+) -> DeedsCheck:
+    """deeds_check's counting, once per file and columns (every wizard click shows it; 1.6 s on 838,000 sales)."""
+    import pandas as pd
+
+    def text(column: str) -> pd.Series:
+        return pd.Series(values_of(stamp, layer, column, raw=True)).astype(str).str.strip()
+
+    parts = [text(c) for c in columns]
     blank = pd.concat([p.str.lower().isin(["", "nan", "none", "null"]) for p in parts], axis=1).any(axis=1)
     ids = parts[0] if len(parts) == 1 else parts[0] + "-" + parts[1]
-    spec = f.load["sale_date"]
-    when = (
-        parse_dates(stamp, f.layer, spec[0], spec[2])
-        if len(spec) > 2
-        else pd.Series(values_of(stamp, f.layer, spec[0]))
-    )
+    column, fmt = spec[0], (spec[2] if len(spec) > 2 else None)
+    when = parse_dates(stamp, layer, column, fmt) if fmt else pd.Series(values_of(stamp, layer, column))
     together = (ids + "|" + when.astype(str))[~blank]
     counts = together.value_counts()
     shared = counts[counts > 1]

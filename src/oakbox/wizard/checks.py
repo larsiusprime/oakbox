@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import math
 import re
+from functools import lru_cache
 
 from oakbox.datafiles import (
     Holds,
@@ -81,22 +82,46 @@ FEW_SHARE, FEW_ROWS = 0.01, 10
 MATCH_MIN, MATCH_OK = 0.5, 0.95
 
 
+# An ID column's tallies and sets, worked out once per column as it's read (files.ids is cached, so the same tuple
+# comes back while the file and its clean-up are the same): every wizard click checks the IDs again, and on an
+# 838,000-sale file counting them anew each time cost a second a click (OAK box, 2026-11-13).
+
+
+@lru_cache(maxsize=32)
+def _tally(values: tuple[str, ...]) -> tuple[int, int, int, int, int]:
+    """(rows, present, distinct, repeated, singles) of an ID column."""
+    from collections import Counter
+
+    counts = Counter(v for v in values if v)
+    present = sum(counts.values())
+    repeated = sum(1 for n in counts.values() if n > 1)
+    return len(values), present, len(counts), repeated, len(counts) - repeated
+
+
+@lru_cache(maxsize=32)
+def present_ids(values: tuple[str, ...]) -> frozenset[str]:
+    """An ID column's distinct IDs, blanks left out."""
+    return frozenset(v for v in values if v)
+
+
+@lru_cache(maxsize=32)
+def _rows_found(values: tuple[str, ...], known: frozenset[str]) -> int:
+    """How many of an ID column's rows (with an ID) have one in known."""
+    return sum(1 for v in values if v and v in known)
+
+
 def _repeats_of(files: Files, name: str, field: str) -> Repeats:
     entry = files.entry(name)
-    values = files.ids(name, field)
-    present = [v for v in values if v]
-    counts: dict[str, int] = {}
-    for v in present:
-        counts[v] = counts.get(v, 0) + 1
-    extra = len(present) - len(counts)
+    rows, present, distinct, repeated, singles = _tally(files.ids(name, field))
+    extra = present - distinct
     return Repeats(
-        rows=len(values),
-        blank=len(values) - len(present),
-        distinct=len(counts),
-        repeated=sum(1 for n in counts.values() if n > 1),
+        rows=rows,
+        blank=rows - present,
+        distinct=distinct,
+        repeated=repeated,
         extra=extra,
-        singles=sum(1 for n in counts.values() if n == 1),
-        few=extra < FEW_ROWS and extra < FEW_SHARE * max(len(present), 1),
+        singles=singles,
+        few=extra < FEW_ROWS and extra < FEW_SHARE * max(present, 1),
         policy=entry.dupes,
         sort=entry.dupes_sort,
         descending=entry.dupes_desc,
@@ -118,7 +143,8 @@ def check_ids(files: Files, name: str, holds: Holds | None, base: str | None) ->
     if not spec or name not in files.preview:
         return None, None
     r = _repeats_of(files, name, match)
-    present = [v for v in files.ids(name, match) if v]
+    ids = files.ids(name, match)
+    present = present_ids(ids)  # distinct; a row count (rows_found) still counts every row
     flagged = r if (r.extra or r.blank) else None
     issues: list[Issue] = []
     more_sales = is_more_sales(f)
@@ -172,7 +198,7 @@ def check_ids(files: Files, name: str, holds: Holds | None, base: str | None) ->
     if holds == "parcel_rows":
         # More parcels: each a parcel of its own; one already in the universe is kept once, the universe's.
         parcels = parcel_ids(files, base, "key")
-        new = len(set(present) - parcels)
+        new = len(present - parcels)
         text = f"{r.distinct:,} parcels · {new:,} new, {r.distinct - new:,} already in the universe"
         return Check(ok=not blocked, text=text, warn=open_issues, issues=issues), flagged
     if holds in ("sales", "sale_rows"):
@@ -182,7 +208,7 @@ def check_ids(files: Files, name: str, holds: Holds | None, base: str | None) ->
         base_ids = parcel_ids(files, base, match)
         if match == "key":
             base_ids = base_ids | unit_ids(files)  # units that find their building are parcels too
-        found = sum(1 for v in present if v in base_ids)
+        found = _rows_found(ids, frozenset(base_ids))
         share = found / r.rows if r.rows else 0.0
         text = f"{share_text(found, r.rows)} match"
         # Under half matching is a blocker; under 95% worth reconciling (SPEC F3d).
@@ -190,8 +216,8 @@ def check_ids(files: Files, name: str, holds: Holds | None, base: str | None) ->
         return Check(ok=share >= MATCH_MIN, text=text, warn=warn, issues=issues, share=share), flagged
     if holds == "permits":
         # Many permits to a parcel is expected; what matters is that they find their parcel.
-        base_ids = parcel_ids(files, base, match) | unit_ids(files)
-        found = sum(1 for v in present if v in base_ids)
+        base_ids = frozenset(parcel_ids(files, base, match) | unit_ids(files))
+        found = _rows_found(ids, base_ids)
         share = found / r.rows if r.rows else 0.0
         text = f"{r.rows:,} permits · {share_text(found, r.rows)} match"
         warn = open_issues or share < MATCH_OK
@@ -203,8 +229,8 @@ def check_ids(files: Files, name: str, holds: Holds | None, base: str | None) ->
     if name != base:
         # Units that find their building are parcels too, for every other file (their building cards, say).
         parcels = parcel_ids(files, base, match) | (unit_ids(files) if match == "key" and f.units is None else set())
-        found = len(set(present) & parcels)
-        share = found / len(set(present)) if present else 0.0
+        found = len(present & parcels)
+        share = found / len(present) if present else 0.0
     if r.extra and not r.few and r.policy is None:
         text = f"{counted(r.repeated, 'repeated ID')} ({counted(r.extra, 'extra row')}): choose what to do"
         return Check(ok=False, text=text, issues=issues, share=share), flagged
@@ -217,7 +243,7 @@ def check_ids(files: Files, name: str, holds: Holds | None, base: str | None) ->
     if f.units is not None and present:
         # Units that find their building's shape join as well as rows with a shape of their own.
         v = units_view(files.project, files, f)
-        share = min(1.0, share + v.linked / len(set(present)))
+        share = min(1.0, share + v.linked / len(present))
         pct = share_text(round(share * 1000), 1000)
         text = f"{tick}one row per parcel · {pct} match (units by their parcel)"
         warn = open_issues or share < MATCH_OK
@@ -228,10 +254,10 @@ def check_ids(files: Files, name: str, holds: Holds | None, base: str | None) ->
     return Check(ok=ok, text=text, warn=warn, issues=issues, share=share), flagged
 
 
-def parcel_ids(files: Files, base: str | None, field: str = "key") -> set[str]:
+def parcel_ids(files: Files, base: str | None, field: str = "key") -> frozenset[str]:
     if base is None or base not in files.preview:
-        return set()
-    return {v for v in files.ids(base, field) if v}
+        return frozenset()
+    return present_ids(files.ids(base, field))
 
 
 def counted(n: int, word: str) -> str:

@@ -359,12 +359,15 @@ def date_preview(project: Project, in_dir: Path, name: str, column: str, fmt: st
     total, blank, read = _date_stats(files, name, column, fmt)
     parsed = parse_dates(stamp, entry.layer, column, fmt)
     values = values_of(stamp, entry.layer, column, raw=True)
-    as_text = [None if p is None or p != p else p.strftime("%Y-%m-%d") for p in parsed.tolist()]
-    bad = list(dict.fromkeys(v for v, p in zip(values, as_text, strict=True) if v.strip() and p is None))[:4]
-    good_idx = [i for i, p in enumerate(as_text) if p is not None]
+    # Which read, all at once; written back as text only for the few shown (838,000 one by one took 1.5 s).
+    ok_mask = parsed.notna().to_numpy()
+    bad = list(dict.fromkeys(v for v, ok in zip(values, ok_mask, strict=True) if not ok and v.strip()))[:4]
+    good_idx = [int(i) for i in ok_mask.nonzero()[0]]
     step = max(1, len(good_idx) // 6)
     good = [good_idx[i] for i in range(0, len(good_idx), step)][: 8 - len(bad)]
-    samples = [DateSample(raw=v, read=None) for v in bad] + [DateSample(raw=values[i], read=as_text[i]) for i in good]
+    samples = [DateSample(raw=v, read=None) for v in bad] + [
+        DateSample(raw=values[i], read=parsed.iloc[i].strftime("%Y-%m-%d")) for i in good
+    ]
     ok = parsed.dropna()
     return DatePreview(
         format=fmt,

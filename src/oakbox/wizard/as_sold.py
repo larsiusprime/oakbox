@@ -18,6 +18,7 @@ the universe's, unless obvious (autopick): nothing else changes silently; the st
 
 from __future__ import annotations
 
+from itertools import islice
 from pathlib import Path
 from typing import Literal
 
@@ -129,7 +130,10 @@ def _by_values(
         if c.name in taken or (only is not None and c.name != only):
             continue
         sold = values_of(stamp, sales.layer, c.name)
-        pairs = [(v, today[p]) for p, v in zip(parcels, sold, strict=False) if p and v and p in today][:SAMPLE]
+        # The first SAMPLE sales with both, not every sale then the first SAMPLE (70 columns × 838,000 sales: 40 s).
+        pairs = list(
+            islice(((v, today[p]) for p, v in zip(parcels, sold, strict=False) if p and v and p in today), SAMPLE)
+        )
         if len(pairs) < 20 or (numeric and _num(pairs[0][0]) is None):
             continue
         for u in units:

@@ -329,13 +329,31 @@ def _assessed_ratio(
     return None, None
 
 
+@lru_cache(maxsize=16)
+def _counts(stamp: tuple[str, float, int], layer: str | None, column: str, fmt: str) -> dict:
+    """What a column read with a format comes to, worked out once per file, column and format: the sale price's
+    check is shown on every wizard click (a second a click on 838,000 sales, OAK box 2026-11-13)."""
+    raw = values_of(stamp, layer, column, raw=True)
+    read = read_numbers(stamp, layer, column, fmt)
+    got = [v for v in read if v == v]
+    return dict(
+        blank=sum(1 for v in raw if v.strip().lower() in PLACEHOLDERS),
+        read=len(got),
+        positive=sorted(v for v in got if v > 0),
+        zero=sum(1 for v in got if v == 0),
+        nominal=sum(1 for v in got if 0 < v < NOMINAL),
+        negative=sum(1 for v in got if v < 0),
+        excel=sum(1 for v in raw if EXCEL.match(v) and abs(float(re.sub(r"[^0-9.eE+-]", "", v))) >= 1e5),
+    )
+
+
 def _number_stats(project: Project, files: Files, entry: DataFile, key: str, column: str, fmt: NumberFormat) -> dict:
     stamp = file_stamp(files.in_dir / entry.filename)
     raw = values_of(stamp, entry.layer, column, raw=True)
     read = read_numbers(stamp, entry.layer, column, fmt.model_dump_json())
-    blank = sum(1 for v in raw if v.strip().lower() in PLACEHOLDERS)
-    got = [v for v in read if v == v]
-    positive = sorted(v for v in got if v > 0)
+    c = _counts(stamp, entry.layer, column, fmt.model_dump_json())
+    blank = c["blank"]
+    positive = c["positive"]
     median = statistics.median(positive) if positive else None
     ratio, against = _assessed_ratio(project, files, entry, list(read)) if key == "sale_price" else (None, None)
     hint = None
@@ -369,12 +387,12 @@ def _number_stats(project: Project, files: Files, entry: DataFile, key: str, col
         values=read,
         total=len(raw),
         blank=blank,
-        read=len(got),
-        failed=len(raw) - blank - len(got),
-        zero=sum(1 for v in got if v == 0),
-        nominal=sum(1 for v in got if 0 < v < NOMINAL),
-        negative=sum(1 for v in got if v < 0),
-        excel=sum(1 for v in raw if EXCEL.match(v) and abs(float(re.sub(r"[^0-9.eE+-]", "", v))) >= 1e5),
+        read=c["read"],
+        failed=len(raw) - blank - c["read"],
+        zero=c["zero"],
+        nominal=c["nominal"],
+        negative=c["negative"],
+        excel=c["excel"],
         median=median,
         low=pct(0.1),
         high=pct(0.9),

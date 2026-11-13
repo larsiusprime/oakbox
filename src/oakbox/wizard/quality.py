@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 import statistics
 from collections import Counter
+from itertools import islice
 from pathlib import Path
 from typing import Literal
 
@@ -262,7 +263,7 @@ def _sales_evidence(project: Project, files: Files, match: str) -> tuple[list[tu
     rows = [(i, float(p)) for i, p in priced if i]
     if priced and not rows:
         # The sales' ID finds no parcel at all: said, with the IDs, rather than an empty preview.
-        own = [i for i in files.ids(sales.name, sales.match) if i][:3]
+        own = list(islice((i for i in files.ids(sales.name, sales.match) if i), 3))
         notes.append(
             f"none of the {len(priced):,} sales finds a parcel by its {ID_WORDS.get(sales.match, sales.match)} "
             f"(like {', '.join(own) or 'none'}): check the sales' ID on Sales › IDs"
