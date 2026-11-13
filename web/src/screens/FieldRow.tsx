@@ -99,16 +99,24 @@ export function FieldRow({
         : NONE;
   const sourceFile = source ? files.find((f) => f.name === source.file) : undefined;
   const column = source && sourceFile?.columns.find((c) => c.name === source.column);
-  // The column just chosen, while it's read and saved: the row says so in place.
+  // The choice just made, while it's saved (a column read): the row says so in place.
   const [reading, setReading] = useState<string | null>(null);
   const pick = (v: string) => {
     if (v === ASSUME) setDialog("assume");
-    else if (v === ABSENT) void change({ kind: "field", key: field.key, absent: true }).catch(() => {});
-    else if (v === ELSEWHERE) setDialog("elsewhere");
-    else if (v === NONE) void change({ kind: "field", key: field.key }).catch(() => {});
-    else {
+    else if (v === ABSENT) {
+      setReading(w.savingChoice);
+      void change({ kind: "field", key: field.key, absent: true })
+        .catch(() => {})
+        .finally(() => setReading(null));
+    } else if (v === ELSEWHERE) setDialog("elsewhere");
+    else if (v === NONE) {
+      setReading(w.savingChoice);
+      void change({ kind: "field", key: field.key })
+        .catch(() => {})
+        .finally(() => setReading(null));
+    } else {
       const [file, col] = v.split("\u0000");
-      setReading(col ?? null);
+      setReading(w.readingColumn({ column: col ?? "" }));
       void change({
         kind: "field",
         key: field.key,
@@ -196,7 +204,7 @@ export function FieldRow({
       <div className="wiz-samples">
         {reading ? (
           // The column chosen is read for the field (a big file takes a while): said here, beside it.
-          <Waiting doing={w.readingColumn({ column: reading })} className="waiting wiz-reading" />
+          <Waiting doing={reading} className="waiting wiz-reading" />
         ) : field.assumed ? (
           <span className="wiz-warn">
             {w.assumed}: {w.assumedValue[field.key]}

@@ -153,6 +153,7 @@ export type Wording = {
     addFile: string;
     readingChosen: (a: { file: string | number }) => string;
     readingColumn: (a: { column: string | number }) => string;
+    savingChoice: string;
     orExisting: string;
     noPicker: string;
     geometryFound: string;
@@ -856,6 +857,7 @@ export type Wording = {
     };
     salesParts: {
       noFile: string;
+      pending: string;
       asRead: string;
       writtenAs: string;
       byYear: string;

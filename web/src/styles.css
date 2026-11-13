@@ -9373,3 +9373,28 @@ th.vt-map {
   margin: 0.2rem 0 0;
   font-size: 0.85rem;
 }
+
+/* A choice being worked out again: what's shown is the last one's, faded and not to be pressed, until the new one
+   comes (SalesParts' Pending; a preview reading another format). */
+.wiz-pending.on > :not(.wiz-pending-note),
+.wiz-stale {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.wiz-pending-note {
+  margin: 0 0 0.3rem;
+  font-size: 0.85rem;
+  color: var(--muted, #5f6159);
+  font-style: italic;
+}
+/* Rows of a capsule, the last choice's, while a new one is saved: faded in place (the wrapper takes no box). */
+.wiz-fade {
+  display: contents;
+}
+.wiz-fade.on > * {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+  pointer-events: none;
+}

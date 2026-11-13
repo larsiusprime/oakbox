@@ -1,5 +1,5 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { keepPreviousData, useIsMutating, useQuery } from "@tanstack/react-query";
+import { type ReactNode, useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import {
   api,
@@ -54,6 +54,8 @@ export function SalesFieldPage({
   step: WizardStep;
   change: MutateAsync;
 }) {
+  // A choice being saved (the column, its format): what's below is the last one's, until the new one's comes.
+  const saving = useIsMutating() > 0;
   const field = data.fields.find((f) => f.step === step.key && !f.hidden);
   const sales = mainSales(data);
   if (!field) return null;
@@ -72,38 +74,60 @@ export function SalesFieldPage({
       <div className="wiz-grid wiz-capsules">
         <div className="frame wiz-capsule">
           <FieldRow project={project} data={data} field={field} sales change={change} bare paged />
-          {field.key === "sale_price" && file && column && (
-            <NumberOptions
-              projectId={project.id}
-              field={field}
-              file={file}
-              column={column.name}
-              save={save}
-            />
-          )}
-          {dated && file && column && (
-            <DateOptions projectId={project.id} field={field} file={file} column={column.name} save={save} />
-          )}
+          {/* How it's read, as rows of the capsule: faded, as the last choice's, while a new one is saved. */}
+          <div className={saving ? "wiz-fade on" : "wiz-fade"}>
+            {field.key === "sale_price" && file && column && (
+              <NumberOptions
+                projectId={project.id}
+                field={field}
+                file={file}
+                column={column.name}
+                save={save}
+              />
+            )}
+            {dated && file && column && (
+              <DateOptions
+                projectId={project.id}
+                field={field}
+                file={file}
+                column={column.name}
+                save={save}
+              />
+            )}
+          </div>
         </div>
       </div>
-      {field.key === "sale_price" && file && column && (
-        <NumberPreview projectId={project.id} field={field} file={file} column={column.name} save={save} />
-      )}
-      {dated && file && column && (
-        <DatePreview projectId={project.id} field={field} file={file} column={column.name} save={save} />
-      )}
-      {field.rule && file && (
-        <RulePanel
-          // A new column starts a new rule: the page starts again from it.
-          key={`${source?.column}`}
-          projectId={project.id}
-          field={field}
-          file={file}
-          price={data.fields.find((f) => f.key === "sale_price")}
-          change={change}
-        />
-      )}
+      <Pending on={saving}>
+        {field.key === "sale_price" && file && column && (
+          <NumberPreview projectId={project.id} field={field} file={file} column={column.name} save={save} />
+        )}
+        {dated && file && column && (
+          <DatePreview projectId={project.id} field={field} file={file} column={column.name} save={save} />
+        )}
+        {field.rule && file && (
+          <RulePanel
+            // A new column starts a new rule: the page starts again from it.
+            key={`${source?.column}`}
+            projectId={project.id}
+            field={field}
+            file={file}
+            price={data.fields.find((f) => f.key === "sale_price")}
+            change={change}
+          />
+        )}
+      </Pending>
     </>
+  );
+}
+
+/** What's shown for a choice while a new one is worked out: faded and not to be pressed, saying it's out of date,
+ * until the new one's comes (AGENTS.md: what's on screen is never passed off as current). */
+function Pending({ on, children }: { on: boolean; children: ReactNode }) {
+  return (
+    <div className={on ? "wiz-pending on" : "wiz-pending"} aria-busy={on}>
+      {on && <p className="wiz-pending-note">{sp.pending}</p>}
+      {children}
+    </div>
   );
 }
 
@@ -196,7 +220,10 @@ function NumberPreview({
   const shown = field.number_format ?? v.format;
   const good = v.read > 0 && v.failed === 0 && !v.hint;
   return (
-    <div className="frame qc-panel">
+    <div
+      className={q.isPlaceholderData ? "frame qc-panel wiz-stale" : "frame qc-panel"}
+      aria-busy={q.isPlaceholderData}
+    >
       <h3 className="wiz-group">{sp.asRead}</h3>
       <div className={`rc-meter ${good ? "ok" : "bad"}`}>
         <b>
@@ -351,12 +378,16 @@ function DatePreview({
   column: string;
   save: Save;
 }) {
-  const v = useDates(projectId, field, file, column).query.data;
+  const q = useDates(projectId, field, file, column).query;
+  const v = q.data;
   if (!v) return null;
   const good = v.read > 0 && v.failed === 0;
   const top = Math.max(1, ...v.by_year.map((y) => y.count));
   return (
-    <div className="frame qc-panel">
+    <div
+      className={q.isPlaceholderData ? "frame qc-panel wiz-stale" : "frame qc-panel"}
+      aria-busy={q.isPlaceholderData}
+    >
       <h3 className="wiz-group">{sp.asRead}</h3>
       <div className={`rc-meter ${good ? "ok" : "bad"}`}>
         <b>
