@@ -1,44 +1,54 @@
 /** The map window's layers and legend (SPEC §3.15), one thing: closed, a chip over the map's corner with the legend
- * in brief (pressed, it opens); open, a panel over the map with what's coloured by (the field), each layer with its
- * 👁 (shown or not), its legend and its options; pinned (📌), the same as a drawer beside the map, which it narrows. */
-import { ChevronDown, ChevronUp, Eye, EyeOff, Layers, Pin, SlidersHorizontal } from "lucide-react";
-import { type ReactNode, useState } from "react";
+ * in brief (pressed, it opens); open, a panel over the map; pinned (📌), the same as a drawer beside the map, which
+ * it narrows. It holds one data layer, the record the field is from: 🌐 Parcels or 💰 Sales (the parcels then only
+ * faint outlines under the dots), with its 👁, what it's coloured by, its legend, and a switch to the same field in
+ * the other record when that has it; then the street map underneath. */
+import { ArrowLeftRight, ChevronDown, ChevronUp, Eye, EyeOff, Layers, Pin } from "lucide-react";
+import type { ReactNode } from "react";
 import { Button } from "react-aria-components";
 import { t } from "../wording";
-import { ToolButton } from "./Buttons";
+import { SmallButton, ToolButton } from "./Buttons";
 
 const w = t.mapWindow;
 
 export type LayersState = "closed" | "open" | "pinned";
 
-export type LayerRow = {
-  id: string;
+export type DataLayer = {
+  /** 🌐 Parcels or 💰 Sales. */
   name: string;
-  /** Drawn or not, its 👁; no 👁 when it can't be hidden. */
+  /** How many there are (parcels, or sales on the map); null while not known. */
+  count: number | null;
   shown: boolean;
-  onShown?: (on: boolean) => void;
-  /** The legend in brief, on its line (a count, a dot). */
-  brief?: ReactNode;
-  /** Its legend, under its line while it's shown. */
-  legend?: ReactNode;
-  /** Its options, under a ⚙ of its own. */
-  options?: ReactNode;
+  onShown: (on: boolean) => void;
+  /** The same field in the other record: pressed, the map shows that instead. */
+  switchTo?: { label: string; onPress: () => void } | undefined;
+  /** Said where there's no switch (the field is only this record's). */
+  only?: string | undefined;
+  /** A line under it (squares drawn now). */
+  note?: string | undefined;
 };
+
+export type BaseLayer = { id: string; name: string; shown: boolean; onShown: (on: boolean) => void };
 
 export function MapLayers({
   state,
   onState,
   brief,
+  data,
   colourBy,
-  rows,
+  legend,
+  base,
 }: {
   state: LayersState;
   onState: (s: LayersState) => void;
   /** The legend in brief, on the closed chip. */
   brief: ReactNode;
-  /** What the map is coloured by: the field picker. */
+  data: DataLayer;
+  /** What it's coloured by: the field picker. */
   colourBy: ReactNode;
-  rows: LayerRow[];
+  legend: ReactNode;
+  /** Under it: the street map. */
+  base: BaseLayer[];
 }) {
   if (state === "closed")
     return (
@@ -72,43 +82,47 @@ export function MapLayers({
         </ToolButton>
       </div>
       <div className="mapwin-ly-scroll">
-        <div className="mapwin-ly-by">{colourBy}</div>
-        {rows.map((r) => (
-          <Row key={r.id} row={r} />
+        <div className={`mapwin-ly-data ${data.shown ? "" : "off"}`}>
+          <div className="mapwin-ly-line">
+            <Eye3 name={data.name} shown={data.shown} onShown={data.onShown} />
+            <span className="mapwin-ly-name">{data.name}</span>
+            {data.count !== null && <small className="mapwin-ly-count">{data.count.toLocaleString()}</small>}
+            <span className="mapwin-ly-gap" />
+            {data.switchTo ? (
+              <SmallButton onPress={data.switchTo.onPress}>
+                <ArrowLeftRight aria-hidden="true" size="0.9em" /> {data.switchTo.label}
+              </SmallButton>
+            ) : (
+              data.only && <small className="mapwin-ly-count">{data.only}</small>
+            )}
+          </div>
+          {data.note && <small className="mapwin-ly-note">{data.note}</small>}
+          <div className="mapwin-by">{colourBy}</div>
+          {data.shown && <div className="mapwin-ly-legend">{legend}</div>}
+        </div>
+        {base.map((b) => (
+          <div key={b.id} className={`mapwin-ly-base ${b.shown ? "" : "off"}`}>
+            <Eye3 name={b.name} shown={b.shown} onShown={b.onShown} />
+            <span className="mapwin-ly-name">{b.name}</span>
+            <span className="mapwin-ly-gap" />
+            <small className="mapwin-ly-count">{b.shown ? w.ly.underneath : w.ly.hidden}</small>
+          </div>
         ))}
       </div>
     </section>
   );
 }
 
-function Row({ row }: { row: LayerRow }) {
-  const [opts, setOpts] = useState(false);
-  const words = { what: row.name };
+/** A layer's 👁: shown, or hidden (struck through). */
+function Eye3({ name, shown, onShown }: { name: string; shown: boolean; onShown: (on: boolean) => void }) {
   return (
-    <div className={`mapwin-ly-layer ${row.shown ? "" : "off"}`}>
-      <div className="mapwin-ly-line">
-        {row.onShown ? (
-          <ToolButton
-            plain
-            label={row.shown ? w.ly.hide(words) : w.ly.show(words)}
-            pressed={row.shown}
-            onPress={() => row.onShown?.(!row.shown)}
-          >
-            {row.shown ? <Eye aria-hidden="true" size="1.1em" /> : <EyeOff aria-hidden="true" size="1.1em" />}
-          </ToolButton>
-        ) : (
-          <span className="mapwin-ly-noeye" aria-hidden="true" />
-        )}
-        <span className="mapwin-ly-name">{row.name}</span>
-        <span className="mapwin-ly-brief">{row.shown ? row.brief : <small>{w.ly.hidden}</small>}</span>
-        {row.options && (
-          <ToolButton label={w.ly.options(words)} pressed={opts} onPress={() => setOpts(!opts)}>
-            <SlidersHorizontal aria-hidden="true" size="1em" />
-          </ToolButton>
-        )}
-      </div>
-      {row.shown && row.legend && <div className="mapwin-ly-legend">{row.legend}</div>}
-      {opts && row.options && <div className="mapwin-ly-opts">{row.options}</div>}
-    </div>
+    <ToolButton
+      plain
+      label={shown ? w.ly.hide({ what: name }) : w.ly.show({ what: name })}
+      pressed={shown}
+      onPress={() => onShown(!shown)}
+    >
+      {shown ? <Eye aria-hidden="true" size="1.1em" /> : <EyeOff aria-hidden="true" size="1.1em" />}
+    </ToolButton>
   );
 }

@@ -266,3 +266,33 @@ def test_a_sales_column_by_the_latest_sale(client, pid):
     codes = np.frombuffer(base64.b64decode(c["values"]), dtype="<u2").tolist()
     got = [c["categories"][k] if k < len(c["categories"]) else "" for k in codes]
     assert got == ["WD", "", "WD", "", "", ""]  # parcel 0's latest sale (2024) was a WD, not the 2021 QC
+
+
+def test_a_sales_column_each_sale_and_its_twin_in_the_universe(client, pid):
+    """The sales record's own columns (sc:<column>) are fields of the map too, a value per sale in /map/sales'
+    order; one named as a parcel field is its twin, both ways, so the map can switch between them."""
+    import pandas as pd
+    from helpers import IDS
+
+    from oakbox import projects
+
+    pd.DataFrame(
+        {
+            "PROP_ID": [IDS[0], IDS[0], IDS[2], IDS[3]],
+            "SALE_PRICE": [185000, 210000, 92500, 240000],
+            "SALE_DT": ["03/14/2023", "11/02/2024", "01/09/2024", "06/30/2025"],
+            "ZONE": ["R1", "R2", "R2", "C1"],
+            "BEDS": [3, 4, 2, 5],
+        }
+    ).to_csv(projects.inputs_dir(pid) / "sales.csv", index=False)
+    start_wizard(client, pid)
+    m = _ready(client, pid)
+    sc = {f["id"]: f for f in m["sale_fields"]}
+    assert set(sc) == {"sc:ZONE", "sc:BEDS"}  # its IDs, price and date aren't columns again
+    assert sc["sc:ZONE"]["twin"] == "geo_parcels:ZONE" and sc["sc:BEDS"]["twin"] is None
+    assert next(f for f in m["fields"] if f["id"] == "geo_parcels:ZONE")["twin"] == "sc:ZONE"
+    c = client.get(f"/api/projects/{pid}/map/sale-column", params={"field": "sc:BEDS"}).json()
+    assert c["kind"] == "number" and np.frombuffer(base64.b64decode(c["values"]), dtype="<f4").tolist() == [3, 4, 2, 5]
+    z = client.get(f"/api/projects/{pid}/map/sale-column", params={"field": "sc:ZONE"}).json()
+    assert z["kind"] == "category" and set(z["categories"]) == {"R1", "R2", "C1"}
+    assert client.get(f"/api/projects/{pid}/map/sale-column", params={"field": "sc:NOPE"}).status_code == 404

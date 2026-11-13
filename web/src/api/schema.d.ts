@@ -3085,6 +3085,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/map/sale-column": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Sale Column
+         * @description A sales record column's value for every sale (sc:<column>), in the order of /map/sales.
+         */
+        get: operations["map_sale_column_api_projects__project_id__map_sale_column_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/map/problems": {
         parameters: {
             query?: never;
@@ -6670,6 +6690,11 @@ export interface components {
              * @description The field it's loaded as, if it is.
              */
             field: string | null;
+            /**
+             * Twin
+             * @description The same field in the other record (a parcel field's in the sales record, sc:<column>, or the other way round): loaded as the same field, or else a column of the same name.
+             */
+            twin: string | null;
         };
         /** MapInfo */
         MapInfo: {
@@ -6719,6 +6744,12 @@ export interface components {
              * @default []
              */
             outs: components["schemas"]["MapField"][];
+            /**
+             * Sale Fields
+             * @description The sales record's other columns (sc:<column>), each a value per sale; its price, date, valid and vacant are `sales`.
+             * @default []
+             */
+            sale_fields: components["schemas"]["MapField"][];
             /**
              * Per
              * @description The sizes a value can be shown per (bldg, land): the ones loaded on the parcels.
@@ -18059,6 +18090,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MapSales"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_sale_column_api_projects__project_id__map_sale_column_get: {
+        parameters: {
+            query: {
+                field: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapColumn"];
                 };
             };
             /** @description Validation Error */

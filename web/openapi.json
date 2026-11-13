@@ -8093,6 +8093,55 @@
     }
    }
   },
+  "/api/projects/{project_id}/map/sale-column": {
+   "get": {
+    "summary": "Map Sale Column",
+    "description": "A sales record column's value for every sale (sc:<column>), in the order of /map/sales.",
+    "operationId": "map_sale_column_api_projects__project_id__map_sale_column_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "field",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Field"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MapColumn"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/map/problems": {
    "get": {
     "summary": "Map Problems",
@@ -15929,6 +15978,18 @@
       ],
       "title": "Field",
       "description": "The field it's loaded as, if it is."
+     },
+     "twin": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Twin",
+      "description": "The same field in the other record (a parcel field's in the sales record, sc:<column>, or the other way round): loaded as the same field, or else a column of the same name."
      }
     },
     "type": "object",
@@ -15937,7 +15998,8 @@
      "label",
      "file",
      "column",
-     "field"
+     "field",
+     "twin"
     ],
     "title": "MapField"
    },
@@ -16032,6 +16094,15 @@
       "description": "The app's own outputs' columns (out:<source>:<column>).",
       "default": []
      },
+     "sale_fields": {
+      "items": {
+       "$ref": "#/components/schemas/MapField"
+      },
+      "type": "array",
+      "title": "Sale Fields",
+      "description": "The sales record's other columns (sc:<column>), each a value per sale; its price, date, valid and vacant are `sales`.",
+      "default": []
+     },
      "per": {
       "items": {
        "type": "string"
@@ -16059,6 +16130,7 @@
      "fields",
      "sales",
      "outs",
+     "sale_fields",
      "per",
      "area_unit"
     ],

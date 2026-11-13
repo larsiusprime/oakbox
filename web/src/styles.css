@@ -6870,8 +6870,46 @@ html[data-map="top"] .oak-nav {
   min-height: 0;
   overflow: auto;
 }
-.mapwin-ly-by {
-  padding: 0.45rem 0.6rem;
+/* The one data layer: its line (👁, name, count, the switch to the other record), what colours it, its legend. */
+.mapwin-ly-data {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.35rem 0.6rem 0.55rem;
+}
+.mapwin-ly-line,
+.mapwin-ly-base {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.mapwin-ly-base {
+  padding: 0.2rem 0.6rem;
+  border-top: 1px solid var(--line, #c9ccc4);
+}
+.mapwin-ly-name {
+  flex: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.mapwin-ly-base .mapwin-ly-name {
+  font-weight: normal;
+}
+.off .mapwin-ly-name {
+  font-weight: normal;
+  color: var(--muted, #5f6159);
+}
+.mapwin-ly-gap {
+  flex: 1;
+}
+.mapwin-ly-count,
+.mapwin-ly-note {
+  color: var(--muted, #5f6159);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.mapwin-ly-note {
+  white-space: normal;
 }
 .mapwin-by {
   display: flex;
@@ -6882,42 +6920,12 @@ html[data-map="top"] .oak-nav {
   flex: 1 1 auto;
   max-width: none;
 }
-.mapwin-ly-layer {
-  border-top: 1px solid var(--line, #c9ccc4);
-}
-.mapwin-ly-line {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.15rem 0.4rem;
-  min-width: 0;
-}
-.mapwin-ly-noeye {
-  width: 1.8rem;
-  flex: none;
-}
-.mapwin-ly-name {
-  flex: none;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.mapwin-ly-layer.off .mapwin-ly-name {
-  font-weight: normal;
-  color: var(--muted, #5f6159);
-}
 .mapwin-ly-brief {
-  flex: 1;
   min-width: 0;
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
   gap: 0.2rem 0.6rem;
-  color: var(--muted, #5f6159);
   font-size: 0.8rem;
-}
-.mapwin-ly-chip .mapwin-ly-brief {
-  justify-content: flex-start;
-  color: inherit;
 }
 .mapwin-brief {
   display: inline-flex;
@@ -6935,11 +6943,9 @@ html[data-map="top"] .oak-nav {
 .mapwin-brief .mapwin-sw {
   flex: none;
 }
-.mapwin-ly-legend,
-.mapwin-ly-opts {
+.mapwin-ly-legend {
   display: grid;
   gap: 0.25rem;
-  padding: 0 0.6rem 0.5rem 2.6rem;
 }
 /* The detail level in the window's top bar: as wide as its choice, not the bar. */
 .mapwin-detail .choice,

@@ -154,6 +154,11 @@ class MapField(BaseModel):
     file: str
     column: str
     field: str | None = Field(description="The field it's loaded as, if it is.")
+    twin: str | None = Field(
+        default=None,
+        description="The same field in the other record (a parcel field's in the sales record, sc:<column>, or the "
+        "other way round): loaded as the same field, or else a column of the same name.",
+    )
 
 
 class MapInfo(BaseModel):
@@ -170,6 +175,11 @@ class MapInfo(BaseModel):
         default=[], description="What the 💰 Sales Record can colour by: price, year, valid, vacant (as it has them)."
     )
     outs: list[MapField] = Field(default=[], description="The app's own outputs' columns (out:<source>:<column>).")
+    sale_fields: list[MapField] = Field(
+        default=[],
+        description="The sales record's other columns (sc:<column>), each a value per sale; its price, date, valid "
+        "and vacant are `sales`.",
+    )
     per: list[str] = Field(
         default=[], description="The sizes a value can be shown per (bldg, land): the ones loaded on the parcels."
     )
@@ -366,12 +376,76 @@ def info(project: Project, project_dir: Path, in_dir: Path) -> MapInfo:
         parcels=made["parcels"],
         bounds=made["bounds"],
         stamp=f"{stamp[2]}-{int(stamp[1])}",
-        fields=_fields(project, in_dir) + _permit_fields(project, in_dir),
+        fields=(pu := _fields(project, in_dir)) + _permit_fields(project, in_dir),
         sales=_sales_has(project),
+        sale_fields=_twinned(pu, _sale_fields(project, in_dir)),
         outs=out_fields(project),
         per=[k for k in PER if _size_source(project, in_dir, k) is not None],
         area_unit=small_unit(project.units),
     )
+
+
+# The sales record's fields that are `sales` already (sr:price, sr:year, sr:valid, sr:vacant), not columns again.
+_SALE_OWN = {"sale_price", "sale_date", "valid_sale", "vacant_sale"}
+
+
+def _sale_fields(project: Project, in_dir: Path) -> list[MapField]:
+    """The sales record's columns as fields of their own (sc:<column>): a value for each sale."""
+    from oakbox.wizard.files import sales_file
+
+    entry = sales_file(project)
+    files = Files(project, in_dir)
+    if entry is None or entry.name not in files.preview:
+        return []
+    names = {k: d.name for k, d in dictionary_by_key().items()}
+    by_column = {spec[0]: key for key, spec in entry.load.items() if spec}
+    ids = {spec[0] for key, spec in entry.load.items() if spec and key.startswith("key")}
+    loaded: list[MapField] = []
+    others: list[MapField] = []
+    for c in files.columns(entry.name):
+        key = by_column.get(c.name)
+        if c.name in ids or c.name == "geometry" or key in _SALE_OWN:
+            continue
+        item = MapField(
+            id=f"sc:{c.name}",
+            label=f"{_short(names.get(key, key))} ({c.name})" if key else c.name,
+            file=entry.name,
+            column=c.name,
+            field=key,
+        )
+        (loaded if key else others).append(item)
+    rank = {k: i for i, k in enumerate(BIG_FIVE)}
+    loaded.sort(key=lambda m: (rank.get(m.field or "", len(rank)), m.label.lower()))
+    return loaded + others
+
+
+def _twinned(pu: list[MapField], sc: list[MapField]) -> list[MapField]:
+    """Pairs each sales column with the parcel field that's the same (loaded as the same field, else the same column
+    name), setting `twin` on both."""
+    by_field = {f.field: f for f in pu if f.field}
+    by_column = {f.column: f for f in pu}
+    for s in sc:
+        p = by_field.get(s.field) if s.field else None
+        if p is None and not s.field:
+            p = by_column.get(s.column)
+            if p is not None and p.field:
+                p = None  # a loaded field's twin is the sales column loaded as it, not a namesake
+        if p is not None and p.twin is None:
+            p.twin, s.twin = s.id, p.id
+    return sc
+
+
+def sale_column(project: Project, in_dir: Path, field_id: str) -> MapColumn:
+    """A sales record column's value for every sale, in the sales file's order (MapSales' order)."""
+    from oakbox.wizard.files import sales_file
+
+    col = field_id.removeprefix("sc:")
+    entry = sales_file(project)
+    files = Files(project, in_dir)
+    if not field_id.startswith("sc:") or entry is None or files.column(entry.name, col) is None:
+        raise NotFound(field_id)
+    values = values_of(file_stamp(in_dir / entry.filename), entry.layer, col)
+    return _encode(list(values)).model_copy(update={"id": field_id})
 
 
 def _sales_has(project: Project) -> list[str]:

@@ -55,6 +55,12 @@ def map_sales(project_id: str, per: str = "") -> mapdata.MapSales:
     return mapdata.sales_per_size(project, in_dir, d, per) if per else d
 
 
+@router.get("/api/projects/{project_id}/map/sale-column")
+def map_sale_column(project_id: str, field: str) -> mapdata.MapColumn:
+    """A sales record column's value for every sale (sc:<column>), in the order of /map/sales."""
+    return mapdata.sale_column(load_project(project_id), projects.inputs_dir(project_id), field)
+
+
 @router.get("/api/projects/{project_id}/map/problems")
 def map_problems(project_id: str) -> mapdata.MapProblems:
     """The problems the map can show where they are (blank and repeated IDs, sales whose value differs from their

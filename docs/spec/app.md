@@ -550,16 +550,22 @@ apart: how many values are under and over the range shown (capped at the chart's
 alone (the row group holding it, or the one feature), not column by column: 0.2 s a card on Guilford, the first after
 opening a few seconds (the sales' comparison, shared with the problems).
 
-**Layers and legend** (2026-11-12): one thing, over the map's bottom left. Closed, a chip with the legend in brief
-(the ramp or a category's first colours, a problem's count and share, the field's name); pressed, it opens up into a
-panel: **Colour by** (the field picker, and its size) at the top, then each layer on a line of its own with its 👁
-(shown or hidden, remembered): 🌐 Parcels, 💰 Sales (off: none of it drawn), and
-the Street map (off: the plain background; it starts as Settings says, then is this map's own). A layer's legend sits
-under its line (the sales' when they're what's coloured), its line says "squares now" while squares are drawn, and
-its options open from a ⚙ beside it (Parcels: Detail, the Map detail of SPEC §5). The panel's 📌 pins it as a drawer
-at the map's left, which narrows the map instead of covering it, and unpins it; ⌄ folds it back to the chip. Which of
-the three it is, is remembered. The map window's header is then only 🗺 Map · the field shown, Follow, and the window's
-buttons; the map itself has no corner box (its own maps elsewhere keep theirs).
+**Layers and legend** (2026-11-12, one data layer 2026-11-13): one thing, over the map's bottom left. Closed, a chip
+with the legend in brief (the ramp or a category's first colours, a problem's count and share, the field's name);
+pressed, it opens up into a panel holding **one data layer**, the record the field is from, so it's always plain which
+is shown: **🌐 Parcels** (a parcel field, a problem of the parcels, the steps' outputs) or **💰 Sales** (the sales
+record's price, date, valid, vacant, any other of its columns, a problem of the sales), its count beside it. The
+sales are a dot each, the parcels under them only faint outlines (where they are); zoomed out, squares of the sales.
+The layer's 👁 shows or hides it; under it, what it's coloured by (the field picker, with its size) and its legend.
+When the other record has the same field (loaded as the same field, else a column of the same name: the server's
+`twin`), a button switches to it (⇄ 💰 Sales, ⇄ 🌐 Parcels); a field only the sales have says "sales only". Under the
+data layer, the **Street map** with its own 👁 (it starts as Settings says, then is this map's own). The 👁s, 📌 and
+fold are plain icons, no buttons around them (an exception to AGENTS.md's rule, 2026-11-13). 📌 pins the panel as a
+drawer at the map's left, which narrows the map instead of covering it, and unpins it; ⌄ folds it back to the chip.
+Which of the three it is, is remembered. The window's top bar: 🗺 Map · 🌐/💰 the field, Follow, **Detail** (the Map
+detail of SPEC §5), and the window's buttons; the map itself has no corner box (maps elsewhere keep theirs). The
+sales record's own columns are in the picker as **💰 More of the sales record** (/map/sale-column: a value per sale,
+in /map/sales' order).
 
 **The legend and its controls** (2026-11-11), now in the layers: the histogram, its range,
 Reset and **Hide the rest** (the parcels or sales outside the range not drawn, nor counted in a cell, rather than drawn

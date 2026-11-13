@@ -2835,6 +2835,10 @@ export type Wording = {
       detail: string;
       hot: string;
       squares: string;
+      toSales: string;
+      toParcels: string;
+      salesOnly: string;
+      underneath: string;
     };
     showPu: string;
     showSr: string;
@@ -2868,6 +2872,7 @@ export type Wording = {
     followOnTip: string;
     followOffTip: string;
     srTitle: string;
+    scTitle: string;
     sr: {
       price: string;
       year: string;

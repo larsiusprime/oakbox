@@ -3473,7 +3473,11 @@
       "street": "Street map",
       "detail": "Detail",
       "hot": "Hot spot",
-      "squares": "squares now: zoom in for shapes"
+      "squares": "Squares now, each summing up its parcels: zoom in for the shapes.",
+      "toSales": "💰 Sales",
+      "toParcels": "🌐 Parcels",
+      "salesOnly": "sales only",
+      "underneath": "underneath"
     },
     "showPu": "🌐 Parcel universe",
     "showSr": "💰 Sales record",
@@ -3504,6 +3508,7 @@
     "followOnTip": "The map shows what the step you''re on is about (its field), as you go. Choosing a field here, or this button, stops it.",
     "followOffTip": "Show what each step is about as you go.",
     "srTitle": "💰 Sales Record: its sales, at their parcels",
+    "scTitle": "💰 More of the sales record",
     "sr": {
       "price": "Sale price",
       "year": "Sale date",
