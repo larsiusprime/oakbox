@@ -6,7 +6,7 @@
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import { GeoJsonLayer, PolygonLayer, ScatterplotLayer, SolidPolygonLayer } from "@deck.gl/layers";
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
-import { ExternalLink, Maximize2, Minimize2 } from "lucide-react";
+import { ExternalLink, Link, Maximize2, Minimize2, Unlink } from "lucide-react";
 import type * as maplibregl from "maplibre-gl";
 import {
   type ReactNode,
@@ -446,26 +446,21 @@ function MapPanel({
   return (
     <div className="mapwin-in">
       <header className="mapwin-head">
-        <b className="mapwin-title">
-          🗺 {w.title}
-        </b>
-        <Tip
-          text={`${
-            dock.follow
-              ? takeOver
-                ? w.following({ step: takeOver.title })
-                : target
-                  ? w.following({ step: target.title })
-                  : w.followIdle
-              : w.backToFollowing
-          }. ${dock.follow ? w.followOnTip : w.followOffTip}`}
-        >
+        <b className="mapwin-title">🗺 {w.title}</b>
+        {/* Linked to the steps (Follow, SPEC §3.15): a link, whole and blue while it is, broken while not; why the
+            map shows its field is in the layers. */}
+        <Tip text={dock.follow ? w.link.onTip : w.link.offTip}>
           <Button
-            className={`mapwin-follow ${following ? "on" : ""}`}
+            className={`mapwin-link ${dock.follow ? "on" : ""}`}
             aria-pressed={dock.follow}
+            aria-label={dock.follow ? w.link.on : w.link.off}
             onPress={() => setDock({ follow: !dock.follow })}
           >
-            {dock.follow ? w.followIdle : w.followOff}
+            {dock.follow ? (
+              <Link aria-hidden="true" size="1.05em" strokeWidth={2.4} />
+            ) : (
+              <Unlink aria-hidden="true" size="1.05em" strokeWidth={2.4} />
+            )}
           </Button>
         </Tip>
         {!takeOver && m?.status === "ready" && (
@@ -512,12 +507,6 @@ function MapPanel({
           />
         </span>
       </header>
-      {/* Nothing on this step to map: it says so, and holds what it showed (SPEC §3.15). */}
-      {dock.follow && !takeOver && target === null && m?.status === "ready" && field && (
-        <div className="mapwin-banner mapwin-hold" role="status">
-          {w.hold({ shown: field.label })}
-        </div>
-      )}
       {takeOver && (
         <div key={flashAt} className={`mapwin-banner ${flashAt ? "flash" : ""}`} role="status">
           <b>{takeOver.title}:</b> {takeOver.instruction}
@@ -582,6 +571,24 @@ function MapPanel({
           side={side}
           size={dock.size}
           colourBy={colourBy}
+          why={
+            following && target ? (
+              <span className="mapwin-ly-why on">
+                <Link aria-hidden="true" size="1em" /> {w.link.from({ step: target.title })}
+              </span>
+            ) : dock.follow ? (
+              <span className="mapwin-ly-why on">
+                <Link aria-hidden="true" size="1em" /> {w.link.nothing}
+              </span>
+            ) : (
+              <span className="mapwin-ly-why">
+                {w.link.yours}{" "}
+                <SmallButton onPress={() => setDock({ follow: true })}>
+                  <Link aria-hidden="true" size="0.9em" /> {w.link.again}
+                </SmallButton>
+              </span>
+            )
+          }
         />
       )}
     </div>
@@ -967,6 +974,7 @@ function MapBody({
   side,
   size,
   colourBy,
+  why,
 }: {
   projectId: string;
   info: MapInfo;
@@ -985,6 +993,8 @@ function MapBody({
   size: number;
   /** The field picker (and its size), for the layers. */
   colourBy: ReactNode;
+  /** Why the map shows its field: from the step (linked), or the user's own choice. */
+  why: ReactNode;
 }) {
   const prId = fieldId?.startsWith("pr:") ? fieldId : null;
   const lyOn = fieldId === LAYERS;
@@ -1451,6 +1461,7 @@ function MapBody({
           : undefined,
       }}
       colourBy={colourBy}
+      why={why}
       legend={legendBody}
       base={[{ id: "street", name: w.ly.street, shown: streetOn, onShown: (on) => setDock({ street: on }) }]}
     />

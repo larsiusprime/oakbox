@@ -562,7 +562,7 @@ When the other record has the same field (loaded as the same field, else a colum
 data layer, the **Street map** with its own 👁 (it starts as Settings says, then is this map's own). The 👁s, 📌 and
 fold are plain icons, no buttons around them (an exception to AGENTS.md's rule, 2026-11-13). 📌 pins the panel as a
 drawer at the map's left, which narrows the map instead of covering it, and unpins it; ⌃ folds it back to the chip.
-Which of the three it is, is remembered. The window's top bar: 🗺 Map, Follow (the field is in the layers, not repeated there), **Detail** (the Map
+Which of the three it is, is remembered. The window's top bar: 🗺 Map, the **link** (Follow, 2026-11-13: a whole link on blue while linked to the steps, a broken one on white while not; the layers say why under the picker: "From the step you're on: …", "Linked; this step has nothing to show, so the last one stays" (the banner that said so is gone), or "Your choice." with **Follow the steps**), (the field is in the layers, not repeated there), **Detail** (the Map
 detail of SPEC §5), and the window's buttons; the map itself has no corner box (maps elsewhere keep theirs). The
 sales record's own columns are in the picker as **💰 More of the sales record** (/map/sale-column: a value per sale,
 in /map/sales' order).

@@ -6692,6 +6692,37 @@ html[data-map="top"] .oak-nav {
 .mapwin-field .combo-input {
   width: 100%;
 }
+/* Linked to the steps: a whole link on blue; not, a broken one on white. */
+.mapwin-link {
+  display: inline-grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.7rem;
+  padding: 0;
+  border: 1px solid #6b6e72;
+  border-radius: 4px;
+  background: #fff;
+  color: #6b6e72;
+  cursor: pointer;
+}
+.mapwin-link.on {
+  border-color: #1d5bb8;
+  background: #1d5bb8;
+  color: #fff;
+}
+.mapwin-link[data-hovered] {
+  border-color: #1d5bb8;
+}
+.mapwin-ly-why {
+  font-size: 0.8rem;
+  color: var(--muted, #5f6159);
+}
+.mapwin-ly-why.on {
+  color: #1d5bb8;
+}
+.mapwin-ly-why > svg {
+  vertical-align: -0.15em;
+}
 .mapwin-follow {
   padding: 0.1rem 0.55rem;
   border: 1px solid var(--line, #c9ccc4);

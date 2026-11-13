@@ -2869,6 +2869,16 @@ export type Wording = {
     following: (a: { step: string | number }) => string;
     followIdle: string;
     followOff: string;
+    link: {
+      on: string;
+      off: string;
+      onTip: string;
+      offTip: string;
+      from: (a: { step: string | number }) => string;
+      nothing: string;
+      yours: string;
+      again: string;
+    };
     followOnTip: string;
     followOffTip: string;
     srTitle: string;

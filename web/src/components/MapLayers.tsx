@@ -36,6 +36,7 @@ export function MapLayers({
   brief,
   data,
   colourBy,
+  why,
   legend,
   base,
 }: {
@@ -46,6 +47,8 @@ export function MapLayers({
   data: DataLayer;
   /** What it's coloured by: the field picker. */
   colourBy: ReactNode;
+  /** Why it shows that field: from the step (linked), or your own choice. */
+  why: ReactNode;
   legend: ReactNode;
   /** Under it: the street map. */
   base: BaseLayer[];
@@ -98,6 +101,7 @@ export function MapLayers({
           </div>
           {data.note && <small className="mapwin-ly-note">{data.note}</small>}
           <div className="mapwin-by">{colourBy}</div>
+          {why}
           {data.shown && <div className="mapwin-ly-legend">{legend}</div>}
         </div>
         {base.map((b) => (

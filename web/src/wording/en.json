@@ -3505,6 +3505,16 @@
     "following": "Following: {step}",
     "followIdle": "Following",
     "followOff": "Follow",
+    "link": {
+      "on": "Linked to the steps",
+      "off": "Not linked to the steps",
+      "onTip": "Linked: the map shows what the step you''re on is about, as you go. Click to unlink; choosing a field yourself unlinks it too.",
+      "offTip": "Not linked: the map stays on your choice. Click to follow the steps again.",
+      "from": "From the step you''re on: {step}",
+      "nothing": "Linked; this step has nothing to show, so the last one stays.",
+      "yours": "Your choice.",
+      "again": "Follow the steps"
+    },
     "followOnTip": "The map shows what the step you''re on is about (its field), as you go. Choosing a field here, or this button, stops it.",
     "followOffTip": "Show what each step is about as you go.",
     "srTitle": "💰 Sales Record: its sales, at their parcels",
