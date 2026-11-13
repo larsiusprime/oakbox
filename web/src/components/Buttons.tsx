@@ -24,14 +24,21 @@ export function SmallButton({ children, ...props }: Base & { children: ReactNode
 export function ToolButton({
   label,
   pressed,
+  plain = false,
   children,
   ...props
-}: Omit<Base, "aria-label" | "aria-pressed"> & { label: string; pressed?: boolean; children: ReactNode }) {
+}: Omit<Base, "aria-label" | "aria-pressed"> & {
+  label: string;
+  pressed?: boolean;
+  /** Just its icon, no button around it (the map's layers: 👁, 📌, fold; AGENTS.md's one exception). */
+  plain?: boolean;
+  children: ReactNode;
+}) {
   return (
     <Tip text={label}>
       <Button
         {...props}
-        className="tool-button"
+        className={plain ? "tool-button tool-plain" : "tool-button"}
         aria-label={label}
         {...(pressed !== undefined ? { "aria-pressed": pressed } : {})}
       >

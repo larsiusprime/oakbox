@@ -214,6 +214,7 @@ export function RangedBars({
   pair = false,
   label,
   extra,
+  ticks = 6,
 }: {
   quantiles: number[];
   count: number;
@@ -229,6 +230,8 @@ export function RangedBars({
   label: string;
   /** More on the bounds' line, after Reset (the map's Hide the rest). */
   extra?: React.ReactNode;
+  /** How many values the axis names, at most (fewer in a narrow legend, so they don't run together). */
+  ticks?: number;
 }) {
   const [autoLo, autoHi] = auto;
   const own: Extent | null =
@@ -241,7 +244,7 @@ export function RangedBars({
   const show = (x: number) => `${prefix}${edge(x, year)}`;
   const bars = barsFrom(qs, count, r.range, year);
   const top = Math.max(1, ...bars.map((b) => b.n));
-  const every = Math.max(1, Math.ceil(bars.length / 6));
+  const every = Math.max(1, Math.ceil(bars.length / ticks));
   // Overflow: the values under and over the range shown, a bar at each end (capped at the chart's height, so a
   // crowd past an end can't flatten the bars in the range; a capped one says so with its dashed top).
   const shownRange = r.range;
@@ -432,6 +435,8 @@ function Bound({
       type="text"
       inputMode="decimal"
       className="fh-bound"
+      // As wide as what it holds (and a little), not a fixed width that overflows a narrow legend.
+      style={{ width: `calc(${Math.max(4, (draft ?? shown).length + 1)}ch + 14px)` }}
       aria-label={label}
       value={draft ?? shown}
       onChange={(e) => setDraft(e.target.value)}

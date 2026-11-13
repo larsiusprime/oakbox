@@ -60,13 +60,14 @@ export function MapLayers({
         <Layers aria-hidden="true" size="1.05em" className="mapwin-ly-icon" />
         <b>{w.ly.title}</b>
         <ToolButton
+          plain
           label={pinned ? w.ly.unpin : w.ly.pin}
           pressed={pinned}
           onPress={() => onState(pinned ? "open" : "pinned")}
         >
           <Pin aria-hidden="true" size="1em" {...(pinned ? { fill: "currentColor" } : {})} />
         </ToolButton>
-        <ToolButton label={w.ly.close} onPress={() => onState("closed")}>
+        <ToolButton plain label={w.ly.close} onPress={() => onState("closed")}>
           <ChevronDown aria-hidden="true" size="1em" />
         </ToolButton>
       </div>
@@ -88,6 +89,7 @@ function Row({ row }: { row: LayerRow }) {
       <div className="mapwin-ly-line">
         {row.onShown ? (
           <ToolButton
+            plain
             label={row.shown ? w.ly.hide(words) : w.ly.show(words)}
             pressed={row.shown}
             onPress={() => row.onShown?.(!row.shown)}

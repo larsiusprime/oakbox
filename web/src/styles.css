@@ -753,6 +753,21 @@ a.row-title:hover {
     inset 1px 1px 0 #9a9da1,
     inset -1px -1px 0 #ffffff;
 }
+/* Just the icon (the map's layers: 👁, 📌, fold): no box, no bevel; darker under the pointer. */
+.tool-button.tool-plain,
+.tool-button.tool-plain[aria-pressed="true"],
+.tool-button.tool-plain[data-pressed] {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  color: var(--muted, #5f6159);
+}
+.tool-button.tool-plain[aria-pressed="true"] {
+  color: #1d5bb8;
+}
+.tool-button.tool-plain[data-hovered] {
+  color: var(--text);
+}
 .tool-button[data-disabled] {
   color: #a9acb0;
   cursor: default;
@@ -6926,6 +6941,23 @@ html[data-map="top"] .oak-nav {
   gap: 0.25rem;
   padding: 0 0.6rem 0.5rem 2.6rem;
 }
+/* The detail level in the window's top bar: as wide as its choice, not the bar. */
+.mapwin-detail .choice,
+.mapwin-detail .choice-button {
+  flex: none;
+  width: max-content;
+  min-width: 0;
+}
+.mapwin-detail {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  max-width: 18rem;
+}
+.mapwin-detail .map-detail-warn {
+  margin: 0;
+  text-align: left;
+}
 .mapwin-ly-legend .fh-chart {
   height: 2.6rem;
 }
@@ -8045,7 +8077,7 @@ section.wiz-section:has(> .cf-tbl),
   font-size: 0.88rem;
 }
 .fh-bound {
-  width: 7rem;
+  max-width: 100%;
   padding: 1px 6px;
   border: 1px solid var(--btn-edge);
   border-radius: 3px;

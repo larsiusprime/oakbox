@@ -467,6 +467,11 @@ function MapPanel({
             {dock.follow ? w.followIdle : w.followOff}
           </Button>
         </Tip>
+        {!takeOver && m?.status === "ready" && (
+          <span className="mapwin-detail">
+            <DetailSwitch now={{ squares: false, parcels: m.parcels }} label={w.ly.detail} />
+          </span>
+        )}
         <span className="mapwin-tools">
           {mode === "docked" &&
             !narrow &&
@@ -1286,6 +1291,7 @@ function MapBody({
               linkKey={linkKey}
               label={w.spread({ field: label })}
               extra={hideToggle}
+              ticks={3}
             />
             {per && by === "price" && (sales.data?.unsized ?? 0) > 0 && (
               <small className="mapwin-share">
@@ -1318,6 +1324,7 @@ function MapBody({
             linkKey={linkKey}
             label={w.spread({ field: label })}
             extra={hideToggle}
+            ticks={3}
           />
           {per && col.data.unsized > 0 && (
             <small className="mapwin-share">
@@ -1386,7 +1393,6 @@ function MapBody({
           onShown: (on) => setDock({ showPu: on }),
           ...(colouresSales ? {} : { legend: legendBody }),
           ...(nowDetail?.squares ? { brief: <small className="mapwin-how">{w.ly.squares}</small> } : {}),
-          ...(nowDetail ? { options: <DetailSwitch now={nowDetail} label={w.ly.detail} /> } : {}),
         },
         ...(noSales
           ? []
