@@ -550,9 +550,9 @@ apart: how many values are under and over the range shown (capped at the chart's
 alone (the row group holding it, or the one feature), not column by column: 0.2 s a card on Guilford, the first after
 opening a few seconds (the sales' comparison, shared with the problems).
 
-**Layers and legend** (2026-11-12, one data layer 2026-11-13): one thing, over the map's bottom left. Closed, a chip
+**Layers and legend** (2026-11-12, one data layer 2026-11-13): one thing, flush in the map's top left corner (the zoom buttons top right). Closed, a chip
 with the legend in brief (the ramp or a category's first colours, a problem's count and share, the field's name);
-pressed, it opens up into a panel holding **one data layer**, the record the field is from, so it's always plain which
+pressed, it opens down into a panel holding **one data layer**, the record the field is from, so it's always plain which
 is shown: **🌐 Parcels** (a parcel field, a problem of the parcels, the steps' outputs) or **💰 Sales** (the sales
 record's price, date, valid, vacant, any other of its columns, a problem of the sales), its count beside it. The
 sales are a dot each, the parcels under them only faint outlines (where they are); zoomed out, squares of the sales.
@@ -561,8 +561,8 @@ When the other record has the same field (loaded as the same field, else a colum
 `twin`), a button switches to it (⇄ 💰 Sales, ⇄ 🌐 Parcels); a field only the sales have says "sales only". Under the
 data layer, the **Street map** with its own 👁 (it starts as Settings says, then is this map's own). The 👁s, 📌 and
 fold are plain icons, no buttons around them (an exception to AGENTS.md's rule, 2026-11-13). 📌 pins the panel as a
-drawer at the map's left, which narrows the map instead of covering it, and unpins it; ⌄ folds it back to the chip.
-Which of the three it is, is remembered. The window's top bar: 🗺 Map · 🌐/💰 the field, Follow, **Detail** (the Map
+drawer at the map's left, which narrows the map instead of covering it, and unpins it; ⌃ folds it back to the chip.
+Which of the three it is, is remembered. The window's top bar: 🗺 Map, Follow (the field is in the layers, not repeated there), **Detail** (the Map
 detail of SPEC §5), and the window's buttons; the map itself has no corner box (maps elsewhere keep theirs). The
 sales record's own columns are in the picker as **💰 More of the sales record** (/map/sale-column: a value per sale,
 in /map/sales' order).

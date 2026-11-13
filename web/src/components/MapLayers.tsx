@@ -1,4 +1,4 @@
-/** The map window's layers and legend (SPEC §3.15), one thing: closed, a chip over the map's corner with the legend
+/** The map window's layers and legend (SPEC §3.15), one thing: closed, a chip in the map's top left corner with the legend
  * in brief (pressed, it opens); open, a panel over the map; pinned (📌), the same as a drawer beside the map, which
  * it narrows. It holds one data layer, the record the field is from: 🌐 Parcels or 💰 Sales (the parcels then only
  * faint outlines under the dots), with its 👁, what it's coloured by, its legend, and a switch to the same field in
@@ -60,7 +60,7 @@ export function MapLayers({
       >
         <Layers aria-hidden="true" size="1.05em" className="mapwin-ly-icon" />
         <span className="mapwin-ly-brief">{brief}</span>
-        <ChevronUp aria-hidden="true" size="1em" />
+        <ChevronDown aria-hidden="true" size="1em" />
       </Button>
     );
   const pinned = state === "pinned";
@@ -78,7 +78,7 @@ export function MapLayers({
           <Pin aria-hidden="true" size="1em" {...(pinned ? { fill: "currentColor" } : {})} />
         </ToolButton>
         <ToolButton plain label={w.ly.close} onPress={() => onState("closed")}>
-          <ChevronDown aria-hidden="true" size="1em" />
+          <ChevronUp aria-hidden="true" size="1em" />
         </ToolButton>
       </div>
       <div className="mapwin-ly-scroll">

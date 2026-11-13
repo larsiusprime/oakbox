@@ -414,14 +414,6 @@ function MapPanel({
     choices.find((f) => f.id === dock.field) ??
     m?.fields[0] ??
     null;
-  // The record the field shown is from, before its name: 💰 the sales record's (its fields, its columns, a problem
-  // of its), 🌐 the parcels'.
-  const onSr =
-    !!field &&
-    (field.id.startsWith("sr:") ||
-      field.id.startsWith("sc:") ||
-      (probs?.items ?? []).some((x) => x.id === field.id && x.on === "sr"));
-  const recordMark = field && field.id !== LAYERS ? (onSr ? "💰 " : "🌐 ") : "";
   // What it's coloured by (in the layers, SPEC §3.15): the field, and a value's size to divide it by.
   const colourBy =
     m?.status === "ready" && m.fields.length > 0 ? (
@@ -456,13 +448,6 @@ function MapPanel({
       <header className="mapwin-head">
         <b className="mapwin-title">
           🗺 {w.title}
-          {!takeOver && field && (
-            <span className="mapwin-title-field">
-              {" "}
-              · {recordMark}
-              {field.label}
-            </span>
-          )}
         </b>
         <Tip
           text={`${

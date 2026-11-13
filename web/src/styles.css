@@ -5327,7 +5327,8 @@ under what it's about; a file appended as rows {
 }
 /* The zoom buttons over the dots and squares too: deck.gl's drawing goes into their corner, after them (top left,
    at the corner's z-index), so the buttons are lifted inside it. */
-.map-view .maplibregl-ctrl-top-left > .maplibregl-ctrl {
+.map-view .maplibregl-ctrl-top-left > .maplibregl-ctrl,
+.map-view .maplibregl-ctrl-top-right > .maplibregl-ctrl {
   position: relative;
   z-index: 1;
 }
@@ -6682,10 +6683,6 @@ html[data-map="top"] .oak-nav {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.mapwin-title-field {
-  font-weight: normal;
-  color: var(--muted, #5f6159);
-}
 /* Starts small and grows to fill the line (to 22rem): the per box and Follow fit beside it before anything wraps. */
 .mapwin-field {
   min-width: 0;
@@ -6798,16 +6795,17 @@ html[data-map="top"] .oak-nav {
 .mapwin-map .map-street {
   z-index: 3;
 }
-/* The layers and legend (components/MapLayers): a chip at the map's bottom left (closed), a panel growing up from
+/* The layers and legend (components/MapLayers): a chip at the map's top left (closed), a panel growing down from
    it (open), or a drawer at the map's left that narrows it (pinned). */
 .mapwin-body.ly-pinned {
   flex-direction: row;
 }
-/* Flush in the map's bottom left corner: only its top and right edges show, the top right rounded. */
+/* Flush in the map's top left corner, under the window's top bar: only its right and bottom edges show, the bottom
+   right rounded. */
 .mapwin-ly-over {
   position: absolute;
   left: 0;
-  bottom: 0;
+  top: 0;
   z-index: 4;
   display: flex;
   max-width: calc(100% - 0.6rem);
@@ -6816,8 +6814,8 @@ html[data-map="top"] .oak-nav {
 .mapwin-ly-over > .mapwin-ly-chip,
 .mapwin-ly-over > .mapwin-ly.floating {
   border-left: none;
-  border-bottom: none;
-  border-radius: 0 6px 0 0;
+  border-top: none;
+  border-radius: 0 0 6px 0;
 }
 .mapwin-ly-chip {
   display: inline-flex;
@@ -7052,12 +7050,13 @@ html[data-map="top"] .oak-nav {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
   font-size: 0.85rem;
 }
+/* Floating, it starts at the map's top right, left of the zoom buttons (there in the map window). */
 .mapcard-float {
   position: absolute;
-  top: 2.6rem;
-  right: 0.6rem;
-  width: min(24rem, calc(100% - 4rem));
-  max-height: calc(100% - 3.4rem);
+  top: 0.6rem;
+  right: 3.2rem;
+  width: min(24rem, calc(100% - 6.6rem));
+  max-height: calc(100% - 1.2rem);
 }
 .mapcard-float .mapcard-head {
   cursor: move;

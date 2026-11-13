@@ -214,7 +214,7 @@ function MapCanvas({
   const street = bare ? startStreet : streetOwn;
   const [ready, setReady] = useState(false);
   const styleUrl = useAppSettings().data?.map_style;
-  const first = useRef({ bounds, scrollZoom, onMap, interleaved });
+  const first = useRef({ bounds, scrollZoom, onMap, interleaved, bare });
 
   // The map, once.
   useEffect(() => {
@@ -243,7 +243,11 @@ function MapCanvas({
       document.addEventListener("pointerdown", off);
       document.addEventListener("focusin", off);
     }
-    m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+    // The map window (bare) keeps its top left for its layers: the zoom goes top right there.
+    m.addControl(
+      new maplibregl.NavigationControl({ showCompass: false }),
+      first.current.bare ? "top-right" : "top-left",
+    );
     const o = new MapboxOverlay({ interleaved: inCanvas, layers: [] });
     m.addControl(o);
     m.on("load", () => setReady(true));
