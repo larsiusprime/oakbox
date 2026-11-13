@@ -356,6 +356,7 @@
     },
     "addFile": "Add a file…",
     "readingChosen": "Reading {file} for this step (a big file takes a while)",
+    "readingColumn": "Reading {column}",
     "orExisting": "Or use a file already in the project",
     "noPicker": "Adding a file needs the file picker, which is only in the OAK box window.",
     "geometryFound": "✓ Geometry detected",

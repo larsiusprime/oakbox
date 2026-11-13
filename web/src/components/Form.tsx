@@ -17,7 +17,7 @@ import {
   Text,
   TextField,
 } from "react-aria-components";
-import { useAtOnce } from "../lib/hooks";
+import { afterPaint, useAtOnce } from "../lib/hooks";
 import { Combo, Marked, matches, TYPE_FROM } from "./Combo";
 import { FileName } from "./FileEntry";
 import { Tip } from "./Tip";
@@ -82,7 +82,8 @@ export function Choice<V extends string>(props: {
   const onPick = (v: V) => {
     if (v === value) return; // picked again: nothing to save
     pick_(v);
-    props.onChange(v);
+    // Shown chosen and closed first; then what it starts.
+    afterPaint(() => props.onChange(v));
   };
   const aside = (v: V) => props.aside?.[v] && <span className="choice-aside">{props.aside[v]}</span>;
   if (props.options.length >= TYPE_FROM) {

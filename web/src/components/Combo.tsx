@@ -14,6 +14,7 @@ import {
   ListBox,
   Popover,
 } from "react-aria-components";
+import { afterPaint, useAtOnce } from "../lib/hooks";
 import { t } from "../wording";
 
 /** Dropdowns with this many choices or more can be typed in. */
@@ -82,14 +83,20 @@ export function Combo({
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const arrow = useRef<HTMLButtonElement>(null);
+  // What was picked shows at once and the list closes (AGENTS.md); the work it starts (a save, a file read) only
+  // after that's on screen.
+  const [value, pick] = useAtOnce(selectedKey);
   const [shown, total] = count(query);
   return (
     <ComboBox
       className={className}
-      selectedKey={selectedKey}
+      selectedKey={value}
       onSelectionChange={(k) => {
         setQuery("");
-        if (k !== null) onChange(String(k));
+        if (k === null || String(k) === value) return;
+        const key = String(k);
+        pick(key);
+        afterPaint(() => onChange(key));
       }}
       onInputChange={setQuery}
       onOpenChange={(isOpen, how) => {

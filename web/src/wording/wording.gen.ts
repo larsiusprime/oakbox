@@ -152,6 +152,7 @@ export type Wording = {
     }>;
     addFile: string;
     readingChosen: (a: { file: string | number }) => string;
+    readingColumn: (a: { column: string | number }) => string;
     orExisting: string;
     noPicker: string;
     geometryFound: string;

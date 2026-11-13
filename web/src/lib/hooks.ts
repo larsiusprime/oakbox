@@ -47,3 +47,9 @@ export function useAtOnce<T>(value: T): [T, (v: T) => void] {
   const shown = mine && mine.over === now ? mine.v : value;
   return [shown, (v: T) => setMine({ v, over: now })];
 }
+
+/** After the browser has painted what's on screen now (two frames): a choice shown chosen, its list closed, before
+ * the work it starts (AGENTS.md: instant feedback first). */
+export function afterPaint(f: () => void) {
+  requestAnimationFrame(() => requestAnimationFrame(f));
+}

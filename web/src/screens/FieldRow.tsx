@@ -18,6 +18,7 @@ import { Choice } from "../components/Form";
 import { SummonMap } from "../components/ShowOnMap";
 import { TipOn } from "../components/Tip";
 import { ValuesButton } from "../components/ValuesButton";
+import { Waiting } from "../components/Waiting";
 import { say, t } from "../wording";
 import { DateDialog, NumberDialog, RuleDialog, ruleComplete } from "./FieldRules";
 import { ABSENT, PAIRS, SCALED } from "./Quality";
@@ -98,6 +99,8 @@ export function FieldRow({
         : NONE;
   const sourceFile = source ? files.find((f) => f.name === source.file) : undefined;
   const column = source && sourceFile?.columns.find((c) => c.name === source.column);
+  // The column just chosen, while it's read and saved: the row says so in place.
+  const [reading, setReading] = useState<string | null>(null);
   const pick = (v: string) => {
     if (v === ASSUME) setDialog("assume");
     else if (v === ABSENT) void change({ kind: "field", key: field.key, absent: true }).catch(() => {});
@@ -105,6 +108,7 @@ export function FieldRow({
     else if (v === NONE) void change({ kind: "field", key: field.key }).catch(() => {});
     else {
       const [file, col] = v.split("\u0000");
+      setReading(col ?? null);
       void change({
         kind: "field",
         key: field.key,
@@ -121,7 +125,8 @@ export function FieldRow({
           if (field.key === "sale_price" && now?.check && (!now.check.ok || now.check.warn))
             setDialog("number");
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setReading(null));
     }
   };
   // What changes how the column is read, if anything: the reading is its button.
@@ -189,7 +194,10 @@ export function FieldRow({
         )}
       </div>
       <div className="wiz-samples">
-        {field.assumed ? (
+        {reading ? (
+          // The column chosen is read for the field (a big file takes a while): said here, beside it.
+          <Waiting doing={w.readingColumn({ column: reading })} className="waiting wiz-reading" />
+        ) : field.assumed ? (
           <span className="wiz-warn">
             {w.assumed}: {w.assumedValue[field.key]}
           </span>
