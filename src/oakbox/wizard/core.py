@@ -6,6 +6,7 @@ ID and the fields. It brings the sections (checks, rules, money, quality, condos
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 from pathlib import Path
 from typing import cast
 
@@ -701,19 +702,23 @@ def _loose(v: str) -> str:
 # A column's distinct values compared, at most this many (spread evenly through them): a guess needs the share that
 # match, not every value (an 838,000-sale file's 16 columns took 28 s one value at a time, OAK box 2026-11-13).
 GUESS_SAMPLE = 20_000
+SAMPLE_ROWS = 100_000
 
 
-def _loose_set(values) -> set[str]:
-    """IDs compared loosely (as _loose), all at once: distinct, blanks dropped."""
-    import pandas as pd
+@lru_cache(maxsize=16)
+def _loose_set(values: tuple[str, ...]) -> frozenset[str]:
+    """IDs compared loosely (as _loose), all at once in Arrow: distinct, blanks dropped (a parcel universe's
+    500,000 took 1.5 s one at a time)."""
+    import pyarrow as pa
+    import pyarrow.compute as pc
 
-    distinct = sorted({v for v in values if v})
-    if not distinct:
-        return set()
-    s = pd.Series(distinct, dtype=object).str.replace(r"[^0-9A-Za-z]", "", regex=True).str.lstrip("0").str.upper()
-    out = set(s.tolist())
-    out.discard("")
-    return out
+    if not values:
+        return frozenset()
+    a = pc.unique(pa.array(values, type=pa.string()))  # pyright: ignore[reportAttributeAccessIssue]
+    a = pc.replace_substring_regex(a, pattern="[^0-9A-Za-z]", replacement="")  # pyright: ignore[reportAttributeAccessIssue]
+    a = pc.utf8_upper(pc.utf8_ltrim(a, characters="0"))  # pyright: ignore[reportAttributeAccessIssue]
+    out = frozenset(a.to_pandas().tolist())
+    return out - {""}
 
 
 def _spread(values, n: int) -> list[str]:
@@ -722,7 +727,10 @@ def _spread(values, n: int) -> list[str]:
     import numpy as np
     import pandas as pd
 
-    distinct = [v for v in list(pd.unique(np.asarray(values, dtype=object))) if v]
+    # A long column: its distinct values from an even sample of its rows (finding every distinct value of 838,000
+    # rows, for each of a file's columns, took 2 s).
+    rows = values if len(values) <= 5 * SAMPLE_ROWS else values[:: len(values) // SAMPLE_ROWS]
+    distinct = [v for v in list(pd.unique(np.asarray(rows, dtype=object))) if v]
     if len(distinct) <= n:
         return distinct
     step = len(distinct) / n
@@ -731,14 +739,14 @@ def _spread(values, n: int) -> list[str]:
 
 def _best_match(files: Files, name: str, target: DataFile, field: str) -> str | None:
     """The column of a file whose values best match a target's IDs, compared loosely; None under 30%."""
-    want = _loose_set(files.ids(target.name, field))
+    want = _loose_set(tuple(files.ids(target.name, field)))
     if not want:
         return None
     best: tuple[float, str] | None = None
     for c in files.columns(name)[:60]:
         if c.type not in ("text", "number"):
             continue
-        values = _loose_set(_spread(files.values(name, c.name), GUESS_SAMPLE))
+        values = _loose_set(tuple(_spread(files.values(name, c.name), GUESS_SAMPLE)))
         if not values:
             continue
         share = len(values & want) / len(values)

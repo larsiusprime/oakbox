@@ -82,8 +82,11 @@ def _unmatched(files: Files, f: DataFile, base: DataFile) -> tuple[set[str], int
 
 @lru_cache(maxsize=16)
 def _missing_of(ids: tuple[str, ...], known: frozenset[str]) -> tuple[set[str], int]:
-    missing = [v for v in ids if v and v not in known]
-    return set(missing), len(missing)
+    import pandas as pd
+
+    s = pd.Series(ids, dtype=object)
+    missing = s[(s != "") & ~s.isin(known)]
+    return set(missing.tolist()), len(missing)
 
 
 def diagnose_missing(project: Project, files: Files, out: list[WizardFile]) -> None:

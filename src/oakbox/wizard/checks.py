@@ -101,13 +101,15 @@ def _tally(values: tuple[str, ...]) -> tuple[int, int, int, int, int]:
 @lru_cache(maxsize=32)
 def present_ids(values: tuple[str, ...]) -> frozenset[str]:
     """An ID column's distinct IDs, blanks left out."""
-    return frozenset(v for v in values if v)
+    return frozenset(values) - {""}
 
 
 @lru_cache(maxsize=32)
 def _rows_found(values: tuple[str, ...], known: frozenset[str]) -> int:
-    """How many of an ID column's rows (with an ID) have one in known."""
-    return sum(1 for v in values if v and v in known)
+    """How many of an ID column's rows (with an ID) have one in known: tested in pandas, not one by one."""
+    import pandas as pd
+
+    return int(pd.Series(values, dtype=object).isin(known - {""}).sum())
 
 
 def _repeats_of(files: Files, name: str, field: str) -> Repeats:

@@ -242,13 +242,35 @@ def detect_number_format(values: tuple[str, ...], style: str) -> tuple[NumberFor
 @lru_cache(maxsize=64)
 def read_numbers(stamp: tuple[str, float, int], layer: str | None, column: str, fmt: str) -> tuple[float, ...]:
     """The column read by OpenAVMKit's own calc, as number_calc writes it for the format (JSON)."""
+    # The calc reads each value on its own: it's run on each distinct value once, then given back to every row
+    # (838,000 prices are a few hundred thousand amounts; the calc's text clean-up took 3 s on them all).
+    import numpy as np
     import pandas as pd
+    import pyarrow as pa
+    import pyarrow.compute as pc
     from openavmkit.calculations import perform_calculations
 
-    values = pd.Series(values_of(stamp, layer, column, raw=True), dtype="string")
-    df = pd.DataFrame({number_helper("x"): values.mask(values.str.strip() == "")})
-    out = perform_calculations(df, {"x": number_calc("x", NumberFormat.model_validate_json(fmt))})["x"]
-    return tuple(float(v) for v in out.tolist())
+    number = NumberFormat.model_validate_json(fmt)
+    codes, distinct = pd.factorize(pd.Series(values_of(stamp, layer, column, raw=True), dtype=object))
+    if not len(codes):
+        return ()
+    read = np.full(len(distinct), np.nan)
+    # A plain number (digits, and a decimal point where the mark is a point) is read by the calc as itself times
+    # the scale: its clean-up steps leave it as it is. So it's read so, at once; the rest go through the calc.
+    plain_re = "^[0-9]+(\\.[0-9]+)?$" if number.decimal == "." else "^[0-9]+$"
+    plain = np.asarray(
+        pc.match_substring_regex(pa.array(list(distinct), type=pa.string()), plain_re).to_numpy(zero_copy_only=False),  # pyright: ignore[reportAttributeAccessIssue]
+        dtype=bool,
+    )
+    if plain.any():
+        read[plain] = np.asarray(pd.Series(distinct[plain]).astype(float), dtype=float) * number.scale
+    rest = ~plain
+    if rest.any():
+        values = pd.Series(distinct[rest], dtype="string")
+        df = pd.DataFrame({number_helper("x"): values.mask(values.str.strip() == "")})
+        out = perform_calculations(df, {"x": number_calc("x", number)})["x"]
+        read[rest] = np.asarray(pd.to_numeric(pd.Series(out), errors="coerce"), dtype=float)
+    return tuple(read[np.asarray(codes)].tolist())
 
 
 class NumberSample(BaseModel):
@@ -333,17 +355,27 @@ def _assessed_ratio(
 def _counts(stamp: tuple[str, float, int], layer: str | None, column: str, fmt: str) -> dict:
     """What a column read with a format comes to, worked out once per file, column and format: the sale price's
     check is shown on every wizard click (a second a click on 838,000 sales, OAK box 2026-11-13)."""
+    import numpy as np
+    import pandas as pd
+
     raw = values_of(stamp, layer, column, raw=True)
-    read = read_numbers(stamp, layer, column, fmt)
-    got = [v for v in read if v == v]
+    got = np.asarray(read_numbers(stamp, layer, column, fmt), dtype=float)
+    got = got[~np.isnan(got)]
+    # Placeholders and Excel's rounding are looked for once per distinct value, then counted by how many rows.
+    # Only what isn't a plain number can be a placeholder or Excel's rounding (1.23E+06).
+    counts = pd.Series(raw, dtype=object).value_counts()
+    odd = ~counts.index.to_series().astype(str).str.fullmatch(r"[0-9]+(\.[0-9]+)?").to_numpy(dtype=bool)
+    pairs = [(str(v), int(n)) for v, n in pd.Series(counts[odd]).items()]
+    blank = sum(n for v, n in pairs if v.strip().lower() in PLACEHOLDERS)
+    excel = sum(n for v, n in pairs if EXCEL.match(v) and abs(float(re.sub(r"[^0-9.eE+-]", "", v))) >= 1e5)
     return dict(
-        blank=sum(1 for v in raw if v.strip().lower() in PLACEHOLDERS),
-        read=len(got),
-        positive=sorted(v for v in got if v > 0),
-        zero=sum(1 for v in got if v == 0),
-        nominal=sum(1 for v in got if 0 < v < NOMINAL),
-        negative=sum(1 for v in got if v < 0),
-        excel=sum(1 for v in raw if EXCEL.match(v) and abs(float(re.sub(r"[^0-9.eE+-]", "", v))) >= 1e5),
+        blank=blank,
+        read=int(len(got)),
+        positive=np.sort(got[got > 0]).tolist(),
+        zero=int((got == 0).sum()),
+        nominal=int(((got > 0) & (got < NOMINAL)).sum()),
+        negative=int((got < 0).sum()),
+        excel=excel,
     )
 
 

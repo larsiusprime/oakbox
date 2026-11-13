@@ -40,16 +40,28 @@ class ValueCount(BaseModel):
 @lru_cache(maxsize=256)
 def value_counts(stamp: tuple[str, float, int], layer: str | None, column: str) -> tuple[tuple[str, int], ...]:
     """A column's values (trimmed, as shown) with how many rows have each, most common first; blanks as ''."""
-    counts = Counter(values_of(stamp, layer, column))
-    return tuple(sorted(counts.items(), key=lambda vc: (-vc[1], vc[0])))
+    import pandas as pd
+
+    # Counted and sorted in pandas (most common first, then by value): a price column's 600,000 distinct values
+    # took a second in Python.
+    vc = pd.Series(values_of(stamp, layer, column), dtype=object).value_counts().rename_axis("v").reset_index(name="n")
+    vc = vc.sort_values(["n", "v"], ascending=[False, True], kind="stable")
+    return tuple(zip(vc["v"].tolist(), vc["n"].astype(int).tolist(), strict=True))
 
 
 def distinct_count(files: Files, source: Source) -> int | None:
     if source.file not in files.preview or files.column(source.file, source.column) is None:
         return None
     f = files.entry(source.file)
-    counts = value_counts(file_stamp(files.in_dir / f.filename), f.layer, source.column)
-    return sum(1 for v, _ in counts if v)
+    return _distinct(file_stamp(files.in_dir / f.filename), f.layer, source.column)
+
+
+@lru_cache(maxsize=256)
+def _distinct(stamp: tuple[str, float, int], layer: str | None, column: str) -> int:
+    """How many different values a column has, blanks left out: counted, not sorted (value_counts sorts them all)."""
+    import pandas as pd
+
+    return int(pd.Series(values_of(stamp, layer, column), dtype=object).replace("", None).nunique())
 
 
 class ColumnValues(BaseModel):
