@@ -6692,26 +6692,26 @@ html[data-map="top"] .oak-nav {
 .mapwin-field .combo-input {
   width: 100%;
 }
-/* Linked to the steps: a whole link on blue; not, a broken one on white. */
+/* Linked to the steps: just the icon (as the pins), a whole link in blue; not, a broken one in grey. */
 .mapwin-link {
   display: inline-grid;
   place-items: center;
-  width: 1.9rem;
+  width: 1.7rem;
   height: 1.7rem;
   padding: 0;
-  border: 1px solid #6b6e72;
-  border-radius: 4px;
-  background: #fff;
-  color: #6b6e72;
+  border: none;
+  background: none;
+  color: var(--muted, #5f6159);
   cursor: pointer;
 }
 .mapwin-link.on {
-  border-color: #1d5bb8;
-  background: #1d5bb8;
-  color: #fff;
+  color: #1d5bb8;
 }
 .mapwin-link[data-hovered] {
-  border-color: #1d5bb8;
+  color: var(--text);
+}
+.mapwin-link.on[data-hovered] {
+  color: #154a99;
 }
 .mapwin-ly-why {
   font-size: 0.8rem;
@@ -6990,15 +6990,25 @@ html[data-map="top"] .oak-nav {
   width: max-content;
   min-width: 0;
 }
+/* Detail, and its one-time warning to its right (not under it: the bar stays one line). */
 .mapwin-detail {
   display: inline-flex;
-  flex-wrap: wrap;
+  flex: 0 1 auto;
   align-items: center;
-  max-width: 18rem;
+  gap: 0.5rem;
+  min-width: 0;
 }
 .mapwin-detail .map-detail-warn {
+  flex: 0 1 auto;
+  max-width: 24rem;
+  min-width: 0;
   margin: 0;
+  overflow: hidden;
+  font-size: 0.8rem;
+  line-height: 1.2;
   text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .mapwin-ly-legend .fh-chart {
   height: 2.6rem;

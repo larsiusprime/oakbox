@@ -404,7 +404,11 @@ export function DetailSwitch({ now, label }: { now: DetailNow; label?: string })
         />
       </span>
       {warn && detail === "max" && (
-        <small className="map-detail-note map-detail-warn" role="status">
+        <small
+          className="map-detail-note map-detail-warn"
+          role="status"
+          title={d.manyShapes({ n: now.parcels })}
+        >
           {d.manyShapes({ n: now.parcels })}
         </small>
       )}

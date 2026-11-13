@@ -3,13 +3,13 @@
  * 💰 sales, the latest first, with each sale's own values beside the parcel's and the differences flagged. Picking
  * never changes the step; only the links here go anywhere. */
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Pin } from "lucide-react";
+import { Pin, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import { api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { t } from "../wording";
-import { CloseButton, ToolButton } from "./Buttons";
+import { ToolButton } from "./Buttons";
 import { Disclose } from "./Disclose";
 import { Tip } from "./Tip";
 import { Waiting } from "./Waiting";
@@ -155,6 +155,7 @@ export function MapCard({
         <b>{c ? w.title({ key: c.key || "—" }) : "…"}</b>
         {q.isFetching && c && <span className="mapcard-busy" aria-hidden="true" />}
         <ToolButton
+          plain
           label={pinned ? w.unpinTip : w.pinTip}
           pressed={pinned}
           onPress={() => {
@@ -162,9 +163,11 @@ export function MapCard({
             onPin(!pinned);
           }}
         >
-          <Pin aria-hidden="true" size="1em" />
+          <Pin aria-hidden="true" size="1em" {...(pinned ? { fill: "currentColor" } : {})} />
         </ToolButton>
-        <CloseButton label={w.close} onPress={onClose} />
+        <ToolButton plain label={w.close} onPress={onClose}>
+          <X aria-hidden="true" size="1.05em" />
+        </ToolButton>
       </header>
       {q.error ? (
         <p className="error">{q.error.message}</p>
