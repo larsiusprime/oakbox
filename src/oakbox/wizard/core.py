@@ -698,18 +698,47 @@ def _loose(v: str) -> str:
     return re.sub(r"[^0-9A-Za-z]", "", v).lstrip("0").upper()
 
 
+# A column's distinct values compared, at most this many (spread evenly through them): a guess needs the share that
+# match, not every value (an 838,000-sale file's 16 columns took 28 s one value at a time, OAK box 2026-11-13).
+GUESS_SAMPLE = 20_000
+
+
+def _loose_set(values) -> set[str]:
+    """IDs compared loosely (as _loose), all at once: distinct, blanks dropped."""
+    import pandas as pd
+
+    distinct = sorted({v for v in values if v})
+    if not distinct:
+        return set()
+    s = pd.Series(distinct, dtype=object).str.replace(r"[^0-9A-Za-z]", "", regex=True).str.lstrip("0").str.upper()
+    out = set(s.tolist())
+    out.discard("")
+    return out
+
+
+def _spread(values, n: int) -> list[str]:
+    """At most n of a column's distinct values, evenly through them as they first come in the file: the same ones
+    every time."""
+    import numpy as np
+    import pandas as pd
+
+    distinct = [v for v in list(pd.unique(np.asarray(values, dtype=object))) if v]
+    if len(distinct) <= n:
+        return distinct
+    step = len(distinct) / n
+    return [distinct[int(i * step)] for i in range(n)]
+
+
 def _best_match(files: Files, name: str, target: DataFile, field: str) -> str | None:
     """The column of a file whose values best match a target's IDs, compared loosely; None under 30%."""
-    want = {_loose(v) for v in files.ids(target.name, field) if v}
-    want.discard("")
+    want = _loose_set(files.ids(target.name, field))
     if not want:
         return None
     best: tuple[float, str] | None = None
     for c in files.columns(name)[:60]:
         if c.type not in ("text", "number"):
             continue
-        values = {_loose(v) for v in files.values(name, c.name) if v}
-        values.discard("")
+        values = _loose_set(_spread(files.values(name, c.name), GUESS_SAMPLE))
         if not values:
             continue
         share = len(values & want) / len(values)
