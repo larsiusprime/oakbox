@@ -151,6 +151,7 @@ export type Wording = {
       lede: string;
     }>;
     addFile: string;
+    readingChosen: (a: { file: string | number }) => string;
     orExisting: string;
     noPicker: string;
     geometryFound: string;

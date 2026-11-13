@@ -1,7 +1,7 @@
 /** The parts of the Data wizard's file steps that other steps use too: choosing a file, its header, its ID column and
  * the checks on it (repeated and blank IDs, how many find their parcel). */
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsMutating, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { Button, Dialog, Heading, Label, Modal, ModalOverlay, Radio } from "react-aria-components";
 import {
@@ -26,6 +26,7 @@ import { RemoveButton } from "../components/RemoveButton";
 import { SummonMap } from "../components/ShowOnMap";
 import { TipOn } from "../components/Tip";
 import { Val } from "../components/Val";
+import { Waiting } from "../components/Waiting";
 import { WarnChip } from "../components/WarnChip";
 import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../wording";
@@ -492,11 +493,27 @@ export function FilePicker({
   const canPick = useCanPickFile();
   const queryClient = useQueryClient();
   const [picked, setPicked] = useState<string | null>(null);
+  // A file added or chosen: it's read for this step (all of it, for its columns and IDs: a big one takes a while),
+  // said here until the step shows it. While the wizard reads the project again, and while the step saves it.
+  const [chosen, setChosen] = useState<string | null>(null);
+  const [settling, setSettling] = useState(false);
+  const saving = useIsMutating() > 0;
+  const choose = (name: string) => {
+    setChosen(name);
+    onChosen(name);
+  };
   const pick = async () => {
     const path = await desktop.pickFile();
     if (path) setPicked(path);
   };
   const existing = data.files.filter((f) => !exclude.includes(f.name) && !f.problem);
+  if (chosen !== null && (settling || saving)) {
+    return (
+      <FileSlot>
+        <Waiting doing={w.readingChosen({ file: chosen })} />
+      </FileSlot>
+    );
+  }
   if (picked !== null) {
     return (
       <AddFile
@@ -505,7 +522,13 @@ export function FilePicker({
         onBrowse={() => void pick()}
         onDone={() => setPicked(null)}
         onAdded={async (name) => {
-          await queryClient.invalidateQueries({ queryKey: ["wizard", project.id] });
+          setChosen(name);
+          setSettling(true);
+          try {
+            await queryClient.invalidateQueries({ queryKey: ["wizard", project.id] });
+          } finally {
+            setSettling(false);
+          }
           onChosen(name);
         }}
       />
@@ -531,7 +554,7 @@ export function FilePicker({
             value={null}
             placeholder={w.choose}
             options={existing.map((f) => [f.name, f.name, f.filename] as const)}
-            onChange={onChosen}
+            onChange={choose}
           />
         </span>
       )}
