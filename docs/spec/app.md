@@ -553,7 +553,7 @@ opening a few seconds (the sales' comparison, shared with the problems).
 **Layers and legend** (2026-11-12): one thing, over the map's bottom left. Closed, a chip with the legend in brief
 (the ramp or a category's first colours, a problem's count and share, the field's name); pressed, it opens up into a
 panel: **Colour by** (the field picker, and its size) at the top, then each layer on a line of its own with its 👁
-(shown or hidden, remembered): 🌐 Parcels (off: only the parcels with a sale; no sales record, none), 💰 Sales, and
+(shown or hidden, remembered): 🌐 Parcels, 💰 Sales (off: none of it drawn), and
 the Street map (off: the plain background; it starts as Settings says, then is this map's own). A layer's legend sits
 under its line (the sales' when they're what's coloured), its line says "squares now" while squares are drawn, and
 its options open from a ⚙ beside it (Parcels: Detail, the Map detail of SPEC §5). The panel's 📌 pins it as a drawer

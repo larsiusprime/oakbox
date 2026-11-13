@@ -1011,9 +1011,7 @@ function MapBody({
           params: { path: { project_id: projectId }, query: { per: (by === "price" && per) || "" } },
         }),
       ),
-    // Also for 🌐 off (only the parcels with a sale drawn): which parcels have one.
-    enabled:
-      !!by || (!!prId && prId.startsWith("pr:differs:")) || (showPu === false && info.sales.length > 0),
+    enabled: !!by || (!!prId && prId.startsWith("pr:differs:")),
     placeholderData: keepPreviousData,
     staleTime: Number.POSITIVE_INFINITY,
   });
@@ -1053,13 +1051,9 @@ function MapBody({
   const srSpread = by && sales.data ? spreadOf(sales.data, by) : undefined;
   const range = useRangeOf(linkKey, by ? srSpread : col.data);
   const hideOut = useDock().hideOut;
-  // 🌐 off: only the parcels in the sales record (with a sale) are drawn; 💰 off: no sales drawn.
-  // With no sales record, 🌐 off draws no parcels at all.
+  // 🌐 hidden: no parcels drawn; 💰 hidden: no sales drawn.
   const noSales = info.sales.length === 0;
-  const soldParcels = useMemo(
-    () => (showPu === false ? (noSales ? new Set<number>() : sold ? new Set(sold.parcel) : null) : null),
-    [showPu, sold, noSales],
-  );
+  const soldParcels = useMemo(() => (showPu === false ? new Set<number>() : null), [showPu]);
   const paint = useMemo(
     () =>
       onlySold(
@@ -1513,7 +1507,7 @@ type Paint = {
 
 const GONE: [number, number, number, number] = [0, 0, 0, 0];
 
-/** 🌐 off: only the parcels with a sale drawn (nor counted in a cell); the rest as if hidden. */
+/** Only these parcels drawn (nor counted in a cell); the rest as if hidden. None: 🌐 hidden. */
 function onlySold(p: Paint, sold: Set<number> | null): Paint {
   if (!sold) return p;
   const out = (i: number) => !sold.has(i) || !!p.hidden?.(i);

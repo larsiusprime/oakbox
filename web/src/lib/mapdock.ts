@@ -31,7 +31,7 @@ export type Dock = {
   /** What a step's Map button picked to follow there (SPEC §3.15): step (project/tab/step) -> field. Follow shows
    * it on that step instead of the step's own choice. */
   picks: Record<string, string>;
-  /** What's drawn (SPEC §3.15): the parcel universe (off: only parcels with a sale) and the sales record. */
+  /** What's drawn (SPEC §3.15): the parcel universe and the sales record, each shown or hidden. */
   showPu: boolean;
   showSr: boolean;
   /** The layers and legend (SPEC §3.15): a chip over the map (closed), a panel over it (open), or a drawer beside
