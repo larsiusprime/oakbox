@@ -9303,6 +9303,10 @@ th.vt-map {
   gap: 0.4rem;
   min-width: 0;
 }
+/* The Prices / Change switch as wide as its two words, not the panel. */
+.tm-panel > .seg {
+  justify-self: start;
+}
 .tm-line .choice {
   flex: 1;
   min-width: 0;
