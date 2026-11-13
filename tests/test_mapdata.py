@@ -168,6 +168,27 @@ def test_a_column_from_the_steps_outputs(client, pid):
         assert client.get(f"/api/projects/{pid}/map/column", params={"field": bad}).status_code == 404
 
 
+def test_an_output_column_with_pandas_own_blanks(client, pid):
+    """A nullable column (Float64, Int64: blanks are pd.NA, which can't be compared) maps its blanks as blank."""
+    import pandas as pd
+    from helpers import IDS
+
+    from oakbox import projects
+
+    client.put(f"/api/projects/{pid}/wizard/files/shapes", json={"universe": True, "id_column": "PARCEL_ID"})
+    _ready(client, pid)
+    out = projects.project_dir(pid) / "out" / "models" / "all_model_groups"
+    out.mkdir(parents=True)
+    q = pd.array([1.0, None, 2.5, None], dtype="Float64")
+    n = pd.array([3, None, 4, 5], dtype="Int64")
+    pd.DataFrame({"key": IDS[:4], "bldg_quality_num": q, "rooms": n}).to_parquet(out / "universe.parquet")
+    c = client.get(f"/api/projects/{pid}/map/column", params={"field": "out:modeled:bldg_quality_num"}).json()
+    v = np.frombuffer(base64.b64decode(c["values"]), dtype="<f4")
+    assert c["have"] == 2 and v[[0, 2]].tolist() == [1, 2.5] and np.isnan(v[[1, 3, 4, 5]]).all()
+    c = client.get(f"/api/projects/{pid}/map/column", params={"field": "out:modeled:rooms"}).json()
+    assert c["have"] == 3
+
+
 def test_permits_on_the_parcels(client, pid, tmp_path):
     """The permits file on the map: how many permits each parcel has (blank: none)."""
     client.put(f"/api/projects/{pid}/wizard/files/shapes", json={"universe": True, "id_column": "PARCEL_ID"})

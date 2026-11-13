@@ -645,7 +645,7 @@ def _out_column(universe_ids: tuple[str, ...], stamp: tuple[str, float, int], co
     by = {
         k: (format(v, "g") if isinstance(v, float) else str(v))
         for k, v in zip(keys, vals, strict=False)
-        if v is not None and v == v  # not blank, not NaN
+        if not pd.isna(v)  # not blank: None, NaN, or a nullable column's pd.NA
     }
     return _encode([by.get(i, "") for i in universe_ids])
 

@@ -418,7 +418,7 @@ def _keep_sales(sales, universe, tmp: Path) -> None:
     t = pd.DataFrame(t[keep]).reset_index(drop=True)
     for c in t.columns:  # mixed columns (objects of numbers and text) as text: Parquet takes one type a column
         if t[c].dtype == object:
-            t[c] = t[c].map(lambda v: None if v is None or (isinstance(v, float) and v != v) else str(v))
+            t[c] = t[c].map(lambda v: None if pd.api.types.is_scalar(v) and pd.isna(v) else str(v))
     t.to_parquet(tmp / SALES, index=False)
 
 

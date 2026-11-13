@@ -493,7 +493,7 @@ def inspect(project_dir: Path, groups: list[ModelGroup], pos: int) -> ParcelInsp
     like = np.ones(len(u), dtype=bool)
     for c in cats:
         v = u[c].iloc[pos]
-        like &= (u[c].isna() if v is None or v != v else u[c] == v).to_numpy()
+        like &= (u[c].isna() if pd.api.types.is_scalar(v) and pd.isna(v) else u[c] == v).to_numpy()
     idx = np.flatnonzero(like) if cats else np.array([pos])
     sold = set(s["pos"].tolist())
     like_text = ", ".join(f"{labels.get(c, c).lower()} {_value_text(u, pos, c)}" for c in cats)

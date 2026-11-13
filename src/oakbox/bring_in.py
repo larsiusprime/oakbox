@@ -478,7 +478,7 @@ def _write(df, path: Path) -> None:
         if isinstance(df[c].dtype, pd.CategoricalDtype) and df[c].cat.categories.dtype == object:
             df[c] = df[c].astype(object)  # categories of mixed types (dates and text): the same
         if df[c].dtype == object:
-            df[c] = df[c].map(lambda v: None if v is None or (isinstance(v, float) and v != v) else str(v))
+            df[c] = df[c].map(lambda v: None if pd.api.types.is_scalar(v) and pd.isna(v) else str(v))
     df.reset_index(drop=True).to_parquet(path, index=False, row_group_size=ROW_GROUP)
 
 
