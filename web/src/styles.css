@@ -4312,8 +4312,10 @@ tr.bi-kept > td {
 .cs-chart-button[data-hovered] .cs-enlarge {
   background: #f7f7f5;
 }
+/* Clear of the enlarge button in its top right corner: the caption wraps before it, never under it. */
 .cs-chart-cap {
   display: block;
+  padding-right: 1.9rem;
 }
 .cs-chart-open {
   grid-column: 1 / -1;
