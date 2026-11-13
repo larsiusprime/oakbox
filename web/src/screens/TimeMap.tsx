@@ -216,7 +216,7 @@ export function TimeMap({
           label={m.label}
           layers={layers}
           bounds={bounds}
-          fitKey={group.id}
+          fitKey={`${group.id}:${sales.length}`}
           tooltip={tooltip}
           bare
         />

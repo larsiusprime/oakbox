@@ -13,6 +13,7 @@ import json
 import os
 import shutil
 import time
+from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
@@ -266,9 +267,40 @@ def detail(project_dir: Path, group: str) -> TimeDetail:
     if data is None:
         raise NotFound(group)
     try:
-        return TimeDetail.model_validate(data)
+        d = TimeDetail.model_validate(data)
     except ValueError as e:  # written by an older OAK box: work it out again
         raise NotFound(group) from e
+    # Worked out before the sales had a place (or without one): placed from step 2's sales, as it wrote them.
+    if any(x.lon is None or x.lat is None for x in d.sales):
+        places = _places(project_dir)
+        for x in d.sales:
+            if (x.lon is None or x.lat is None) and x.key_sale in places:
+                x.lon, x.lat = places[x.key_sale]
+    return d
+
+
+def _places(project_dir: Path) -> dict[str, tuple[float, float]]:
+    """Each sale's place (its parcel's longitude and latitude), from step 2's hydrated sales; none when it has none."""
+    path = steps.look(project_dir, "1-assemble-sales-hydrated")
+    if not path.is_file():
+        return {}
+    return _places_of(str(path), path.stat().st_mtime)
+
+
+@lru_cache(maxsize=2)
+def _places_of(path: str, _mtime: float) -> dict[str, tuple[float, float]]:
+    import pyarrow.parquet as pq
+
+    names = pq.read_schema(path).names
+    if not {"key_sale", "latitude", "longitude"} <= set(names):
+        return {}
+    t = pq.read_table(path, columns=["key_sale", "longitude", "latitude"]).to_pandas()
+    out: dict[str, tuple[float, float]] = {}
+    for k, lon, lat in zip(t["key_sale"], t["longitude"], t["latitude"], strict=True):
+        x, y = cells.number(lon), cells.number(lat)
+        if x is not None and y is not None:
+            out[str(k)] = (x, y)
+    return out
 
 
 class TimePreview(BaseModel):

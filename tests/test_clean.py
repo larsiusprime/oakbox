@@ -1,6 +1,7 @@
 """Step 3, Check sales (SPEC F6): the calls written as OpenAVMKit's settings, the run's receipt, and the review of the
 sales set aside."""
 
+import json
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -146,6 +147,15 @@ def time_worked_out(checked_accepted, brought_in):
         shown = next((g for g in time_view["result"]["groups"] if g["curve"]), None)
         time_view["detail"] = client.get(f"{url}/time/{shown['id']}").json() if shown else None
         time_view["missing"] = client.get(f"{url}/time/no_such_group").status_code
+        if shown:
+            # Worked out by an older OAK box, its sales without a place: placed from step 2's sales as they're read.
+            path = projects.project_dir(pid) / "out" / "oakbox" / "time_preview" / "detail.json"
+            saved = json.loads(path.read_text(encoding="utf-8"))
+            for x in saved[shown["id"]]["sales"]:
+                x.pop("lon", None)
+                x.pop("lat", None)
+            path.write_text(json.dumps(saved), encoding="utf-8")
+            time_view["placed_later"] = client.get(f"{url}/time/{shown['id']}").json()
     return time_view
 
 
@@ -295,6 +305,8 @@ def test_the_time_adjustment_worked_out_alone(time_worked_out, assembled):
     assert d and d["index"] and d["sales"] and all(x["per_area"] > 0 for x in d["sales"])
     # Each sale where it is, for the step's map.
     assert all(x["lon"] is not None and x["lat"] is not None for x in d["sales"])
+    later = time_worked_out["placed_later"]
+    assert [(x["lon"], x["lat"]) for x in later["sales"]] == [(x["lon"], x["lat"]) for x in d["sales"]]
     assert time_worked_out["missing"] == 404
 
 
