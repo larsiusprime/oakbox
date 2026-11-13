@@ -26268,6 +26268,29 @@
       ],
       "title": "Adjusted",
       "description": "The price brought forward by the time adjustment."
+     },
+     "lon": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lon",
+      "description": "Where it is (its parcel's), for the step's map."
+     },
+     "lat": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lat"
      }
     },
     "type": "object",
@@ -26277,7 +26300,9 @@
      "date",
      "price",
      "per_area",
-     "adjusted"
+     "adjusted",
+     "lon",
+     "lat"
     ],
     "title": "TimeSale"
    },

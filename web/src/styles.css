@@ -9273,3 +9273,99 @@ th.vt-map {
 .vt-keep-tick {
   margin-right: 0.3em;
 }
+
+/* Time adjustment on the map (screens/TimeMap): its panel flush in the map's top left (as the map window's layers),
+   the time bar under the map. */
+.mapwin-portal > .tm-wrap {
+  padding: 0;
+}
+.tm-stage {
+  position: relative;
+}
+.tm-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  display: grid;
+  gap: 0.4rem;
+  width: min(19rem, calc(100% - 3.5rem));
+  padding: 0.45rem 0.6rem 0.55rem;
+  background: var(--paper, #fff);
+  border-right: 1px solid var(--line, #c9ccc4);
+  border-bottom: 1px solid var(--line, #c9ccc4);
+  border-radius: 0 0 6px 0;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+  font-size: 0.85rem;
+}
+.tm-line {
+  display: flex;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.tm-line .choice {
+  flex: 1;
+  min-width: 0;
+}
+.tm-ramp,
+.tm-diverge {
+  height: 0.55rem;
+  border-radius: 2px;
+  background: linear-gradient(to right, #ffffcc, #a1dab4, #41b6c4, #2c7fb8, #253494);
+}
+.tm-diverge {
+  background: linear-gradient(to right, #2c7bb6, #abd9e9, #e9e6df, #fdae61, #d7191c);
+}
+.tm-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--muted, #5f6159);
+}
+.tm-note {
+  color: var(--muted, #5f6159);
+  font-size: 0.78rem;
+}
+.tm-time {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  padding: 0.35rem 0.6rem;
+  border-top: 1px solid var(--line, #c9ccc4);
+  font-size: 0.85rem;
+}
+.tm-play {
+  display: inline-grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: 1px solid #1d5bb8;
+  border-radius: 50%;
+  background: #1d5bb8;
+  color: #fff;
+  cursor: pointer;
+}
+.tm-range {
+  flex: 1 1 8rem;
+  min-width: 6rem;
+}
+.tm-when {
+  color: var(--muted, #5f6159);
+  white-space: nowrap;
+}
+/* The window on the chart: a blue band over the sales in it. */
+.cs-twindow {
+  fill: rgb(29 91 184 / 14%);
+  stroke: #1d5bb8;
+  stroke-width: 1.5;
+}
+.cs-tsvg {
+  cursor: crosshair;
+}
+.cs-twin-note {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+}

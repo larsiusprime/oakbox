@@ -73,6 +73,8 @@ class TimeSale(BaseModel):
     price: float
     per_area: float = Field(description="Price per area, of what the index is of.")
     adjusted: float | None = Field(description="The price brought forward by the time adjustment.")
+    lon: float | None = Field(default=None, description="Where it is (its parcel's), for the step's map.")
+    lat: float | None = None
 
 
 class IndexPoint(BaseModel):
@@ -239,14 +241,18 @@ def _diagnose(g: TimeGroup, sales, settings: dict, period: str, schedule: Path, 
             price=float(p),
             per_area=float(pa),
             adjusted=cells.number(adjusted[i]) if adjusted is not None else None,
+            lon=cells.number(lon),
+            lat=cells.number(lat),
         ).model_dump()
-        for i, k, a, d, p, pa in zip(
+        for i, k, a, d, p, pa, lon, lat in zip(
             s.index,
             s["key_sale"],
             s["address"] if "address" in s else [None] * len(s),
             s["sale_date"],
             price,
             per_area,
+            cells.numbers(s, "longitude") if "longitude" in s else [None] * len(s),
+            cells.numbers(s, "latitude") if "latitude" in s else [None] * len(s),
             strict=True,
         )
         if pa > 0

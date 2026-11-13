@@ -11238,6 +11238,13 @@ export interface components {
              * @description The price brought forward by the time adjustment.
              */
             adjusted: number | null;
+            /**
+             * Lon
+             * @description Where it is (its parcel's), for the step's map.
+             */
+            lon: number | null;
+            /** Lat */
+            lat: number | null;
         };
         /** TogetherSale */
         TogetherSale: {

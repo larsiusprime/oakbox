@@ -59,6 +59,15 @@ Nothing needs an answer to run; each card says what it will do.
   area or per land area, as OpenAVMKit chose) and the period it settled on with how many periods had 5 sales; hovering a
   dot shows its address, date, price, price per area and time-adjusted price. A group indexed on land area by
   OpenAVMKit's own choice is warned about (for condos, whose land is a share of their parcel's, it's rarely right).
+  **On the map** (2026-11-13, a take-over step: screens/TimeMap): a group's sales where they are (their parcel's
+  latitude and longitude, in the preview's detail), coloured by price per area (log scale, 5th to 95th percentile),
+  with the group to show in its panel (the chart shown larger, else the first that moved). **Prices in a window**:
+  dragging across the expanded chart chooses a window in time (a blue band; a click clears it; under the chart its
+  dates, sales and median); the map colours the sales in it, the rest faint. Under the map a time bar: ▶ steps the
+  window on a month at a time, a slider moves it, its length (3, 6 or 12 months), **Every date**. **Change**: squares
+  (sized so about 18 cross the sales) each coloured by how far its median price per area moved from the first year
+  of sales to the last, beside the group's own index over the same years: grey as the index, orange faster, blue
+  slower (±20% at the ends); a square needs 8 sales in each year; hovering says how many, its change and the index's.
   **Index on** (a column per group with its own sales): **Automatic** (OpenAVMKit works it out from the sales; once
   worked out it says which, "Automatic (land area)"), **Finished area** or **Land area** (`time_adjustment.per.<group>`,
   `engine/enrich-fixes`). **No time adjustment** lists each group without one and why, in OpenAVMKit's terms (no sale

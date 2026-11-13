@@ -1385,6 +1385,38 @@ export type Wording = {
       outside: (a: { n: number }) => string;
       expand: string;
       collapse: string;
+      window: {
+        drag: string;
+        note: (a: { from: string | number; to: string | number; n: string | number; median: string | number }) => string;
+        clear: string;
+      };
+      map: {
+        instruction: string;
+        instructionSub: string;
+        label: string;
+        group: string;
+        mode: string;
+        prices: string;
+        change: string;
+        allDates: string;
+        play: string;
+        pause: string;
+        length: string;
+        months: (a: { n: number }) => string;
+        inWindow: (a: { from: string | number; to: string | number; n: string | number }) => string;
+        everyDate: (a: { n: string | number }) => string;
+        low: string;
+        high: string;
+        perArea: (a: { per: string | number }) => string;
+        changeFrom: (a: { from: string | number; to: string | number; per: string | number; index: string | number }) => string;
+        slower: string;
+        asIndex: string;
+        faster: string;
+        fewer: (a: { n: string | number }) => string;
+        cellTip: (a: { a: string | number; b: string | number; change: string | number; index: string | number; diff: string | number }) => string;
+        noPlace: string;
+        noChange: string;
+      };
       none: string;
       onLand: string;
       indexOn: string;

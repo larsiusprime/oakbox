@@ -6,11 +6,13 @@ import { Button } from "react-aria-components";
 import { api, type CleanReceipt, type CleanView, type PatternTable, unwrap } from "../api/client";
 import { POLL } from "../api/steps";
 import { Choice } from "../components/Form";
+import { OnTheMap } from "../components/OnTheMap";
 import { RunProgress } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { num, when } from "../lib/format";
 import { say, t } from "../wording";
 import { TimeChart } from "./TimeChart";
+import { TimeMap } from "./TimeMap";
 
 const s = t.sales;
 
@@ -260,6 +262,9 @@ export function TimePreviewPanel({ projectId, currency }: { projectId: string; c
   const result = v.result;
   const none = result?.groups.filter((g) => g.per_year === null) ?? [];
   const curves = result?.groups.filter((g) => g.curve.length > 1) ?? [];
+  // On the map: the group shown larger, else the first that moved (else the first at all).
+  const mapGroup =
+    curves.find((g) => g.id === open) ?? curves.find((g) => g.per_year !== null) ?? curves[0] ?? null;
   return (
     <section className="cs-step">
       <h3 className="wiz-group">{s.time.preview}</h3>
@@ -274,6 +279,22 @@ export function TimePreviewPanel({ projectId, currency }: { projectId: string; c
           <p className="wiz-from cs-text">
             {v.stale ? s.time.previewStale : s.time.previewNote({ sec: result.seconds })}
           </p>
+          {mapGroup && (
+            <OnTheMap
+              projectId={projectId}
+              step={s.time.title}
+              title={s.time.map.instruction}
+              sub={s.time.map.instructionSub}
+            >
+              <TimeMap
+                projectId={projectId}
+                groups={curves}
+                group={mapGroup}
+                setGroup={setOpen}
+                currency={currency}
+              />
+            </OnTheMap>
+          )}
           <div className="cs-charts">
             {curves.map((g) =>
               open === g.id ? (

@@ -1,11 +1,12 @@
 /** One model group's time adjustment, expanded: its index over time, drawn through the sales it's worked out from
  * (each a faint dot of its price per area, before adjustment; hover one for the sale). */
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api, unwrap } from "../api/client";
 import { LoadingBar } from "../components/Waiting";
 import { day, money, num } from "../lib/format";
 import { useWidth } from "../lib/hooks";
+import { setTimeWindow, useTimeWindow } from "../lib/timewindow";
 import { say, t } from "../wording";
 
 const s = t.sales.time;
@@ -51,6 +52,10 @@ export function TimeChart({
   });
   const [ref, width] = useWidth<HTMLDivElement>(800, 360);
   const [hover, setHover] = useState<number | null>(null);
+  // Dragging across the chart chooses a window in time (the map shows its sales); a click without a drag clears it.
+  const drag = useRef<number | null>(null);
+  const win = useTimeWindow();
+  const mine = win && win.group === group.id ? win : null;
   const d = q.data;
   // The box is always there, so its width is known before the chart is.
   if (!d || d.sales.length === 0)
@@ -103,13 +108,16 @@ export function TimeChart({
     return best;
   };
   const h0 = hover !== null ? sales[hover] : undefined;
+  const at = (px: number) =>
+    x0 + ((Math.min(Math.max(px, PAD.l), width - PAD.r) - PAD.l) / (w || 1)) * (x1 - x0);
+  const inWindow = mine ? sales.filter((x) => time(x.date) >= mine.from && time(x.date) <= mine.to) : [];
   const area = units[d.unit];
   const per = group.per === "land" ? s.perLand({ unit: area }) : s.perImpr({ unit: area });
   const by = group.period ? s.by[group.period] : null;
   return (
     <div className="cs-tchart" ref={ref}>
       <p className="wiz-from">
-        {s.chartNote({ per, n: num(sales.length) })}
+        {s.chartNote({ per, n: num(sales.length) })} {s.window.drag}
         {by && ` ${s.periodsNote({ by, ok: group.periods_ok, of: group.periods })}`}
         {outside > 0 && ` ${s.outside({ n: outside })}`}
       </p>
@@ -121,10 +129,39 @@ export function TimeChart({
         aria-label={s.chartLabel({ name: group.name })}
         onMouseMove={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
-          setHover(near(e.clientX - r.left, e.clientY - r.top));
+          const mx = e.clientX - r.left;
+          if (drag.current !== null && e.buttons === 1) {
+            if (Math.abs(mx - drag.current) > 3) {
+              const a = at(drag.current);
+              const b = at(mx);
+              setTimeWindow({ group: group.id, from: Math.min(a, b), to: Math.max(a, b) });
+            }
+            return;
+          }
+          setHover(near(mx, e.clientY - r.top));
         }}
-        onMouseLeave={() => setHover(null)}
+        onMouseDown={(e) => {
+          drag.current = e.clientX - e.currentTarget.getBoundingClientRect().left;
+        }}
+        onMouseUp={(e) => {
+          const mx = e.clientX - e.currentTarget.getBoundingClientRect().left;
+          if (drag.current !== null && Math.abs(mx - drag.current) <= 3) setTimeWindow(null);
+          drag.current = null;
+        }}
+        onMouseLeave={() => {
+          setHover(null);
+          drag.current = null;
+        }}
       >
+        {mine && (
+          <rect
+            className="cs-twindow"
+            x={X(Math.max(mine.from, x0))}
+            y={PAD.t}
+            width={Math.max(2, X(Math.min(mine.to, x1)) - X(Math.max(mine.from, x0)))}
+            height={h}
+          />
+        )}
         {ticks.map((v) => (
           <g key={v}>
             <line x1={PAD.l} x2={width - PAD.r} y1={Y(v)} y2={Y(v)} className="cs-tgrid" />
@@ -153,6 +190,19 @@ export function TimeChart({
         )}
         {line && <polyline points={line} fill="none" stroke={group.color} strokeWidth={2.5} />}
       </svg>
+      {mine && (
+        <p className="cs-twin-note">
+          {s.window.note({
+            from: day(new Date(mine.from).toISOString().slice(0, 10)),
+            to: day(new Date(mine.to).toISOString().slice(0, 10)),
+            n: num(inWindow.length),
+            median: inWindow.length ? money(median(inWindow.map((x) => x.per_area)), currency) : "—",
+          })}{" "}
+          <button type="button" className="wiz-link" onClick={() => setTimeWindow(null)}>
+            {s.window.clear}
+          </button>
+        </p>
+      )}
       {h0 && (
         <div className="cs-ttip" role="status">
           <b>{h0.address ?? h0.key_sale}</b> · {day(h0.date)}

@@ -293,6 +293,8 @@ def test_the_time_adjustment_worked_out_alone(time_worked_out, assembled):
     # The expanded chart: the index over time and every sale drawn, each with its price per area.
     d = time_worked_out["detail"]
     assert d and d["index"] and d["sales"] and all(x["per_area"] > 0 for x in d["sales"])
+    # Each sale where it is, for the step's map.
+    assert all(x["lon"] is not None and x["lat"] is not None for x in d["sales"])
     assert time_worked_out["missing"] == 404
 
 
