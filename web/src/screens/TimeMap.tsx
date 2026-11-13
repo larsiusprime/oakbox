@@ -4,9 +4,10 @@
  * coloured by how far their median price per area moved from the first year of sales to the last, beside the
  * group's own index over the same time (grey: as the index; orange: faster; blue: slower). */
 import type { PickingInfo } from "@deck.gl/core";
-import { ScatterplotLayer, SolidPolygonLayer } from "@deck.gl/layers";
+import { PolygonLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { useQuery } from "@tanstack/react-query";
 import { Pause, Play } from "lucide-react";
+import type * as maplibregl from "maplibre-gl";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "react-aria-components";
 import { api, unwrap } from "../api/client";
@@ -14,7 +15,7 @@ import { Choice } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
 import { Seg } from "../components/Seg";
 import { LoadingBar } from "../components/Waiting";
-import { LEVELS } from "../lib/detail";
+import { levelFor } from "../lib/detail";
 import { day, money, num, pct } from "../lib/format";
 import { setTimeWindow, useTimeWindow } from "../lib/timewindow";
 import { t } from "../wording";
@@ -43,6 +44,9 @@ const DIVERGE: [number, number, number][] = [
   [215, 25, 28],
 ];
 const SPREAD = 0.2;
+/** How solid a square is drawn for the sales it rests on: pale at MIN_SALES, solid at 100 (log between). */
+const strength = (n: number) =>
+  Math.round(70 + 170 * Math.min(1, Math.max(0, Math.log(n / MIN_SALES) / Math.log(100 / MIN_SALES))));
 
 type Group = { id: string; name: string; color: string; per: "impr" | "land" | null };
 export type Sale = { key: string; t: number; per: number; lon: number; lat: number };
@@ -135,10 +139,22 @@ export function TimeMap({
   const hi = Math.log(sorted[Math.ceil(sorted.length * 0.95) - 1] ?? 2);
   const place = (v: number) => (Math.log(v) - lo) / (hi - lo || 1);
 
+  // The squares can get as small as the map's own at this zoom (lib/detail.ts), where the sales allow.
+  const [mpp, setMpp] = useState<number | null>(null);
+  const finest = levelFor(mpp ?? 200);
   const cells = useMemo(
-    () => (mode === "change" ? changeCells(sales, d?.index ?? [], t0, t1) : null),
-    [mode, sales, d, t0, t1],
+    () => (mode === "change" ? changeCells(sales, d?.index ?? [], t0, t1, finest) : null),
+    [mode, sales, d, t0, t1, finest],
   );
+  const watch = (map: maplibregl.Map | null) => {
+    if (!map) return;
+    const look = () => {
+      const lat = (map.getCenter().lat * Math.PI) / 180;
+      setMpp((40_075_016.686 * Math.cos(lat)) / (512 * 2 ** map.getZoom()));
+    };
+    map.on("zoomend", look);
+    map.once("load", look);
+  };
 
   const shown = mine ? sales.filter((x) => x.t >= mine.from && x.t <= mine.to) : sales;
   const faint = mine ? sales.filter((x) => x.t < mine.from || x.t > mine.to) : [];
@@ -153,12 +169,18 @@ export function TimeMap({
             getPosition: (x) => [x.lon, x.lat],
             getFillColor: [150, 150, 150, 120],
           }),
-          new SolidPolygonLayer<Cell>({
+          new PolygonLayer<Cell>({
             id: "time-change",
             data: cells?.cells ?? [],
             pickable: true,
             getPolygon: (c) => c.polygon,
-            getFillColor: (c) => along(DIVERGE, (c.diff + SPREAD) / (2 * SPREAD), 210),
+            // Paler the fewer sales it rests on (its first or last year, whichever has fewer): solid from 100.
+            getFillColor: (c) =>
+              along(DIVERGE, (c.diff + SPREAD) / (2 * SPREAD), strength(Math.min(c.a, c.b))),
+            stroked: true,
+            getLineColor: [255, 255, 255, 160],
+            lineWidthUnits: "pixels",
+            getLineWidth: 0.5,
           }),
         ]
       : [
@@ -218,6 +240,7 @@ export function TimeMap({
           bounds={bounds}
           fitKey={`${group.id}:${sales.length}`}
           tooltip={tooltip}
+          onMap={watch}
           bare
         />
         <div className="tm-panel">
@@ -338,13 +361,21 @@ export function TimeMap({
 
 const signed = (x: number) => `${x >= 0 ? "+" : "−"}${pct(Math.abs(x))}`;
 
-/** Squares (sized so about 18 cross the sales) with their first year's and last year's median price per area: how
- * far each moved, against the index over the same years. */
+/** The largest squares, metres: each splits into four while every quarter with sales keeps MIN_SALES in both years. */
+const ROOT = 16_000;
+
+type Pt = { x: number; y: number; per: number; first: boolean };
+
+/** Squares of the sales' first and last years (a quadtree): from ROOT metres, each split into four while every
+ * quarter that has sales still has MIN_SALES in its first year and in its last, down to `finest` metres (the zoom's
+ * own square size). Each kept square: its median price per area then and now, how far that moved, against the
+ * group's index over the same years. Dense places get small squares, sparse ones stay large. */
 export function changeCells(
   sales: Sale[],
   index: { day: string; value: number }[],
   t0: number,
   t1: number,
+  finest: number,
 ): { cells: Cell[]; index: number } | null {
   if (sales.length === 0 || t1 - t0 < 1.5 * YEAR) return null;
   const firstEnd = t0 + YEAR;
@@ -356,50 +387,73 @@ export function changeCells(
   const i0 = at(t0, firstEnd);
   const i1 = at(lastStart, t1);
   const idx = i0 && i1 ? i1 / i0 - 1 : 0;
-  const lons = sales.map((x) => x.lon);
+  // Metres on a flat grid anchored at 0°, 0° (at the sales' middle latitude): the same squares whatever's shown.
   const lats = sales.map((x) => x.lat);
-  const w0 = Math.min(...lons);
-  const s0 = Math.min(...lats);
-  const lat0 = ((s0 + Math.max(...lats)) / 2) * (Math.PI / 180);
+  const lat0 = ((Math.min(...lats) + Math.max(...lats)) / 2) * (Math.PI / 180);
   const kx = 111_320 * Math.cos(lat0);
   const ky = 110_540;
-  const across = Math.max((Math.max(...lons) - w0) * kx, (Math.max(...lats) - s0) * ky);
-  const size = [...LEVELS].reverse().find((l) => across / l <= 18) ?? LEVELS[0] ?? 8000;
-  const dx = size / kx;
-  const dy = size / ky;
-  const by = new Map<string, { a: number[]; b: number[]; i: number; j: number }>();
+  const pts: Pt[] = [];
   for (const x of sales) {
     const first = x.t <= firstEnd;
-    const last = x.t >= lastStart;
-    if (!first && !last) continue;
-    const i = Math.floor((x.lon - w0) / dx);
-    const j = Math.floor((x.lat - s0) / dy);
-    const k = `${i},${j}`;
-    const c = by.get(k) ?? { a: [], b: [], i, j };
-    if (first) c.a.push(x.per);
-    if (last) c.b.push(x.per);
-    by.set(k, c);
+    if (!first && x.t < lastStart) continue;
+    pts.push({ x: x.lon * kx, y: x.lat * ky, per: x.per, first });
+    if (first && x.t >= lastStart) pts.push({ x: x.lon * kx, y: x.lat * ky, per: x.per, first: false });
   }
+  const enough = (ps: Pt[]) => {
+    let a = 0;
+    let b = 0;
+    for (const p of ps) p.first ? a++ : b++;
+    return a >= MIN_SALES && b >= MIN_SALES;
+  };
   const cells: Cell[] = [];
-  for (const c of by.values()) {
-    if (c.a.length < MIN_SALES || c.b.length < MIN_SALES) continue;
-    const change = median(c.b) / median(c.a) - 1;
-    const x = w0 + c.i * dx;
-    const y = s0 + c.j * dy;
+  const keep = (x0: number, y0: number, size: number, ps: Pt[]) => {
+    const a = ps.filter((p) => p.first).map((p) => p.per);
+    const b = ps.filter((p) => !p.first).map((p) => p.per);
+    if (a.length < MIN_SALES || b.length < MIN_SALES) return;
+    const change = median(b) / median(a) - 1;
+    const w = x0 / kx;
+    const s0 = y0 / ky;
+    const e = (x0 + size) / kx;
+    const n = (y0 + size) / ky;
     cells.push({
       polygon: [
-        [x, y],
-        [x + dx, y],
-        [x + dx, y + dy],
-        [x, y + dy],
+        [w, s0],
+        [e, s0],
+        [e, n],
+        [w, n],
       ],
-      a: c.a.length,
-      b: c.b.length,
+      a: a.length,
+      b: b.length,
       change,
       index: idx,
       // How much more (or less) it moved than the index, relatively: +0.1, 10% beyond what the index brings.
       diff: (1 + change) / (1 + idx) - 1,
     });
+  };
+  const split = (x0: number, y0: number, size: number, ps: Pt[]) => {
+    const half = size / 2;
+    if (half >= finest) {
+      const quarters: Pt[][] = [[], [], [], []];
+      for (const p of ps) quarters[(p.x >= x0 + half ? 1 : 0) + (p.y >= y0 + half ? 2 : 0)]?.push(p);
+      // Every quarter with sales must still say something; an empty one (water, a park) doesn't stop it.
+      if (quarters.every((q) => q.length === 0 || enough(q))) {
+        quarters.forEach((q, k) => {
+          if (q.length) split(x0 + (k % 2) * half, y0 + (k >= 2 ? half : 0), half, q);
+        });
+        return;
+      }
+    }
+    keep(x0, y0, size, ps);
+  };
+  const roots = new Map<string, { x0: number; y0: number; ps: Pt[] }>();
+  for (const p of pts) {
+    const x0 = Math.floor(p.x / ROOT) * ROOT;
+    const y0 = Math.floor(p.y / ROOT) * ROOT;
+    const k = `${x0},${y0}`;
+    const r = roots.get(k) ?? { x0, y0, ps: [] };
+    r.ps.push(p);
+    roots.set(k, r);
   }
+  for (const r of roots.values()) split(r.x0, r.y0, ROOT, r.ps);
   return { cells, index: idx };
 }

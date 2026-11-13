@@ -1817,7 +1817,7 @@
         "slower": "slower",
         "asIndex": "as the index",
         "faster": "faster",
-        "fewer": "Squares with fewer than {n} sales in either year are left blank.",
+        "fewer": "A square splits into four while each quarter keeps {n} sales in both years (finer as you zoom in); paler, fewer sales.",
         "cellTip": "{a} sales then, {b} now: {change} (the index {index}); {diff}",
         "noPlace": "The sales have no place yet: run How prices moved again.",
         "noChange": "Too few sales a year to compare the first year with the last."

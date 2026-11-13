@@ -65,9 +65,12 @@ Nothing needs an answer to run; each card says what it will do.
   dragging across the expanded chart chooses a window in time (a blue band; a click clears it; under the chart its
   dates, sales and median); the map colours the sales in it, the rest faint. Under the map a time bar: ▶ steps the
   window on a month at a time, a slider moves it, its length (3, 6 or 12 months), **Every date**. **Change**: squares
-  (sized so about 18 cross the sales) each coloured by how far its median price per area moved from the first year
-  of sales to the last, beside the group's own index over the same years: grey as the index, orange faster, blue
-  slower (±20% at the ends); a square needs 8 sales in each year; hovering says how many, its change and the index's.
+  each coloured by how far its median price per area moved from the first year of sales to the last, beside the
+  group's own index over the same years: grey as the index, orange faster, blue slower (±20% at the ends). The
+  squares are a quadtree (2026-11-13): from 16 km, each splits into four while every quarter with sales keeps 8 in
+  its first year and 8 in its last, down to the map's own square size at the zoom (lib/detail.ts), so dense places
+  get small squares and sparse ones stay large; a square short of 8 in either year isn't drawn. Paler the fewer sales
+  it rests on (pale at 8 a year, solid at 100); hovering says how many, its change and the index's.
   **Index on** (a column per group with its own sales): **Automatic** (OpenAVMKit works it out from the sales; once
   worked out it says which, "Automatic (land area)"), **Finished area** or **Land area** (`time_adjustment.per.<group>`,
   `engine/enrich-fixes`). **No time adjustment** lists each group without one and why, in OpenAVMKit's terms (no sale
