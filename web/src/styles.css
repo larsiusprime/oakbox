@@ -6803,14 +6803,21 @@ html[data-map="top"] .oak-nav {
 .mapwin-body.ly-pinned {
   flex-direction: row;
 }
+/* Flush in the map's bottom left corner: only its top and right edges show, the top right rounded. */
 .mapwin-ly-over {
   position: absolute;
-  left: 0.6rem;
-  bottom: 0.6rem;
+  left: 0;
+  bottom: 0;
   z-index: 4;
   display: flex;
-  max-width: calc(100% - 1.2rem);
-  max-height: calc(100% - 1.2rem);
+  max-width: calc(100% - 0.6rem);
+  max-height: calc(100% - 0.6rem);
+}
+.mapwin-ly-over > .mapwin-ly-chip,
+.mapwin-ly-over > .mapwin-ly.floating {
+  border-left: none;
+  border-bottom: none;
+  border-radius: 0 6px 0 0;
 }
 .mapwin-ly-chip {
   display: inline-flex;
