@@ -249,6 +249,8 @@ DATE_WORDS = {
     "%d/%m/%Y": "day/month/year",
     "%Y%m%d": "yearmonthday",
     "%Y-%m-%d %H:%M:%S": "year-month-day and time",
+    "%Y-%m-%d %H:%M:%S.%f": "year-month-day and time to the millisecond",
+    "%Y-%m-%dT%H:%M:%S": "year-month-dayTtime",
     "%m/%d/%Y %H:%M": "month/day/year and time",
     "%m/%d/%Y %H:%M:%S": "month/day/year and time",
     "%d/%m/%Y %H:%M": "day/month/year and time",

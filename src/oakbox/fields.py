@@ -29,6 +29,8 @@ DATE_FORMATS = (
     "%d/%m/%Y",
     "%Y%m%d",
     "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%d %H:%M:%S.%f",  # a database export's timestamp, to the millisecond: 2020-03-10 00:00:00.000
+    "%Y-%m-%dT%H:%M:%S",
     "%m/%d/%Y %H:%M",
     "%m/%d/%Y %H:%M:%S",
     "%d/%m/%Y %H:%M",

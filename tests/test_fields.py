@@ -66,3 +66,25 @@ def test_columns_preview_a_geopackage_layer(client, tmp_path):
     r = _columns(pid, "county.gpkg", "parcels")
     assert r.rows == 2 and r.geometry
     assert [(c.name, c.type) for c in r.columns] == [("PIN", "text"), ("ACRES", "number")]
+
+
+def test_a_database_timestamp_reads_as_a_date():
+    """2020-03-10 00:00:00.000 (a database export's, to the millisecond) reads as a date, by itself."""
+    samples = ["2020-03-10 00:00:00.000", "2020-02-28 00:00:00.000"]
+    fmt = next(f for f in fields.DATE_FORMATS if fields._reads(samples, f))
+    assert fmt == "%Y-%m-%d %H:%M:%S.%f"
+    assert fields.check_dates(samples, fmt).parsed == ["2020-03-10", "2020-02-28"]
+
+
+def test_a_date_no_usual_format_reads_can_still_be_chosen():
+    """A text column none of the usual formats reads can still be the date: its own format is picked after."""
+    from oakbox.fields import Column
+    from oakbox.wizard.checks import field_check
+    from oakbox.wizard.files import dictionary_by_key
+
+    d = dictionary_by_key()["sale_date"]
+    check, spec = field_check(d, Column(name="WHEN", type="text", samples=["10.03.2020 h0"], date_format=None))
+    assert check.ok and check.warn and "pick its format" in check.text
+    assert spec == ["WHEN", "datetime", "%Y-%m-%d"]
+    check, spec = field_check(d, Column(name="N", type="number", samples=["5"], date_format=None))
+    assert not check.ok and spec is None

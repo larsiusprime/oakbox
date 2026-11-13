@@ -55,6 +55,13 @@ def field_check(d: DictionaryField, col: Column) -> tuple[Check, list[str] | Non
         if col.date_format:
             words = DATE_WORDS.get(col.date_format, col.date_format)
             return Check(ok=True, text=f"✓ reads as {words}"), [col.name, "datetime", col.date_format]
+        # None of the usual formats reads it: still chosen, read as year-month-day until its own format is picked
+        # (the field's format, below it, takes any; how many read then says whether it's right).
+        if samples and col.type == "text":
+            return (
+                Check(ok=True, warn=True, text="none of the usual formats reads it: pick its format"),
+                [col.name, "datetime", "%Y-%m-%d"],
+            )
         return Check(ok=False, text="doesn't read as a date"), None
     if d.type == "boolean":
         lowered = [s.lower() for s in samples]
