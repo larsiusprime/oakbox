@@ -1282,10 +1282,66 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/files/{name}/stop": {
+   "post": {
+    "summary": "Stop Wizard File",
+    "description": "Stop on a file being read for a step (a big one takes a while): the reading can't be cut short, but when it\nends its choice is undone, unless the project has changed again since (a later choice stands).",
+    "operationId": "stop_wizard_file_api_projects__project_id__wizard_files__name__stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     },
+     {
+      "name": "request",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Request"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/files/{name}": {
    "put": {
     "summary": "Wizard File",
-    "description": "A file's part (parcel universe, sales, more parcel details) and the ID it joins on (F3d).",
+    "description": "A file's part (parcel universe, sales, more parcel details) and the ID it joins on (F3d). `request`: an ID for\nthis choice, so Stop (.../stop) can undo it once its reading ends.",
     "operationId": "wizard_file_api_projects__project_id__wizard_files__name__put",
     "parameters": [
      {
@@ -1304,6 +1360,16 @@
       "schema": {
        "type": "string",
        "title": "Name"
+      }
+     },
+     {
+      "name": "request",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Request"
       }
      }
     ],

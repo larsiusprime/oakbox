@@ -605,6 +605,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/files/{name}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop Wizard File
+         * @description Stop on a file being read for a step (a big one takes a while): the reading can't be cut short, but when it
+         *     ends its choice is undone, unless the project has changed again since (a later choice stands).
+         */
+        post: operations["stop_wizard_file_api_projects__project_id__wizard_files__name__stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/files/{name}": {
         parameters: {
             query?: never;
@@ -615,7 +636,8 @@ export interface paths {
         get?: never;
         /**
          * Wizard File
-         * @description A file's part (parcel universe, sales, more parcel details) and the ID it joins on (F3d).
+         * @description A file's part (parcel universe, sales, more parcel details) and the ID it joins on (F3d). `request`: an ID for
+         *     this choice, so Stop (.../stop) can undo it once its reading ends.
          */
         put: operations["wizard_file_api_projects__project_id__wizard_files__name__put"];
         post?: never;
@@ -13601,9 +13623,45 @@ export interface operations {
             };
         };
     };
+    stop_wizard_file_api_projects__project_id__wizard_files__name__stop_post: {
+        parameters: {
+            query: {
+                request: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     wizard_file_api_projects__project_id__wizard_files__name__put: {
         parameters: {
-            query?: never;
+            query?: {
+                request?: string;
+            };
             header?: never;
             path: {
                 project_id: string;

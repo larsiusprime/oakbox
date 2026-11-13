@@ -2,7 +2,7 @@
  * the checks on it (repeated and blank IDs, how many find their parcel). */
 
 import { useIsMutating, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { Button, Dialog, Heading, Label, Modal, ModalOverlay, Radio } from "react-aria-components";
 import {
   api,
@@ -33,7 +33,7 @@ import { t } from "../wording";
 import { AddFile } from "./AddFile";
 import { describeSteps, ReconcileDialog, ReconcilePanel } from "./Reconcile";
 import { CondosLink } from "./Units";
-import type { Mutate } from "./wizardChange";
+import { type Mutate, stopFileChoice } from "./wizardChange";
 
 const w = t.wizard;
 
@@ -497,6 +497,8 @@ export function FilePicker({
   // said here until the step shows it. While the wizard reads the project again, and while the step saves it.
   const [chosen, setChosen] = useState<string | null>(null);
   const [settling, setSettling] = useState(false);
+  // Stopped before the step was even asked (while the wizard read the project again): it isn't asked.
+  const stopped = useRef(false);
   const saving = useIsMutating() > 0;
   const choose = (name: string) => {
     setChosen(name);
@@ -510,7 +512,14 @@ export function FilePicker({
   if (chosen !== null && (settling || saving)) {
     return (
       <FileSlot>
-        <Waiting doing={w.readingChosen({ file: chosen })} />
+        <Waiting
+          doing={w.readingChosen({ file: chosen })}
+          onCancel={() => {
+            stopped.current = true;
+            stopFileChoice();
+            setChosen(null);
+          }}
+        />
       </FileSlot>
     );
   }
@@ -522,6 +531,7 @@ export function FilePicker({
         onBrowse={() => void pick()}
         onDone={() => setPicked(null)}
         onAdded={async (name) => {
+          stopped.current = false;
           setChosen(name);
           setSettling(true);
           try {
@@ -529,7 +539,7 @@ export function FilePicker({
           } finally {
             setSettling(false);
           }
-          onChosen(name);
+          if (!stopped.current) onChosen(name);
         }}
       />
     );

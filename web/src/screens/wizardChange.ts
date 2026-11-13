@@ -66,6 +66,21 @@ export type Change =
   | LayerChange
   | PermitsChange;
 
+/** The file choice being read for its step, if one is: what Stop stops. */
+let reading: { projectId: string; name: string; request: string; abort: AbortController } | null = null;
+
+/** Stop on a file being read for its step: stop waiting at once (the wizard as it is stands), and have the server
+ * undo the choice when its reading ends. */
+export function stopFileChoice() {
+  const r = reading;
+  if (!r) return;
+  reading = null;
+  void api.POST("/api/projects/{project_id}/wizard/files/{name}/stop", {
+    params: { path: { project_id: r.projectId, name: r.name }, query: { request: r.request } },
+  });
+  r.abort.abort();
+}
+
 /** `quiet`: left out of the corner's Activity pill. A step's visit is: moving between steps records where you are
  * (and fills in a guess or two, shown on the step itself), nothing to say "Saving" about. */
 export function useChange(projectId: string, { quiet = false }: { quiet?: boolean } = {}) {
@@ -80,9 +95,15 @@ export function useChange(projectId: string, { quiet = false }: { quiet?: boolea
       }
       if (c.kind === "file") {
         const { kind: _, name, ...body } = c;
-        return unwrap(
-          await api.PUT("/api/projects/{project_id}/wizard/files/{name}", {
-            params: { path: { project_id, name } },
+        // Reading a big file for its step takes a while: Stop (stopFileChoice) gives up waiting, and the server
+        // undoes the choice once its reading ends. The wizard as it is then stands for the answer.
+        const request = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const abort = new AbortController();
+        reading = { projectId: project_id, name, request, abort };
+        try {
+          const r = await api.PUT("/api/projects/{project_id}/wizard/files/{name}", {
+            params: { path: { project_id, name }, query: { request } },
+            signal: abort.signal,
             body: {
               holds: null,
               universe: false,
@@ -98,8 +119,17 @@ export function useChange(projectId: string, { quiet = false }: { quiet?: boolea
               added: false,
               ...body,
             },
-          }),
-        );
+          });
+          return unwrap(r);
+        } catch (e) {
+          if (abort.signal.aborted)
+            return unwrap(
+              await api.GET("/api/projects/{project_id}/wizard", { params: { path: { project_id } } }),
+            );
+          throw e;
+        } finally {
+          if (reading?.request === request) reading = null;
+        }
       }
       if (c.kind === "rowField") {
         return unwrap(

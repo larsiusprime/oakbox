@@ -1960,3 +1960,16 @@ def test_land_use_and_building_type_asks_three_and_never_guesses_the_rest(client
     assert _field(w, "bldg_desc")["sources"] == []  # a column named for it, but never guessed
     w = client.put(f"/api/projects/{pid}/wizard/fields/bldg_desc", json={"file": "geo_parcels", "column": "BLDG_DESC"})
     assert _field(w.json(), "bldg_desc")["sources"] == [{"file": "geo_parcels", "column": "BLDG_DESC"}]
+
+
+def test_stopping_a_file_being_read_undoes_its_choice(client, pid):
+    """Stop on a file being read for a step: the reading ends as it would, then its choice is undone (409), the
+    project as it was; one not stopped stands."""
+    assert put_file(client, pid, "shapes", universe=True).status_code == 200
+    client.post(f"/api/projects/{pid}/wizard/files/sales/stop", params={"request": "r1"})
+    r = client.put(f"/api/projects/{pid}/wizard/files/sales", params={"request": "r1"}, json={"holds": "sales"})
+    assert r.status_code == 409
+    assert projects.load(pid).file("sales").holds != "sales"  # type: ignore[union-attr]
+    r = client.put(f"/api/projects/{pid}/wizard/files/sales", params={"request": "r2"}, json={"holds": "sales"})
+    assert r.status_code == 200
+    assert projects.load(pid).file("sales").holds == "sales"  # type: ignore[union-attr]

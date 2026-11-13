@@ -191,12 +191,40 @@ def skip_step(project_id: str, step: str) -> wizard.Wizard:
     return _change(project_id, lambda p, _d: wizard.skip(p, step))
 
 
+# Choices of a file whose reading was stopped (project:request): when its reading ends, it's undone.
+_stopped: set[str] = set()
+
+
+@router.post("/api/projects/{project_id}/wizard/files/{name}/stop")
+def stop_wizard_file(project_id: str, name: str, request: str) -> None:
+    """Stop on a file being read for a step (a big one takes a while): the reading can't be cut short, but when it
+    ends its choice is undone, unless the project has changed again since (a later choice stands)."""
+    load_project(project_id)
+    _stopped.add(f"{project_id}:{request}")
+
+
+def _undo_if_stopped(project_id: str, request: str, before: str, after: str) -> None:
+    key = f"{project_id}:{request}"
+    if not request or key not in _stopped:
+        return
+    _stopped.discard(key)
+    with projects.lock(project_id):
+        now = load_project(project_id)
+        if now.model_dump_json() == after:  # nothing else changed it since: put it back as it was
+            back = projects.Project.model_validate_json(before)
+            projects.save(back)
+            projects.write_settings(back)
+    raise HTTPException(409, "Stopped: the file wasn't set for the step.")
+
+
 @router.put("/api/projects/{project_id}/wizard/files/{name}")
-def wizard_file(project_id: str, name: str, body: WizardFileChoice) -> wizard.Wizard:
-    """A file's part (parcel universe, sales, more parcel details) and the ID it joins on (F3d)."""
+def wizard_file(project_id: str, name: str, body: WizardFileChoice, request: str = "") -> wizard.Wizard:
+    """A file's part (parcel universe, sales, more parcel details) and the ID it joins on (F3d). `request`: an ID for
+    this choice, so Stop (.../stop) can undo it once its reading ends."""
     project = load_project(project_id)
     file_entry(project, name)
-    out = _change(
+    before = project.model_dump_json()
+    changed = _apply(
         project_id,
         lambda p, d: wizard.set_file(
             p,
@@ -216,6 +244,10 @@ def wizard_file(project_id: str, name: str, body: WizardFileChoice) -> wizard.Wi
             added=body.added,
         ),
     )
+    after = changed.model_dump_json()
+    _undo_if_stopped(project_id, request, before, after)
+    out = wizard_view(changed)
+    _undo_if_stopped(project_id, request, before, after)
     if body.universe:  # the map window's shapes, made in the background (SPEC §3.15)
         mapdata.start(load_project(project_id), projects.project_dir(project_id), projects.inputs_dir(project_id))
     return out
