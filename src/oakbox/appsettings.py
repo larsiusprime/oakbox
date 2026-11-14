@@ -159,7 +159,7 @@ def load() -> AppSettings:
     list of where projects are is never lost to one bad setting."""
     path = _path()
     try:
-        data = path.read_bytes()
+        data = atomic.read_bytes(path)
     except FileNotFoundError:
         return AppSettings()
     try:

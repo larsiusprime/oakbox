@@ -273,6 +273,9 @@ class ReportState(BaseModel):
 class Project(BaseModel):
     id: str
     name: str
+    revision: int = Field(
+        default=0, description="Saves so far (routes/common.editing): which of two answers is the newer one."
+    )
     created_at: dt.datetime
     country: str = "US"
     region: str = ""
@@ -338,7 +341,7 @@ def _register(project_id: str, folder: Path) -> None:
 def _read(folder: Path) -> Project | None:
     """The project in a folder; None for damaged files and for sample projects of earlier builds (SPEC D19)."""
     try:
-        project = Project.model_validate_json((folder / "oakbox.json").read_text(encoding="utf-8"))
+        project = Project.model_validate_json(atomic.read_utf8(folder / "oakbox.json"))
     except (OSError, ValueError):
         return None
     return None if project.sample is not None else project
@@ -378,7 +381,7 @@ def list_projects() -> list[Project]:
 
 
 def load(project_id: str) -> Project:
-    return Project.model_validate_json((project_dir(project_id) / "oakbox.json").read_text(encoding="utf-8"))
+    return Project.model_validate_json(atomic.read_utf8(project_dir(project_id) / "oakbox.json"))
 
 
 def save(project: Project, folder: Path | None = None) -> None:

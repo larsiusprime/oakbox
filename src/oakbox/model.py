@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
-from oakbox import areastats, cells, fields, locstack, machine, prepare, ratio, spatiallag, steps, valuesets
+from oakbox import areastats, atomic, cells, fields, locstack, machine, prepare, ratio, spatiallag, steps, valuesets
 from oakbox.areastats import AreaState
 from oakbox.datafiles import BaseModel
 from oakbox.errors import NotFound, NotReady
@@ -1395,7 +1395,7 @@ def run(project_id: str) -> None:
 
     steps.note_excluded(tmp, _clean.excluded(project))
     depends = STEP.now(project, pdir)  # what it starts from, before anything can change
-    settings_text = (steps.settings_path(pdir)).read_text(encoding="utf-8")
+    settings_text = atomic.read_utf8(steps.settings_path(pdir))
     os.chdir(pdir)
     from openavmkit import pipeline as pl
     from openavmkit import progress

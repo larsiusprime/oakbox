@@ -55,3 +55,21 @@ def replace_with(path: Path, write: Callable[[Path], None]) -> None:
                     time.sleep(0.05)
     finally:
         tmp.unlink(missing_ok=True)
+
+
+def read_bytes(path: Path) -> bytes:
+    """Read a file save_text writes. On Windows the file can't be opened for the moment it's being replaced (another
+    request saving it: "Permission denied"), so it's tried again briefly, as save_text does."""
+    for attempt in range(20):
+        try:
+            return path.read_bytes()
+        except PermissionError:
+            if attempt == 19:
+                raise
+            time.sleep(0.025)
+    raise AssertionError("unreachable")
+
+
+def read_utf8(path: Path) -> str:
+    """A text file save_text writes (UTF-8), read as read_bytes does."""
+    return read_bytes(path).decode("utf-8")

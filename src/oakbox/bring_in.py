@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
-from oakbox import cells, steps
+from oakbox import atomic, cells, steps
 from oakbox.datafiles import BaseModel
 from oakbox.enrichments import SKIPPABLE, SOURCES, EnrichResult, instrument, recount
 from oakbox.errors import NotFound
@@ -548,7 +548,7 @@ def run(project_id: str) -> None:
     pdir = projects.project_dir(project_id)
     in_dir = pdir / "in"
     tmp = steps.workdir(out_dir(pdir))
-    settings_text = (in_dir / "settings.json").read_text(encoding="utf-8")
+    settings_text = atomic.read_utf8(in_dir / "settings.json")
     _clear_cache_if_rows_change(pdir, json.loads(settings_text))
     os.chdir(pdir)
     from importlib.metadata import version

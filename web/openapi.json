@@ -21445,6 +21445,12 @@
       "type": "string",
       "title": "Name"
      },
+     "revision": {
+      "type": "integer",
+      "title": "Revision",
+      "description": "Saves so far (routes/common.editing): which of two answers is the newer one.",
+      "default": 0
+     },
      "created_at": {
       "type": "string",
       "format": "date-time",
@@ -21631,6 +21637,7 @@
     "required": [
      "id",
      "name",
+     "revision",
      "created_at",
      "country",
      "region",
@@ -28514,6 +28521,12 @@
    },
    "Wizard": {
     "properties": {
+     "revision": {
+      "type": "integer",
+      "title": "Revision",
+      "description": "The project's saves when this was worked out: of two answers, the one with more is newer.",
+      "default": 0
+     },
      "steps": {
       "items": {
        "$ref": "#/components/schemas/StepView"
@@ -28640,6 +28653,7 @@
     },
     "type": "object",
     "required": [
+     "revision",
      "steps",
      "files",
      "sale_id",

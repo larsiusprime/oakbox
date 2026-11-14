@@ -9147,6 +9147,12 @@ export interface components {
             /** Name */
             name: string;
             /**
+             * Revision
+             * @description Saves so far (routes/common.editing): which of two answers is the newer one.
+             * @default 0
+             */
+            revision: number;
+            /**
              * Created At
              * Format: date-time
              */
@@ -12232,6 +12238,12 @@ export interface components {
         };
         /** Wizard */
         Wizard: {
+            /**
+             * Revision
+             * @description The project's saves when this was worked out: of two answers, the one with more is newer.
+             * @default 0
+             */
+            revision: number;
             /** Steps */
             steps: components["schemas"]["StepView"][];
             /** Files */

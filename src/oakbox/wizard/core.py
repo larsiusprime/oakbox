@@ -323,6 +323,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 not_loaded.append(NotLoaded(file=f.name, columns=rest))
 
     return Wizard(
+        revision=project.revision,
         steps=steps,
         files=out_files,
         sale_id=sale_id,

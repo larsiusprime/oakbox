@@ -345,6 +345,10 @@ class ValueSetView(BaseModel):
 
 
 class Wizard(BaseModel):
+    revision: int = Field(
+        default=0,
+        description="The project's saves when this was worked out: of two answers, the one with more is newer.",
+    )
     steps: list[StepView]
     files: list[WizardFile]
     sale_id: SaleId

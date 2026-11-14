@@ -93,17 +93,6 @@ export function stopFileChoice() {
 
 /** `quiet`: left out of the corner's Activity pill. A step's visit is: moving between steps records where you are
  * (and fills in a guess or two, shown on the step itself), nothing to say "Saving" about. */
-/** Per project: how many wizard changes have started, and the latest whose answer is shown. */
-const orders = new Map<string, { started: number; applied: number }>();
-function order(projectId: string) {
-  let o = orders.get(projectId);
-  if (!o) {
-    o = { started: 0, applied: 0 };
-    orders.set(projectId, o);
-  }
-  return o;
-}
-
 export function useChange(projectId: string, { quiet = false }: { quiet?: boolean } = {}) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -299,19 +288,13 @@ export function useChange(projectId: string, { quiet = false }: { quiet?: boolea
         }),
       );
     },
-    onMutate: () => {
-      const o = order(projectId);
-      o.started += 1;
-      return { seq: o.started };
-    },
-    onSuccess: async (data, c, ctx) => {
+    onSuccess: async (data, c) => {
       // Each answer is the whole wizard as it stood when it was worked out. Two at once (a step's visit, and a
-      // choice made on it straight away) can answer out of order: one started earlier than an answer already shown
-      // is older, and would put back the choice's "before" (the rows under a choice missing until you came back).
-      const o = order(projectId);
-      if (ctx && ctx.seq < o.applied) return;
-      if (ctx) o.applied = ctx.seq;
+      // choice made on it straight away) can answer out of order, and in any order: the server works on them side
+      // by side. The project's revision (its saves so far) says which is newer; an older one would put back the
+      // choice's "before" (the rows under a choice missing until you came back).
       const before = queryClient.getQueryData<Wizard>(["wizard", projectId]);
+      if (before && data.revision < before.revision) return;
       queryClient.setQueryData(["wizard", projectId], data);
       // Showing or moving on from a step that changed nothing but the steps (where you've been, which are done):
       // nothing else to ask again.

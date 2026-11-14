@@ -30,6 +30,7 @@ def editing(project_id: str, settings: bool = False) -> Iterator[projects.Projec
         # Nothing changed (the option already chosen, pressed again): nothing written, so nothing worked out again.
         if project.model_dump_json() == before:
             return
+        project.revision += 1
         projects.save(project)
         if settings:
             projects.write_settings(project)

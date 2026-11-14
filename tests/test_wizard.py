@@ -1991,3 +1991,12 @@ def test_stopping_a_file_being_read_undoes_its_choice(client, pid):
     r = client.put(f"/api/projects/{pid}/wizard/files/sales", params={"request": "r2"}, json={"holds": "sales"})
     assert r.status_code == 200
     assert projects.load(pid).file("sales").holds == "sales"  # type: ignore[union-attr]
+
+
+def test_each_save_moves_the_revision_on_and_the_wizard_says_which(client, pid):
+    """Two answers at once can arrive in any order: the revision (the project's saves) says which is newer."""
+    first = start_wizard(client, pid)["revision"]
+    w = client.post(f"/api/projects/{pid}/wizard/steps/universe/visit").json()
+    assert w["revision"] == first  # seen already: nothing saved
+    w = client.put(f"/api/projects/{pid}/wizard/fields/sale_date", json={}).json()
+    assert w["revision"] == first + 1

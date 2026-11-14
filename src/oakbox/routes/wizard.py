@@ -229,6 +229,7 @@ def _undo_if_stopped(project_id: str, request: str, before: str, after: str) -> 
         now = load_project(project_id)
         if now.model_dump_json() == after:  # nothing else changed it since: put it back as it was
             back = projects.Project.model_validate_json(before)
+            back.revision = now.revision + 1  # put back, as a save of its own (newer than the one it undoes)
             projects.save(back)
             projects.write_settings(back)
     raise HTTPException(409, "Stopped: the file wasn't set for the step.")
