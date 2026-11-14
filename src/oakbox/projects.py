@@ -106,7 +106,7 @@ class CustomField(BaseModel):
 # Big five's parts (revised 2026-11-04): a project saved when Big five was one step has it seen, skipped or moved on
 # from as a whole; each part counts as the same.
 BIG_FIVE_PARTS = ("building_size", "land_size", "age", "quality", "condition")
-SALES_PARTS = ("sale_date", "sales_ids", "sale_price", "valid_sale", "vacant_sale")
+SALES_PARTS = ("sales_match", "sale_date", "sale_id", "sale_price", "valid_sale", "vacant_sale")
 
 
 class WizardState(BaseModel):
@@ -152,11 +152,12 @@ class WizardState(BaseModel):
             # Sales was one step (the file and its four fields); now five parts.
             if "sales" in done:
                 done.extend(p for p in SALES_PARTS if p not in done)
-            # The sales file's part (its IDs) was "sales_file", before the file moved to Sales itself.
-            if "sales_file" in done:
-                done.remove("sales_file")
-                if "sales_ids" not in done:
-                    done.append("sales_ids")
+            # The sales file's part (its IDs) was "sales_file", before the file moved to Sales itself; then
+            # "sales_ids", both IDs on one page, before the parcel ID and the sale ID got a part each (2026-11-14).
+            for old in ("sales_file", "sales_ids"):
+                if old in done:
+                    done.remove(old)
+                    done.extend(p for p in ("sales_match", "sale_id") if p not in done)
             # More files was one step; now its files are added on a part of their own, then a part each.
             if "more_files" in done and "more_add" not in done:
                 done.append("more_add")

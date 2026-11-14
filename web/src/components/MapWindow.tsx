@@ -859,7 +859,8 @@ type SrKey = keyof typeof w.sr;
 const SALES_STEPS: Record<string, string[]> = {
   sales: ["price", "year"],
   sale_date: ["year"],
-  sales_ids: ["price", "year"],
+  sales_match: ["price", "year"],
+  sale_id: ["price", "year"],
   sale_price: ["price"],
   valid_sale: ["valid"],
   vacant_sale: ["vacant"],

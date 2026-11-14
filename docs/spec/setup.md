@@ -435,16 +435,18 @@ the field steps, checks, guesses, assumptions and Review carry over.
     differently, but no common clean-up removes it: Reconcile's "text after" does, by hand.
   - **Engine** (`engine/enrich-fixes`): the `upper` calc, for the capitals clean-up.
 
-- **Sales, in five parts (revised 2026-11-05),** as Big five is: **Sales** itself is where the file is picked (nothing
-  else is asked there; Start goes on), then **Sale date** (first: a sale ID can be made from it), **IDs**, **Sale
-  price**, **Valid sale** and **Vacant sale**, each a page of its own; Sales takes the worst of its parts. Nothing on
-  them is in a popup, and every change is saved as it settles (no Save or Cancel). Projects saved with Sales as one
-  step count each part as seen, skipped or moved on from as Sales was; the file's part (`sales_file`, briefly) became
-  the IDs' part (`sales_ids`).
-  - **IDs:** the parcel ID and the sale ID (a column, or made from the parcel ID and the sale date), on one grid, then
-    **Do the sales find their parcels?**: why some don't (what the ⚠ chip held), and the reconcile layout (the match
-    meter, the clean-up steps on each side, samples, random or unmatched) right there; no **See them…** or
-    **Reconcile…**.
+- **Sales, in six parts (revised 2026-11-05; 2026-11-14),** as Big five is: **Sales** itself is where the file is
+  picked (nothing else is asked there; Start goes on), then **Parcel ID** (first: the sales finding their parcels is
+  what everything after needs), **Sale date**, **Sale ID** (after both: it can be made from them), **Sale price**,
+  **Valid sale** and **Vacant sale**, each a page of its own; Sales takes the worst of its parts. Nothing on them is
+  in a popup, and every change is saved as it settles (no Save or Cancel). Projects saved with Sales as one step count
+  each part as seen, skipped or moved on from as Sales was; the file's part (`sales_file`, briefly), then both IDs on
+  one part (`sales_ids`, until 2026-11-14), count as both **Parcel ID** (`sales_match`) and **Sale ID** (`sale_id`).
+  - **Parcel ID:** the sales file's parcel ID column, then **Do the sales find their parcels?**: why some don't (what
+    the ⚠ chip held), and the reconcile layout (the match meter, the clean-up steps on each side, samples, random or
+    unmatched) right there; no **See them…** or **Reconcile…**.
+  - **Sale ID:** a column, or made from the parcel ID and the sale date (a parcel can sell more than once); made, it
+    waits on the sale date ("Pick the sale date first").
   - **Sale price:** the column and its values; **Decimal mark** and **Amounts are** as dropdowns (as written, in
     thousands, millions, cents…), K and M as a tick; under it **As it's read**: the median and spread, how many read,
     blank or don't, the scale check against assessed values (with a one-press fix when it looks wrong), Excel's

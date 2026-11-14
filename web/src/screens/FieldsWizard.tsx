@@ -37,7 +37,7 @@ import { ShapefilesStep } from "./Shapefiles";
 import { CondoStep } from "./Units";
 import { ValueSetsStep } from "./ValueSets";
 import { IdCheck, isMainSales } from "./WizardFiles";
-import { SalesFile, SalesIds, UniverseStep } from "./WizardIds";
+import { SaleIdStep, SalesFile, SalesMatch, UniverseStep } from "./WizardIds";
 import { type Mutate, type MutateAsync, useChange } from "./wizardChange";
 
 // Quality and condition: numbers or categories, on a page of their own (QualityStep).
@@ -239,7 +239,8 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
             {current.key === "universe" && (
               <UniverseStep project={project} data={data} change={change.mutate} />
             )}
-            {current.key === "sales_ids" && <SalesIds project={project} data={data} change={change.mutate} />}
+            {current.key === "sales_match" && <SalesMatch project={project} data={data} change={change.mutate} />}
+            {current.key === "sale_id" && <SaleIdStep data={data} change={change.mutate} />}
             {SALES_FIELD_STEPS.includes(current.key) && (
               <SalesFieldPage project={project} data={data} step={current} change={change.mutateAsync} />
             )}

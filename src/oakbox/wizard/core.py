@@ -443,14 +443,19 @@ def _status(
     elif step.key == "shapefiles":
         for lv in layer_views:
             left.extend(Left(text=f"{lv.name}: {p.text}", blocking=p.blocking) for p in lv.left)
-    elif step.key == "sales_ids":
+    elif step.key == "sales_match":
         sales = next((f for f in files if f.holds == "sales" and not is_more_sales(f)), None)
         ids(sales, "sales")
-        if sales is not None:
-            if sale_id.column is None and not sale_id.made:
-                left.append(Left(text="Pick a sale ID, or make one"))
-            elif sale_id.check is not None and not sale_id.check.ok:
-                left.append(Left(text=f"Sale ID: {sale_id.check.text}"))
+    elif step.key == "sale_id":
+        sales = next((f for f in files if f.holds == "sales" and not is_more_sales(f)), None)
+        if sales is None:
+            left.append(Left(text="Add the sales file first, on Sales"))
+        elif sale_id.column is None and not sale_id.made:
+            left.append(Left(text="Pick a sale ID, or make one"))
+        elif sale_id.made and not any(f.key == "sale_date" and f.sources for f in flds):
+            left.append(Left(text="Pick the sale date first: the sale ID is made from it"))
+        elif sale_id.check is not None and not sale_id.check.ok:
+            left.append(Left(text=f"Sale ID: {sale_id.check.text}"))
     elif step.key in SALES_PARTS:
         if not any(f.holds == "sales" and not is_more_sales(f) for f in files):
             left.append(Left(text="Add the sales file first, on Sales"))
@@ -610,12 +615,12 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
     files = Files(project, in_dir)
     if step == "universe":
         _guess_universe(project, files)
-    if step in ("sales", "sales_ids"):
+    if step in ("sales", "sales_match", "sale_id"):
         _guess_sales(project, files)
     if step == "sales":
         # The sales record's parent: its file's guesses, then every part's fields (a file just given its part).
         for part in SALES_PARTS:
-            if part != "sales_ids":
+            if part not in ("sales_match", "sale_id"):
                 _guess(project, in_dir, part)
         return
     spec = next(s for s in STEPS if s.key == step)

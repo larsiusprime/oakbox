@@ -6328,7 +6328,9 @@ under what it's about; a file appended as rows {
 /* Sales' IDs: the parcel ID and the sale ID rows on one grid. */
 .wiz-grid.frame.ids-box {
   /* The note after each choice wraps before the box runs past the sheet. */
-  grid-template-columns: max-content minmax(min(16rem, 100%), max-content) minmax(0, max-content);
+  /* The choice's least width is against the window, not the box (a percentage is nothing while the box is sizing to
+     its rows, which left the note after it no room). */
+  grid-template-columns: max-content minmax(min(16rem, 55vw), max-content) minmax(min-content, max-content);
   max-width: 100%;
 }
 .ids-box > .wiz-grid {

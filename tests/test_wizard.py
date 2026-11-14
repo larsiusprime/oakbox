@@ -541,7 +541,7 @@ def test_reconcile_cleans_ids_so_sales_find_their_parcels(client, tmp_path, monk
     w = visit_sales(client, pid)
     check = _file(w, "sale")["id_check"]
     assert (check["share"], check["ok"]) == (0, False)  # nothing matches as is: a blocker
-    assert wizard_step(w, "sales_ids")["left"][0] == {
+    assert wizard_step(w, "sales_match")["left"][0] == {
         "text": "Reconcile the IDs: 0% match",
         "blocking": True,
     }
@@ -1598,7 +1598,7 @@ def test_sales_of_parcels_missing_from_the_universe_are_a_note_not_a_reconcile(c
     lines = sales["not_in_universe"]["lines"]
     assert lines[0].startswith("12 sales are for parcels that aren't in the parcel universe.")
     assert "Add it on More files" in lines[1]
-    assert not any("Reconcile" in x["text"] for x in wizard_step(w, "sales_ids")["left"])
+    assert not any("Reconcile" in x["text"] for x in wizard_step(w, "sales_match")["left"])
     assert any("12 sales are for parcels" in x for x in w["warnings"])
 
     # The file that has them, once it's in the project.
@@ -1927,7 +1927,25 @@ def test_a_project_from_when_location_was_one_step_has_its_parts_seen():
 def test_a_project_from_when_the_sales_file_had_a_part_has_its_ids_part_instead():
     """The sales file's part became its IDs' part when the file moved to Sales itself."""
     w = projects.WizardState(visited=["sales", "sales_file"], confirmed=["sales_file"])
-    assert "sales_file" not in w.visited and "sales_ids" in w.visited and w.confirmed.count("sales_ids") == 1
+    assert "sales_file" not in w.visited and "sales_match" in w.visited and w.confirmed.count("sales_match") == 1
+    assert "sale_id" in w.confirmed
+
+
+def test_a_project_from_when_both_ids_were_on_one_part_has_a_part_for_each():
+    w = projects.WizardState(visited=["sales_ids"], confirmed=["sales_ids"])
+    assert "sales_ids" not in w.visited and {"sales_match", "sale_id"} <= set(w.confirmed)
+    # A new project's parts don't bring each other along.
+    fresh = projects.WizardState(visited=["sales_match"], confirmed=["sales_match"])
+    assert fresh.confirmed == ["sales_match"]
+
+
+def test_a_made_sale_id_waits_on_the_sale_date(client, pid):
+    w = start_wizard(client, pid)
+    assert w["sale_id"]["made"] and not wizard_step(w, "sale_id")["left"]
+    w = client.put(f"/api/projects/{pid}/wizard/fields/sale_date", json={}).json()
+    assert wizard_step(w, "sale_id")["left"][0]["text"] == "Pick the sale date first: the sale ID is made from it"
+    # The parcel ID part doesn't wait on the date: the sales find their parcels without it.
+    assert not any("date" in x["text"] for x in wizard_step(w, "sales_match")["left"])
 
 
 def test_a_project_from_when_more_files_was_one_step_has_its_first_part_seen():

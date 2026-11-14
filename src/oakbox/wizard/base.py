@@ -28,11 +28,13 @@ class Step(BaseModel):
 
 STEPS: list[Step] = [
     Step(key="universe"),
-    # The sales record, in parts (revised 2026-11-05): the file is picked on Sales itself; then the sale date (a sale
-    # ID can be made from it), the IDs and how the sales find their parcels, and each other field on a page of its own.
+    # The sales record, in parts (revised 2026-11-14): the file is picked on Sales itself; then how each sale finds
+    # its parcel (the parcel ID, first: nothing works without it), the sale date, the sale's own ID (a column, or
+    # made from the parcel ID and the date: after both), and each other field on a page of its own.
     Step(key="sales", sales=True),
+    Step(key="sales_match", parent="sales", sales=True),
     Step(key="sale_date", parent="sales", fields=["sale_date"], sales=True),
-    Step(key="sales_ids", parent="sales", sales=True),
+    Step(key="sale_id", parent="sales", sales=True),
     Step(key="sale_price", parent="sales", fields=["sale_price"], sales=True),
     Step(key="valid_sale", parent="sales", fields=["valid_sale"], sales=True),
     Step(key="vacant_sale", parent="sales", fields=["vacant_sale"], sales=True),

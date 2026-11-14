@@ -161,12 +161,17 @@
       "sales": {
         "title": "💰 Sales Record",
         "question": "Which file is your 💰 Sales Record?",
-        "lede": "One row per sale: what the models learn from. Pick it here; its date, its IDs and the rest come one by one in the next steps. Files with more about each sale (deeds, say) come later: just pick the main one for now."
+        "lede": "One row per sale: what the models learn from. Pick it here; how each sale finds its parcel, its date, its ID and the rest come one by one in the next steps. Files with more about each sale (deeds, say) come later: just pick the main one for now."
       },
-      "sales_ids": {
-        "title": "IDs",
+      "sales_match": {
+        "title": "Parcel ID",
         "question": "How does each sale find its parcel?",
-        "lede": "The parcel ID each sale carries, and the sale''s own ID: a column, or made from the parcel ID and the sale date. Each sale must find its parcel in the parcel universe."
+        "lede": "The parcel ID each sale carries. Each sale must find its parcel in the parcel universe: nothing after this works for the sales that don''t."
+      },
+      "sale_id": {
+        "title": "Sale ID",
+        "question": "What identifies each sale?",
+        "lede": "Each sale''s own ID: a column of the file, or made from the parcel ID and the sale date (a parcel can sell more than once; the date tells its sales apart)."
       },
       "sale_price": {
         "title": "Sale price",
@@ -176,7 +181,7 @@
       "sale_date": {
         "title": "Sale date",
         "question": "When was each sold?",
-        "lede": "The date of sale, read exactly as OpenAVMKit will read it. It comes first: a sale ID can be made from the parcel ID and this date."
+        "lede": "The date of sale, read exactly as OpenAVMKit will read it."
       },
       "valid_sale": {
         "title": "Valid sale",

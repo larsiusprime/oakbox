@@ -183,35 +183,43 @@ export function SalesFile({ project, data, change }: { project: Project; data: W
 
 /** Sales' IDs part: the parcel ID each sale carries and the sale's own ID (a column, or made from the parcel ID and
  * the sale date), then whether the sales find their parcels, why some don't, and the IDs cleaned up, under it. */
-export function SalesIds({ project, data, change }: { project: Project; data: Wizard; change: Mutate }) {
+/** Sales › Parcel ID: how each sale finds its parcel (its ID column and clean-up), and how many do. */
+export function SalesMatch({ project, data, change }: { project: Project; data: Wizard; change: Mutate }) {
   const sales = data.files.find(isMainSales);
   const base = data.files.find((f) => f.base);
   if (!sales) return <p className="wiz-note">{w.salesParts.noFile}</p>;
   return (
     <>
-      {/* Both IDs on one grid: their labels, controls and checks in the same columns. */}
       <div className="wiz-grid frame ids-box">
         <IdRow projectId={project.id} data={data} file={sales} base={base} change={change} inline />
-        <div className="wiz-grid">
-          <div className="wiz-label">
-            <TipOn text={w.saleIdTip}>
-              <span>{w.saleIdColumn}</span>
-            </TipOn>
-          </div>
-          <Choice
-            label={w.saleIdColumn}
-            hideLabel
-            value={data.sale_id.made ? MAKE : data.sale_id.column}
-            placeholder={w.choose}
-            options={[[MAKE, w.makeSaleId] as const, ...sales.columns.map((c) => [c.name, c.name] as const)]}
-            onChange={(v) => change({ kind: "saleId", column: v === MAKE ? null : v, make: v === MAKE })}
-          />
-          <div className="wiz-samples">
-            <CheckText check={data.sale_id.check} />
-          </div>
-        </div>
       </div>
       <MatchPanel projectId={project.id} data={data} file={sales} change={change} />
     </>
+  );
+}
+
+/** Sales › Sale ID: each sale's own ID, a column or made from the parcel ID and the sale date (after both). */
+export function SaleIdStep({ data, change }: { data: Wizard; change: Mutate }) {
+  const sales = data.files.find(isMainSales);
+  if (!sales) return <p className="wiz-note">{w.salesParts.noFile}</p>;
+  return (
+    <div className="wiz-grid frame ids-box">
+      <div className="wiz-label">
+        <TipOn text={w.saleIdTip}>
+          <span>{w.saleIdColumn}</span>
+        </TipOn>
+      </div>
+      <Choice
+        label={w.saleIdColumn}
+        hideLabel
+        value={data.sale_id.made ? MAKE : data.sale_id.column}
+        placeholder={w.choose}
+        options={[[MAKE, w.makeSaleId] as const, ...sales.columns.map((c) => [c.name, c.name] as const)]}
+        onChange={(v) => change({ kind: "saleId", column: v === MAKE ? null : v, make: v === MAKE })}
+      />
+      <div className="wiz-samples">
+        <CheckText check={data.sale_id.check} />
+      </div>
+    </div>
   );
 }
