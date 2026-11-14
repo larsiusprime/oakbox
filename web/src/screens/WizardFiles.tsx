@@ -29,6 +29,7 @@ import { Val } from "../components/Val";
 import { Waiting } from "../components/Waiting";
 import { WarnChip } from "../components/WarnChip";
 import { desktop, useCanPickFile } from "../desktop";
+import { afterPaint } from "../lib/hooks";
 import { t } from "../wording";
 import { AddFile } from "./AddFile";
 import { CombineOptions, useCombine } from "./Combine";
@@ -100,6 +101,8 @@ export function IdCheck({
 }) {
   const [open, setOpen] = useState(false);
   const [reconciling, setReconciling] = useState(false);
+  // What the duplicates dialog's Save is doing, said here on the row once the dialog has closed.
+  const [busy, setBusy] = useState<string | null>(null);
   const r = file.repeats;
   const resolvable =
     (((file.holds === "parcels" || file.match === "key_sale") && (r?.extra ?? 0) > 0) ||
@@ -144,6 +147,11 @@ export function IdCheck({
           file={file}
           change={change}
           close={() => setOpen(false)}
+          start={(doing, run) => {
+            setOpen(false);
+            setBusy(doing);
+            afterPaint(() => run(() => setBusy(null)));
+          }}
         />
       )}
     </>
@@ -213,18 +221,24 @@ export function IdCheck({
   return (
     // One line, as every row of settings: the check, its button, each issue, a warning as ⚠ and a few words.
     <div className="wiz-samples id-line">
-      <CheckText check={file.id_check} />
+      {busy ? (
+        <Waiting doing={busy} className="waiting waiting-inline" />
+      ) : (
+        <CheckText check={file.id_check} />
+      )}
       {reconcile}
-      <Issues
-        issues={file.id_check?.issues ?? []}
-        action={
-          resolvable && (
-            <Button className="button button-small" onPress={() => setOpen(true)}>
-              {w.dupes.resolve}
-            </Button>
-          )
-        }
-      />
+      {!busy && (
+        <Issues
+          issues={file.id_check?.issues ?? []}
+          action={
+            resolvable && (
+              <Button className="button button-small" onPress={() => setOpen(true)}>
+                {w.dupes.resolve}
+              </Button>
+            )
+          }
+        />
+      )}
       {onMap}
       {steps.length > 0 && (
         <span className="wiz-cleaned">{w.reconcile.cleaned({ what: describeSteps(steps) })}</span>
@@ -292,12 +306,15 @@ function DupesDialog({
   file,
   change,
   close,
+  start,
 }: {
   projectId: string;
   data: Wizard;
   file: WizardFile;
   change: Mutate;
   close: () => void;
+  /** Close, say on the file's row what's being done, and then run it (done: when it's over). */
+  start: (doing: string, run: (done: () => void) => void) => void;
 }) {
   const d = w.dupes;
   const r = file.repeats;
@@ -488,31 +505,38 @@ function DupesDialog({
                   : !((hasRepeats && policy !== null) || (hasBlanks && blankOk !== r.blank_ok))
               }
               onPress={() =>
-                policy === "combine" && combineBody
-                  ? change(
-                      { kind: "combine", name: file.name, ...combineBody },
-                      {
-                        onSuccess: () =>
-                          hasBlanks && blankOk !== r.blank_ok
-                            ? change(
-                                { kind: "file", name: file.name, blank_ok: blankOk },
-                                { onSuccess: close },
-                              )
-                            : close(),
-                      },
-                    )
-                  : change(
-                      {
-                        kind: "file",
-                        name: file.name,
-                        ...(hasRepeats && (policy === "first" || policy === "all") ? { dupes: policy } : {}),
-                        ...(hasRepeats && policy === "first"
-                          ? { dupes_by: levels.map((l) => ({ ...l, numeric: false })) }
-                          : {}),
-                        ...(hasBlanks ? { blank_ok: blankOk } : {}),
-                      },
-                      { onSuccess: close },
-                    )
+                // At once: the dialog closes and the file's row says what's being done; the work starts after
+                // that's drawn (AGENTS.md: instant feedback first).
+                start(policy === "combine" ? t.wizard.combine.combining : w.savingChoice, (done) =>
+                  policy === "combine" && combineBody
+                    ? change(
+                        { kind: "combine", name: file.name, ...combineBody },
+                        {
+                          onSuccess: () =>
+                            hasBlanks && blankOk !== r.blank_ok
+                              ? change(
+                                  { kind: "file", name: file.name, blank_ok: blankOk },
+                                  { onSettled: done },
+                                )
+                              : done(),
+                          onError: done,
+                        },
+                      )
+                    : change(
+                        {
+                          kind: "file",
+                          name: file.name,
+                          ...(hasRepeats && (policy === "first" || policy === "all")
+                            ? { dupes: policy }
+                            : {}),
+                          ...(hasRepeats && policy === "first"
+                            ? { dupes_by: levels.map((l) => ({ ...l, numeric: false })) }
+                            : {}),
+                          ...(hasBlanks ? { blank_ok: blankOk } : {}),
+                        },
+                        { onSettled: done },
+                      ),
+                )
               }
             >
               {w.save}

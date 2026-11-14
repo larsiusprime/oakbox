@@ -4,6 +4,8 @@ import type { Project, Wizard, WizardFile, WizardStep } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { Seg } from "../components/Seg";
+import { Waiting } from "../components/Waiting";
+import { afterPaint } from "../lib/hooks";
 import { t } from "../wording";
 import { UnitsPointer } from "./Units";
 import { FilePicker, IdRow, isMainSales, MatchPanel, StepFile } from "./WizardFiles";
@@ -158,12 +160,19 @@ function ExtraFile({
         ? "sales"
         : null;
   const appended = file.holds === "parcel_rows" || file.holds === "sale_rows";
-  const set = (holds: "parcels" | "sales" | "parcel_rows" | "sale_rows") =>
-    change(
-      holds === "sales"
-        ? { kind: "file", name: file.name, holds, match: "key_sale" }
-        : { kind: "file", name: file.name, holds },
+  // Saying what it's about reads the file for its ID column: said on the page while it does.
+  const [busy, setBusy] = useState(false);
+  const set = (holds: "parcels" | "sales" | "parcel_rows" | "sale_rows") => {
+    setBusy(true);
+    afterPaint(() =>
+      change(
+        holds === "sales"
+          ? { kind: "file", name: file.name, holds, match: "key_sale" }
+          : { kind: "file", name: file.name, holds },
+        { onSettled: () => setBusy(false) },
+      ),
     );
+  };
   const joined = about === "parcels" ? "parcels" : "sales";
   const rows = about === "parcels" ? "parcel_rows" : "sale_rows";
   return (
@@ -205,7 +214,10 @@ function ExtraFile({
           </>
         )}
       </div>
-      {about && <IdRow projectId={project.id} data={data} file={file} base={base} change={change} inline />}
+      {busy && <Waiting doing={m.working({ file: file.name })} className="waiting waiting-inline" />}
+      {about && !busy && (
+        <IdRow projectId={project.id} data={data} file={file} base={base} change={change} inline />
+      )}
       {file.appended && <Appended file={file} change={change} />}
       {file.holds === "parcels" && <UnitsPointer projectId={project.id} file={file} />}
     </StepFile>

@@ -537,6 +537,7 @@ export type Wording = {
     extraFiles: {
       configure: string;
       stepLede: string;
+      working: (a: { file: string | number }) => string;
       first: string;
       another: string;
       what: string;
@@ -713,6 +714,7 @@ export type Wording = {
       noAbout: string;
       fieldsNote: string;
       working: string;
+      combining: string;
       groupsTitle: (a: { about: string | number }) => string;
       groupsNote: string;
       groupName: string;

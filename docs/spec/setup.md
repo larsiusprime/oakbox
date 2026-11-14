@@ -830,14 +830,14 @@ the field steps, checks, guesses, assumptions and Review carry over.
   - **Combine each parcel's rows into one** (2026-11-14; a file of more parcel details only; `wizard/combine.py`,
     `Combine.tsx`), for a file whose rows each say something different about the parcel (one row per amenity: Lee
     County's parcel amenities, 259,105 rows for 224,882 parcels). **Each row is about** a column (guessed: the text
-    column whose values don't repeat within an ID, fewest values first); its values, capitals and spaces ignored, in
-    **groups**, a yes/no field each (`has_open_water`, 1/0), suggested from the values' words (water, canal, golf,
-    rail...; **Edit groups…**: rename, move a value to another group, a group of its own, or out; one field per value
-    instead); each **number column** one number per parcel (largest, smallest, total, average, how many; a distance
+    column whose values don't repeat within an ID, fewest values first; its name set off as code wherever it's
+    said); a yes/no field per value to start (`has_lake`, 1/0; capitals and spaces ignored), which **Edit groups…**
+    puts together by hand (rename, move a value to another group, a group of its own, or out; back to one per value).
+    No groups are guessed from the values' words: rules for one county's codes fit no other; each **number column** one number per parcel (largest, smallest, total, average, how many; a distance
     the smallest, else the largest); and, ticked, **the main value**, a category (`main_amenity`): the first value
     in an order the user sets that the parcel has (**Set the order…**: ⤒ ↑ ↓, with how many parcels each is the main
-    one for). A line shows what the first example ID becomes; the footer "259,105 rows → 224,882 parcels · 15
-    fields". OpenAVMKit can't reshape a file, so OAK box writes `<name>.combined.parquet` beside the original in
+    one for). A line shows what the first example ID becomes; the footer "259,105 rows → 224,882 parcels · 36
+    fields". Save closes the dialog at once; the file's row says "Combining each parcel's rows" until it's done. OpenAVMKit can't reshape a file, so OAK box writes `<name>.combined.parquet` beside the original in
     `in/` (made again when the original or the set-up changes: its key is in the file's metadata), and the project
     loads that; the fields are the user's own (Your own fields, land). Keeping the first row or dropping repeats
     goes back to the original. The ID check reads "30,112 repeated IDs, rows combined" (the original's repeats).

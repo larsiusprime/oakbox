@@ -1,11 +1,12 @@
 """A parcel file whose rows each say something different about the parcel (one row per amenity: lake, golf
 course, canal), combined into one row per parcel instead of keeping one of them (F3d, the duplicates dialog).
 
-What each row is about (a column: Amenity) becomes a yes/no field per group of its values (has_open_water,
-has_golf), each number column one number per parcel (the largest, the smallest, the total...), and, if asked, the
-main value as a category (the first of an order the user sets that the parcel has). OpenAVMKit can't reshape a file,
-so OAK box writes the combined file beside the original in in/ (`<name>.combined.parquet`), and the project loads
-that; it's made again whenever the original or the set-up changes (ensure, from Files).
+What each row is about (a column: Amenity) becomes a yes/no field per value (has_lake, has_golf_course), or per
+group of values the user puts together; each number column one number per parcel (the largest, the smallest, the
+total...); and, if asked, the main value as a category (the first of an order the user sets that the parcel has).
+OpenAVMKit can't reshape a file, so OAK box writes the combined file beside the original in in/
+(`<name>.combined.parquet`), and the project loads that; it's made again whenever the original or the set-up
+changes (ensure, from Files).
 """
 
 from __future__ import annotations
@@ -26,23 +27,6 @@ from oakbox.projects import CustomField, Project
 NONE = {"", "NULL", "NONE", "NAN", "N/A", "NA", "-"}
 MAX_VALUES = 500  # a column with more different values isn't what rows are about
 META = b"oakbox_combine"
-
-# Suggested groups: the first rule whose words a value has (as whole words; "NO ACCESS" as a phrase). Values no
-# rule takes are a group each, by their own name.
-_RULES: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = [
-    # (group, any of these words or phrases, and all of these too)
-    ("No access water", ("NO ACCESS", "DITCH", "DRAINAGE"), ()),
-    ("Sailboat access", ("SAILBOAT",), ()),
-    ("Golf, closed", ("GOLF", "GREEN"), ("CLOSED",)),
-    ("Golf", ("GOLF", "GREEN"), ()),
-    ("Canal or creek access", ("CANAL", "CREEK"), ()),
-    ("River", ("RIVER",), ()),
-    ("Lake", ("LAKE", "POND", "RESERVOIR"), ()),
-    ("Open water", ("GULF", "BAY", "INLET", "OCEAN", "SOUND", "HARBOR", "BEACH"), ()),
-    ("Marina", ("MARINA",), ()),
-    ("Railroad", ("RAIL", "RAILROAD", "RAILWAY"), ()),
-    ("Preserve", ("PRESERVE", "CONSERVATION", "WETLAND", "PARK"), ()),
-]
 
 
 def norm(v: str) -> str:
@@ -74,19 +58,17 @@ def fields_of(c: Combine) -> list[tuple[str, str]]:
 
 
 def suggest_groups(values: Iterable[str]) -> list[CombineGroup]:
-    groups: dict[str, list[str]] = {}
+    """To start: a group per value, its field named after it. Values that mean the same are put together by hand
+    (Edit groups…): no guessing from the values' words, which only ever fit one county's codes."""
+    out: list[CombineGroup] = []
+    fields: set[str] = set()
     for v in values:
-        words = set(re.split(r"[^0-9A-Z]+", v))
-        name = next(
-            (
-                g
-                for g, anyof, allof in _RULES
-                if any((w in v) if " " in w else (w in words) for w in anyof) and all(w in words for w in allof)
-            ),
-            v.title(),
-        )
-        groups.setdefault(name, []).append(v)
-    return [CombineGroup(name=n, values=vs) for n, vs in groups.items()]
+        name, n = v.title(), 2
+        while group_field(name) in fields:  # "RAIL-ROAD" and "RAIL ROAD" would make the same field
+            name, n = f"{v.title()} {n}", n + 1
+        fields.add(group_field(name))
+        out.append(CombineGroup(name=name, values=[v]))
+    return out
 
 
 def default_how(column: str) -> CombineHow:

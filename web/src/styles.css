@@ -9519,3 +9519,9 @@ th.vt-map {
   background: var(--primary-bottom);
   opacity: 0.45;
 }
+/* Said on the row it's about (a file's check, its join), not only in the corner: the work under way there. */
+.waiting.waiting-inline {
+  margin: calc(0.3 * var(--sp)) 0;
+  font-size: 0.9rem;
+  color: var(--text);
+}

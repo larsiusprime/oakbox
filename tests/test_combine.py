@@ -10,18 +10,14 @@ from oakbox.datafiles import Combine, CombineGroup
 from oakbox.wizard import combine
 
 
-def test_suggested_groups_go_by_the_values_words():
-    groups = {g.name: g.values for g in combine.suggest_groups(
-        ["NO ACCESS CANAL", "ACCESS CANAL", "SAILBOAT ACCESS CANAL", "GOLF COURSE CLOSED", "GOLF COURSE", "GREEN",
-         "GULF", "MIROMAR LAKE CANAL", "MIROMAR LAKE NORTH", "RAIL ROAD", "RAILROAD", "CALOOSAHATCHEE RIVER", "ZOO"]
-    )}  # fmt: skip
-    assert groups["No access water"] == ["NO ACCESS CANAL"]
-    assert groups["Canal or creek access"] == ["ACCESS CANAL", "MIROMAR LAKE CANAL"]
-    assert groups["Sailboat access"] == ["SAILBOAT ACCESS CANAL"]
-    assert groups["Golf, closed"] == ["GOLF COURSE CLOSED"] and groups["Golf"] == ["GOLF COURSE", "GREEN"]
-    assert groups["Lake"] == ["MIROMAR LAKE NORTH"] and groups["Open water"] == ["GULF"]
-    assert groups["Railroad"] == ["RAIL ROAD", "RAILROAD"] and groups["River"] == ["CALOOSAHATCHEE RIVER"]
-    assert groups["Zoo"] == ["ZOO"]  # no rule takes it: a group of its own
+def test_to_start_a_group_per_value():
+    groups = combine.suggest_groups(["LAKE", "GOLF COURSE", "RAIL-ROAD", "RAIL ROAD"])
+    assert [(g.name, g.values) for g in groups] == [
+        ("Lake", ["LAKE"]),
+        ("Golf Course", ["GOLF COURSE"]),
+        ("Rail-Road", ["RAIL-ROAD"]),
+        ("Rail Road 2", ["RAIL ROAD"]),  # the same field otherwise (has_rail_road)
+    ]
 
 
 def test_one_row_per_parcel_with_its_groups_numbers_and_main_value():
@@ -70,10 +66,12 @@ def test_combining_a_files_rows_and_back(client, pid):
     url = f"/api/projects/{pid}/wizard/files/amenities"
     p = client.post(f"{url}/combine/preview", json={}).json()
     assert p["about"] == "Amenity" and (p["rows"], p["parcels"]) == (6, 3)
+    # A group per value, to start (most parcels first).
     assert {g["name"]: g["values"] for g in p["groups"]} == {
-        "Golf": ["GOLF COURSE"],
-        "Open water": ["BAY", "GULF"],
         "Lake": ["LAKE"],
+        "Golf Course": ["GOLF COURSE"],
+        "Gulf": ["GULF"],
+        "Bay": ["BAY"],
     }
     assert [(m["column"], m["how"]) for m in p["measures"]] == [("Water_Length", "max"), ("DistanceToOpenWater", "min")]
     measures = {"Water_Length": "max", "DistanceToOpenWater": "min"}
@@ -88,12 +86,12 @@ def test_combining_a_files_rows_and_back(client, pid):
     assert f["filename"] == "amenities.combined.parquet" and f["rows"] == 3
     assert f["repeats"]["combined"] and "rows combined" in f["id_check"]["issues"][0]["text"]
     combined = pd.read_parquet(projects.inputs_dir(pid) / "amenities.combined.parquet").set_index("PROP_ID")
-    assert combined.loc[IDS[0], "has_open_water"] == 1 and combined.loc[IDS[0], "distancetoopenwater"] == 10
+    assert combined.loc[IDS[0], "has_gulf"] == 1 and combined.loc[IDS[0], "distancetoopenwater"] == 10
     assert combined.loc[IDS[0], "main_amenity"] == "GULF" and combined.loc[IDS[2], "has_lake"] == 1
     load = read_settings(pid)["data"]["load"]["amenities"]
-    assert load["filename"] == "amenities.combined.parquet" and "has_golf" in load["load"]
+    assert load["filename"] == "amenities.combined.parquet" and "has_golf_course" in load["load"]
     custom = {c.name for c in projects.load(pid).wizard.custom}
-    assert {"has_golf", "has_open_water", "has_lake", "water_length", "distancetoopenwater", "main_amenity"} <= custom
+    assert {"has_golf_course", "has_gulf", "has_lake", "water_length", "distancetoopenwater", "main_amenity"} <= custom
     # The dialog still shows the original's repeats.
     assert client.get(f"{url}/repeats").json()["columns"][:2] == ["PROP_ID", "Amenity"]
     # Back to keeping the first row: the original again, its fields gone.
@@ -101,7 +99,7 @@ def test_combining_a_files_rows_and_back(client, pid):
     f = next(x for x in w["files"] if x["name"] == "amenities")
     assert f["filename"] == "amenities.csv" and not f["repeats"]["combined"]
     assert not (projects.inputs_dir(pid) / "amenities.combined.parquet").exists()
-    assert "has_golf" not in {c.name for c in projects.load(pid).wizard.custom}
+    assert "has_golf_course" not in {c.name for c in projects.load(pid).wizard.custom}
 
 
 def test_the_combined_file_is_made_again_when_the_original_changes(client, pid):
@@ -114,4 +112,4 @@ def test_the_combined_file_is_made_again_when_the_original_changes(client, pid):
     df.to_csv(src, index=False)
     client.get(f"/api/projects/{pid}/wizard")
     combined = pd.read_parquet(projects.inputs_dir(pid) / "amenities.combined.parquet").set_index("PROP_ID")
-    assert combined.loc[IDS[3], "has_golf"] == 1
+    assert combined.loc[IDS[3], "has_golf_course"] == 1

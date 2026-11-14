@@ -239,7 +239,9 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
             {current.key === "universe" && (
               <UniverseStep project={project} data={data} change={change.mutate} />
             )}
-            {current.key === "sales_match" && <SalesMatch project={project} data={data} change={change.mutate} />}
+            {current.key === "sales_match" && (
+              <SalesMatch project={project} data={data} change={change.mutate} />
+            )}
             {current.key === "sale_id" && <SaleIdStep data={data} change={change.mutate} />}
             {SALES_FIELD_STEPS.includes(current.key) && (
               <SalesFieldPage project={project} data={data} step={current} change={change.mutateAsync} />

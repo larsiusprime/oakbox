@@ -191,7 +191,7 @@ export function CombineOptions({
           })}
           <div className="cb-row">
             <Tick isSelected={s.mainOn} onChange={s.setMainOn}>
-              {c.mainTick({ about: p.about })}
+              <WithColumn text={c.mainTick({ about: p.about })} column={p.about} />
             </Tick>
             {s.mainOn && (
               <Button className="button button-small" onPress={() => setEditing("order")}>
@@ -254,7 +254,7 @@ function Becomes({
     const i = example.columns.indexOf(col);
     if (!m.used || i < 0) return [];
     const xs = rows.map((r) => Number.parseFloat(r[i] ?? "")).filter((x) => Number.isFinite(x));
-    if (m.how === "count") return [`${col} ${xs.length}`];
+    if (m.how === "count") return [[col, String(xs.length)] as const];
     if (!xs.length) return [];
     const v =
       m.how === "max"
@@ -264,13 +264,24 @@ function Becomes({
           : m.how === "sum"
             ? xs.reduce((a, b) => a + b, 0)
             : xs.reduce((a, b) => a + b, 0) / xs.length;
-    return [`${col} ${num(v, 1)}`];
+    return [[col, num(v, 1)] as const];
   });
   const main = s.mainOn ? s.order.find((v) => values.includes(v)) : undefined;
-  const parts = [yes.join(", ") || c.nothing, ...nums, ...(main ? [`${c.main}: ${main}`] : [])];
   return (
     <p className="cb-becomes">
-      <b>{c.becomes({ id })}</b> {parts.join(" · ")}
+      <b>{c.becomes({ id })}</b> {yes.join(", ") || c.nothing}
+      {nums.map(([col, v]) => (
+        <span key={col}>
+          {" · "}
+          <code>{col}</code> {v}
+        </span>
+      ))}
+      {main && (
+        <>
+          {" · "}
+          {c.main}: <code>{main}</code>
+        </>
+      )}
     </p>
   );
 }
@@ -346,7 +357,7 @@ function GroupsDialog({
       <Modal className="modal wiz-modal wiz-modal-wide">
         <Dialog className="modal-body">
           <Heading slot="title" className="modal-title">
-            {c.groupsTitle({ about })}
+            <WithColumn text={c.groupsTitle({ about })} column={about} />
           </Heading>
           <p className="wiz-from">{c.groupsNote}</p>
           <div className="cb-groups">
@@ -445,7 +456,7 @@ function OrderDialog({
       <Modal className="modal wiz-modal">
         <Dialog className="modal-body">
           <Heading slot="title" className="modal-title">
-            {c.orderTitle({ about })}
+            <WithColumn text={c.orderTitle({ about })} column={about} />
           </Heading>
           <p className="wiz-from">{c.orderNote}</p>
           <div className="cb-order">
@@ -454,7 +465,9 @@ function OrderDialog({
                 <tr>
                   <th />
                   <th />
-                  <th>{about}</th>
+                  <th>
+                    <code>{about}</code>
+                  </th>
                   <th className="num" colSpan={2}>
                     {c.mainFor}
                   </th>
@@ -511,6 +524,19 @@ function OrderDialog({
         </Dialog>
       </Modal>
     </ModalOverlay>
+  );
+}
+
+/** A sentence naming a column: the column set off as code (it's the file's own name for it, not a word of ours). */
+function WithColumn({ text, column }: { text: string; column: string }) {
+  const at = text.indexOf(column);
+  if (at < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, at)}
+      <code>{column}</code>
+      {text.slice(at + column.length)}
+    </>
   );
 }
 
