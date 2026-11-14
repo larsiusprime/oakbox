@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import mimetypes
 import threading
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -95,6 +96,9 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     steps.stop_all()  # the service is shutting down: its runs end with it
 
 
+SLOW = 1.0  # seconds: a request taking longer is written to the log
+
+
 def create_app() -> FastAPI:
     pin_ui_content_types()
     # The API's own version, not the app's (that's /api/version): web/openapi.json is checked in, and shouldn't
@@ -118,6 +122,29 @@ def create_app() -> FastAPI:
         return JSONResponse(
             {"detail": None, "failure": applog.failure(request.method, request.url.path, e)}, status_code=500
         )
+
+    # Slow requests are written to the log, with how long they took (and how many others were under way, as they
+    # share the computer): what a slow click spent its time on can be read there afterwards.
+    under_way = {"n": 0}
+
+    @app.middleware("http")
+    async def timed(request: Request, call_next):  # noqa: ANN001, ANN202 - Starlette's own types
+        start = time.perf_counter()
+        under_way["n"] += 1
+        others = under_way["n"] - 1
+        try:
+            return await call_next(request)
+        finally:
+            under_way["n"] -= 1
+            took = time.perf_counter() - start
+            if took >= SLOW and request.url.path.startswith("/api/"):
+                applog.logger().info(
+                    "slow: %s %s took %.1f s (%d other requests under way)",
+                    request.method,
+                    request.url.path,
+                    took,
+                    others,
+                )
 
     @app.get("/api/log")
     def log_info() -> LogInfo:

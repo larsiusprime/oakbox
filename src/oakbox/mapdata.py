@@ -926,15 +926,21 @@ def _stamps(project: Project, in_dir: Path) -> tuple:
     return tuple(out)
 
 
+def _data_json(project: Project) -> str:
+    """The project as what the map works out from it depends on: not where the wizard has been (a step visited or
+    moved on from), so going from step to step doesn't make the map work out its problems and sales again."""
+    return project.model_dump_json(exclude={"wizard": {"visited", "confirmed"}})
+
+
 def problems(project: Project, in_dir: Path) -> MapProblems:
     """What problems the map can show where they are, with how many: worked out again only when the project or its
     files change (comparing the 💰 sales' values with their parcels' takes seconds on a county)."""
-    return _problems(project.model_dump_json(), str(in_dir), _stamps(project, in_dir))
+    return _problems(_data_json(project), str(in_dir), _stamps(project, in_dir))
 
 
 def problem(project: Project, in_dir: Path, problem_id: str) -> MapProblem:
     """Which parcels (or sales) have the problem: kept until the project or its files change."""
-    return _problem(project.model_dump_json(), str(in_dir), _stamps(project, in_dir), problem_id)
+    return _problem(_data_json(project), str(in_dir), _stamps(project, in_dir), problem_id)
 
 
 @lru_cache(maxsize=16)
@@ -1007,7 +1013,7 @@ def _sales_cached(project_json: str, in_dir: str, stamps: tuple) -> MapSales:
 
 def sales_kept(project: Project, in_dir: Path) -> MapSales:
     """sales(), kept until the project or its files change (a parcel's card reads its sales' flags from it)."""
-    return _sales_cached(project.model_dump_json(), str(in_dir), _stamps(project, in_dir))
+    return _sales_cached(_data_json(project), str(in_dir), _stamps(project, in_dir))
 
 
 @lru_cache(maxsize=4)
@@ -1131,7 +1137,7 @@ def card(project: Project, in_dir: Path, index: int) -> ParcelCard:
     entry = sales_file(project)
     if entry is not None and key and entry.name in files.preview:
         stamps = _stamps(project, in_dir)
-        pj = project.model_dump_json()
+        pj = _data_json(project)
         stamp = file_stamp(in_dir / entry.filename)
         mine = _rows_by_parcel(stamp, tuple(files.parcel_ids(entry.name))).get(key, [])
         d = _sales_cached(pj, str(in_dir), stamps) if mine else None
