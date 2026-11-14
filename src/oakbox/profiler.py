@@ -199,30 +199,42 @@ def _idle(frame: FrameType) -> bool:
 
 def _look() -> None:
     """One look at every working thread, kept as it is (its code objects, its deepest own line), to be made sense of
-    only for a request that turns out slow: a look itself does as little as it can, so it slows nothing down."""
-    frames = sys._current_frames()  # noqa: SLF001 - the one way to see other threads' stacks
+    only for a request that turns out slow: a look itself does as little as it can, so it slows nothing down.
+
+    The other threads' stacks are read with no thread switch in between (sys.setswitchinterval): a thread that ran on
+    meanwhile could leave a frame it had finished with, and reading that one crashes the process (it did: a
+    segmentation fault in a look, a 888,000-row file being read on another thread)."""
     me = threading.get_ident()
-    with _lock:
+    with _lock:  # before the stacks: taking a lock can let another thread run
         requests = dict(_under_way)
         owners = dict(_owners)
         loop = _loop
+    seen_now: list[tuple[int, list[CodeType], int]] = []
+    interval = sys.getswitchinterval()
+    sys.setswitchinterval(1.0)  # no other thread runs until this look is done (well under a millisecond)
+    try:
+        frames = sys._current_frames()  # noqa: SLF001 - the one way to see other threads' stacks
+        f: FrameType | None = None
+        for ident, top in frames.items():
+            if ident == me or _idle(top) or (ident not in owners and ident != loop):
+                continue
+            codes: list[CodeType] = []
+            line = 0
+            f = top
+            while f is not None and len(codes) < MAX_DEPTH:
+                c = f.f_code
+                if not line and _own(c):
+                    line = f.f_lineno or -1
+                codes.append(c)
+                f = f.f_back
+            seen_now.append((ident, codes, line))
+        frames = f = None  # no frame of another thread kept past the look
+    finally:
+        sys.setswitchinterval(interval)
     for r in requests.values():
         r.looks += 1
-    for ident, top in frames.items():
-        if ident == me or _idle(top):
-            continue
+    for ident, codes, line in seen_now:
         key = owners.get(ident)
-        if key is None and ident != loop:
-            continue  # a thread of no request's: a run's watcher, the engine warming up
-        codes: list[CodeType] = []
-        line = 0
-        f: FrameType | None = top
-        while f is not None and len(codes) < MAX_DEPTH:
-            c = f.f_code
-            if not line and _own(c):
-                line = f.f_lineno or -1
-            codes.append(c)
-            f = f.f_back
         seen: Stack = (tuple(codes), line)
         if key is None:  # the event loop: every request under way shares it
             for r in requests.values():
