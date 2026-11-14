@@ -77,8 +77,11 @@ def main() -> None:
         os.environ.setdefault("OAKBOX_HOME", tempfile.mkdtemp(prefix="oakbox-menus-"))
         _skip_machine_check()
 
+    # A crash leaves a record in OAK box's log (the next start says so), and a normal close says it closed.
+    from oakbox import applog, steps
+
+    applog.watch_for_crashes()
     # However the app ends normally, the runs it started end with it (steps.die_with_app covers the rest).
-    from oakbox import steps
 
     atexit.register(steps.stop_all)
 

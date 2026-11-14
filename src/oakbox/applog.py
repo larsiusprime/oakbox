@@ -70,6 +70,57 @@ def failure(method: str, path: str, error: BaseException) -> dict:
     return {"ref": ref, "at": at, "request": f"{method} {path}", "what": what[:500], "log": str(log_file())}
 
 
+CRASH = "crash.log"
+_crash_file = None
+
+
+def watch_for_crashes() -> None:
+    """Make a crash leave a record. A crash below Python (a native library, or the window's browser engine taking
+    the process down) writes every thread's Python stack to logs/crash.log (faulthandler), and the next start copies
+    it into this log; an error no one caught on a background thread is logged; a normal close says so ("stopped"),
+    so a log that ends without it ended in a crash."""
+    import atexit
+    import faulthandler
+    import sys
+
+    global _crash_file
+    log = logger()
+    here = log_dir()
+    crash = here / CRASH
+    try:
+        before = crash.read_text(encoding="utf-8", errors="replace") if crash.is_file() else ""
+    except OSError:
+        before = ""
+    # On Windows faulthandler also writes exceptions native code catches and carries on from (WebView2 does): only a
+    # run that didn't close normally crashed.
+    closed = tail(4000).rstrip().endswith(b"(closed normally)")
+    if not closed and ("Fatal Python error" in before or "Windows fatal exception" in before):
+        log.error("The last run crashed (a native crash: below Python). Its threads then:\n%s", before.strip()[-20000:])
+    try:
+        here.mkdir(parents=True, exist_ok=True)
+        _crash_file = open(crash, "w", encoding="utf-8")  # noqa: SIM115 - open for the life of the process
+        faulthandler.enable(file=_crash_file, all_threads=True)
+    except OSError:
+        pass
+
+    def uncaught(args: threading.ExceptHookArgs) -> None:
+        if args.exc_type is SystemExit:
+            return
+        tb = "".join(traceback.format_exception(args.exc_type, args.exc_value, args.exc_traceback))
+        name = args.thread.name if args.thread else "?"
+        log.error("Uncaught error on thread %s:\n%s", name, tb.rstrip())
+
+    threading.excepthook = uncaught
+    previous = sys.excepthook
+
+    def uncaught_main(t: type[BaseException], e: BaseException, tb: object) -> None:
+        log.error("Uncaught error:\n%s", "".join(traceback.format_exception(t, e, tb)).rstrip())  # type: ignore[arg-type]
+        previous(t, e, tb)  # type: ignore[arg-type]
+
+    sys.excepthook = uncaught_main
+    atexit.register(lambda: log.info("OAK box stopped (closed normally)"))
+
+
 def tail(limit: int = TAIL) -> bytes:
     """The end of the log (the newest of its files), for a report."""
     f = log_file()

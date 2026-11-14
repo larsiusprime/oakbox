@@ -51,3 +51,20 @@ def test_the_performance_report_carries_the_logs_end(tmp_path):
     project.mkdir()
     with zipfile.ZipFile(timing.report(project)) as z:
         assert "KeyError" in z.read("logs/oakbox.log").decode("utf-8")
+
+
+def test_a_native_crash_is_in_the_log_on_the_next_start(tmp_path):
+    """A crash below Python leaves every thread's stack; the next start puts it in the log, once."""
+    import os
+    import subprocess
+    import sys
+
+    env = {**os.environ, "OAKBOX_HOME": str(tmp_path)}
+    crash = "from oakbox import applog; import faulthandler; applog.watch_for_crashes(); faulthandler._sigsegv()"
+    start = "from oakbox import applog; applog.watch_for_crashes()"
+    assert subprocess.run([sys.executable, "-c", crash], env=env, capture_output=True).returncode != 0
+    for _ in range(2):
+        subprocess.run([sys.executable, "-c", start], env=env, check=True)
+    text = (tmp_path / ".oakbox" / "logs" / "oakbox.log").read_text(encoding="utf-8")
+    assert text.count("The last run crashed") == 1 and "Segmentation fault" in text
+    assert text.rstrip().endswith("OAK box stopped (closed normally)")
