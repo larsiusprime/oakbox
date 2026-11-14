@@ -442,13 +442,17 @@ class Permits(BaseModel):
 
 
 CombineHow = Literal["max", "min", "sum", "mean", "count"]
+CombineMake = Literal["has", "count", "total"]
 
 
 class CombineGroup(BaseModel):
-    """Values of the "about" column that mean the same thing for a model: a yes/no field each (has_<name>)."""
+    """Values of the "about" column that mean the same thing for a model (a garage, finished or not), and the fields
+    the group makes: whether a parcel has any (has_garage), how many rows it has (garage_count), the total of the
+    file's measure over them (garage_totalarea)."""
 
-    name: str = Field(description="As shown: 'Open water'. Its field is has_open_water.")
+    name: str = Field(description="As shown: 'Open water'. Its fields are named from it.")
     values: list[str] = Field(description="The values in it, as compared: capitals, extra spaces ignored.")
+    makes: list[CombineMake] = Field(default_factory=lambda: ["has"], description="Its fields: yes/no, count, total.")
 
 
 class Combine(BaseModel):
@@ -458,7 +462,11 @@ class Combine(BaseModel):
 
     source: str = Field(description="The original file, in in/.")
     about: str = Field(description="The column that says what each row is about (Amenity).")
-    groups: list[CombineGroup] = Field(default_factory=list, description="A yes/no field per group.")
+    measure: str | None = Field(
+        default=None, description="A number column groups total (TotalArea: a garage's square feet). None: none."
+    )
+    rows: bool = Field(default=False, description="Also how many rows each parcel has, in all (row_count).")
+    groups: list[CombineGroup] = Field(default_factory=list, description="Fields per group of values.")
     measures: dict[str, CombineHow] = Field(
         default_factory=dict, description="Number column -> how a parcel's rows make one: largest, smallest..."
     )

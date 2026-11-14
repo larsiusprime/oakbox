@@ -692,8 +692,23 @@ export type Wording = {
       choice: string;
       about: string;
       values: (a: { n: number }) => string;
-      groupsTick: string;
-      groupsPill: (a: { n: number }) => string;
+      groupsPill: (a: { n: number; fields: number }) => string;
+      groupsLabel: string;
+      leftNote: (a: { n: number }) => string;
+      measuredIn: string;
+      noMeasure: string;
+      measuredNote: string;
+      rowsTick: string;
+      moreNumbers: (a: { n: number }) => string;
+      makes: {
+        has: string;
+        count: string;
+        total: (a: { measure: string | number }) => string;
+        noTotal: string;
+      };
+      leftTitle: (a: { n: number }) => string;
+      leftHint: string;
+      makeGroup: string;
       editGroups: string;
       numbers: string;
       have: (a: { n: number }) => string;

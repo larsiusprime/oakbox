@@ -27,7 +27,7 @@ import { t } from "../wording";
 import type { CombineHow } from "./wizardChange";
 
 const c = t.wizard.combine;
-type Group = components["schemas"]["CombineGroup"];
+type Group = components["schemas"]["CombineGroup-Output"];
 type Preview = components["schemas"]["CombinePreview"];
 type Measure = { how: CombineHow; used: boolean };
 const HOWS: CombineHow[] = ["max", "min", "sum", "mean", "count"];
@@ -55,13 +55,17 @@ async function fetchPreview(
 export function useCombine(projectId: string, name: string, enabled: boolean) {
   const [about, setAbout] = useState<string | null>(null);
   const [groups, setGroups] = useState<Group[] | null>(null);
-  const [groupsOn, setGroupsOn] = useState(true);
+  // The column groups total: undefined, as set (or suggested); "", none.
+  const [measure, setMeasure] = useState<string | undefined>(undefined);
+  const [rowsOn, setRowsOn] = useState<boolean | null>(null);
   const [measures, setMeasures] = useState<Record<string, Measure> | null>(null);
   const [main, setMain] = useState<string[] | null>(null);
   const [mainOn, setMainOn] = useState<boolean | null>(null);
   const body = {
     about,
-    groups: groupsOn ? groups : [],
+    groups,
+    measure: measure ?? null,
+    rows_on: rowsOn,
     main,
     main_on: mainOn,
     measures: measures
@@ -75,7 +79,8 @@ export function useCombine(projectId: string, name: string, enabled: boolean) {
     placeholderData: keepPreviousData,
   });
   const p = q.data;
-  const effGroups = groupsOn ? (groups ?? p?.groups ?? []) : [];
+  const effGroups = groups ?? p?.groups ?? [];
+  const effMeasure = measure === undefined ? (p?.measure ?? null) : measure || null;
   const effMeasures: Record<string, Measure> =
     measures ?? Object.fromEntries((p?.measures ?? []).map((m) => [m.column, { how: m.how, used: m.used }]));
   const order = main ?? p?.main ?? [];
@@ -85,7 +90,8 @@ export function useCombine(projectId: string, name: string, enabled: boolean) {
     pending: q.isFetching,
     about: about ?? p?.about ?? null,
     groups: effGroups,
-    groupsOn,
+    measure: effMeasure,
+    rowsOn: rowsOn ?? p?.rows_on ?? false,
     measures: effMeasures,
     order,
     mainOn: isMainOn,
@@ -95,8 +101,9 @@ export function useCombine(projectId: string, name: string, enabled: boolean) {
       setMain(null);
     },
     setGroups,
-    setGroupsOn,
-    setMeasure: (column: string, m: Measure) => setMeasures({ ...effMeasures, [column]: m }),
+    setMeasure: (v: string | null) => setMeasure(v ?? ""),
+    setRowsOn,
+    setNumber: (column: string, m: Measure) => setMeasures({ ...effMeasures, [column]: m }),
     setMain,
     setMainOn,
     /** What Save sends. */
@@ -104,7 +111,9 @@ export function useCombine(projectId: string, name: string, enabled: boolean) {
       p?.about
         ? {
             about: p.about,
-            groups: effGroups.filter((g) => g.values.length),
+            groups: effGroups.filter((g) => g.values.length && g.makes.length),
+            measure: effMeasure,
+            rows: rowsOn ?? p.rows_on,
             measures: Object.fromEntries(
               Object.entries(effMeasures).flatMap(([k, m]) => (m.used ? [[k, m.how]] : [])),
             ) as Record<string, CombineHow>,
@@ -130,12 +139,15 @@ export function CombineOptions({
   example: { columns: string[]; rows: string[][] } | null;
 }) {
   const [editing, setEditing] = useState<"groups" | "order" | null>(null);
+  // A file with many number columns (a building's year, number, floor...) shows the ticked ones, the rest on asking.
+  const [allNumbers, setAllNumbers] = useState(false);
   const p = s.preview;
   if (!p) return <p className="wiz-from">{c.working}</p>;
-  const top = s.groups
-    .map((g, i) => [g.name, p.group_parcels[i] ?? 0] as const)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3);
+  const many = p.measures.length > 4;
+  const shownNumbers =
+    many && !allNumbers ? p.measures.filter((m) => (s.measures[m.column] ?? m).used) : p.measures;
+  const inGroups = new Set(s.groups.flatMap((g) => g.values));
+  const left = p.values.filter((v) => !inGroups.has(v.value)).length;
   return (
     <div className="wiz-indent cb-opts">
       <div className="cb-row">
@@ -155,26 +167,52 @@ export function CombineOptions({
       </div>
       {p.about && (
         <>
+          {p.numbers.length > 0 && (
+            <div className="cb-row">
+              <span className="cb-label">{c.measuredIn}</span>
+              <Choice
+                label={c.measuredIn}
+                hideLabel
+                value={s.measure ?? ""}
+                options={[["", c.noMeasure] as const, ...p.numbers.map((n) => [n, n] as const)]}
+                onChange={(v) => s.setMeasure(v || null)}
+              />
+              <span className="wiz-from">{c.measuredNote}</span>
+            </div>
+          )}
           <div className="cb-row">
-            <Tick isSelected={s.groupsOn} onChange={s.setGroupsOn}>
-              {c.groupsTick}
-            </Tick>
-            {s.groupsOn && (
-              <>
-                <span className="pill pill-info">{c.groupsPill({ n: s.groups.length })}</span>
-                <Button className="button button-small" onPress={() => setEditing("groups")}>
-                  {c.editGroups}
-                </Button>
-                <span className="wiz-from cb-top">{top.map(([g, n]) => `${g} ${num(n)}`).join(" · ")}</span>
-              </>
+            <span className="cb-label">{c.groupsLabel}</span>
+            <span className="pill pill-info">
+              {c.groupsPill({ n: s.groups.length, fields: groupFieldCount(s.groups, s.measure) })}
+            </span>
+            <Button className="button button-small" onPress={() => setEditing("groups")}>
+              {c.editGroups}
+            </Button>
+            {left > 0 && <span className="wiz-from">{c.leftNote({ n: left })}</span>}
+          </div>
+          {s.groups.length > 0 && (
+            <p className="cb-groupline">
+              {s.groups.map((g, i) => (
+                <span key={g.name}>
+                  {i > 0 && " · "}
+                  <b>{g.name}</b> <span className="wiz-from">{makesText(g, s.measure)}</span>
+                </span>
+              ))}
+            </p>
+          )}
+          <div className="cb-row">
+            <span className="cb-sub">{c.numbers}</span>
+            {many && !allNumbers && (
+              <Button className="button button-small" onPress={() => setAllNumbers(true)}>
+                {c.moreNumbers({ n: p.measures.length })}
+              </Button>
             )}
           </div>
-          {p.measures.length > 0 && <div className="cb-sub">{c.numbers}</div>}
-          {p.measures.map((m) => {
+          {shownNumbers.map((m) => {
             const mine = s.measures[m.column] ?? { how: m.how, used: m.used };
             return (
               <div key={m.column} className="cb-row cb-measure">
-                <Tick isSelected={mine.used} onChange={(used) => s.setMeasure(m.column, { ...mine, used })}>
+                <Tick isSelected={mine.used} onChange={(used) => s.setNumber(m.column, { ...mine, used })}>
                   <span className="mono">{m.column}</span>
                 </Tick>
                 <Choice
@@ -183,12 +221,17 @@ export function CombineOptions({
                   value={mine.how}
                   isDisabled={!mine.used}
                   options={HOWS.map((h) => [h, c.how[h]] as const)}
-                  onChange={(how) => s.setMeasure(m.column, { ...mine, how })}
+                  onChange={(how) => s.setNumber(m.column, { ...mine, how })}
                 />
                 <span className="wiz-from">{c.have({ n: m.parcels })}</span>
               </div>
             );
           })}
+          <div className="cb-row cb-measure">
+            <Tick isSelected={s.rowsOn} onChange={(v) => s.setRowsOn(v)}>
+              {c.rowsTick}
+            </Tick>
+          </div>
           <div className="cb-row">
             <Tick isSelected={s.mainOn} onChange={s.setMainOn}>
               <WithColumn text={c.mainTick({ about: p.about })} column={p.about} />
@@ -210,6 +253,7 @@ export function CombineOptions({
           about={p.about}
           values={p.values}
           groups={s.groups}
+          measure={s.measure}
           onDone={(g) => {
             s.setGroups(g);
             setEditing(null);
@@ -249,7 +293,18 @@ function Becomes({
   const id = example.rows[0]?.[0] ?? "";
   const rows = example.rows.filter((r) => r[0] === id);
   const values = rows.map((r) => norm(r[at] ?? ""));
-  const yes = s.groups.filter((g) => g.values.some((v) => values.includes(v))).map((g) => g.name);
+  const mAt = s.measure ? example.columns.indexOf(s.measure) : -1;
+  const yes: string[] = [];
+  const counts: [string, string][] = [];
+  for (const g of s.groups) {
+    const mine = rows.filter((_, i) => g.values.includes(values[i] ?? ""));
+    if (g.makes.includes("has") && mine.length) yes.push(g.name);
+    if (g.makes.includes("count")) counts.push([`${slug(g.name)}_count`, String(mine.length)]);
+    if (g.makes.includes("total") && s.measure && mAt >= 0) {
+      const total = mine.map((r) => Number.parseFloat(r[mAt] ?? "")).filter(Number.isFinite);
+      counts.push([`${slug(g.name)}_${slug(s.measure)}`, num(total.reduce((a, b) => a + b, 0))]);
+    }
+  }
   const nums = Object.entries(s.measures).flatMap(([col, m]) => {
     const i = example.columns.indexOf(col);
     if (!m.used || i < 0) return [];
@@ -269,7 +324,13 @@ function Becomes({
   const main = s.mainOn ? s.order.find((v) => values.includes(v)) : undefined;
   return (
     <p className="cb-becomes">
-      <b>{c.becomes({ id })}</b> {yes.join(", ") || c.nothing}
+      <b>{c.becomes({ id })}</b> {yes.join(", ") || (counts.length ? "" : c.nothing)}
+      {counts.map(([field, v], i) => (
+        <span key={field}>
+          {yes.length || i ? " · " : ""}
+          <code>{field}</code> {v}
+        </span>
+      ))}
       {nums.map(([col, v]) => (
         <span key={col}>
           {" · "}
@@ -292,6 +353,7 @@ function GroupsDialog({
   about,
   values,
   groups,
+  measure,
   onDone,
   close,
 }: {
@@ -300,10 +362,16 @@ function GroupsDialog({
   about: string;
   values: Preview["values"];
   groups: Group[];
+  /** The column a group's total is of; null: none, so no totals. */
+  measure: string | null;
   onDone: (g: Group[]) => void;
   close: () => void;
 }) {
   const [draft, setDraft] = useState<Group[]>(groups);
+  // Values in no group ticked, to make a group of them.
+  const [picked, setPicked] = useState<string[]>([]);
+  // A new group makes the total of the measure if there is one (an area), else yes/no.
+  const firstMakes: Group["makes"] = measure ? ["total"] : ["has"];
   const q = useQuery({
     queryKey: ["combine", projectId, name, "groups", about, draft],
     queryFn: () => fetchPreview(projectId, name, { about, groups: draft }),
@@ -315,7 +383,8 @@ function GroupsDialog({
   const move = (value: string, to: number | "own" | "out") => {
     const without = draft.map((g) => ({ ...g, values: g.values.filter((v) => v !== value) }));
     if (to === "out") setDraft(without);
-    else if (to === "own") setDraft([...without, { name: titleCase(value), values: [value] }]);
+    else if (to === "own")
+      setDraft([...without, { name: titleCase(value), values: [value], makes: firstMakes }]);
     else setDraft(without.map((g, i) => (i === to ? { ...g, values: [...g.values, value] } : g)));
   };
   const chip = (value: string, from: number | null) => (
@@ -367,6 +436,9 @@ function GroupsDialog({
                   <th>{c.groupName}</th>
                   <th className="num">{c.parcelsHead}</th>
                   <th>{c.valuesHead}</th>
+                  <th>{c.makes.has}</th>
+                  <th>{c.makes.count}</th>
+                  <th>{measure ? c.makes.total({ measure }) : c.makes.noTotal}</th>
                 </tr>
               </thead>
               <tbody>
@@ -382,8 +454,34 @@ function GroupsDialog({
                         <Input className="input" />
                       </TextField>
                     </td>
-                    <td className="num cb-gn">{num(q.data?.group_parcels[i] ?? 0)}</td>
+                    <td className="num cb-gn">
+                      {q.isFetching || q.isPlaceholderData ? "…" : num(q.data?.group_parcels[i] ?? 0)}
+                    </td>
                     <td className="cb-gvals">{g.values.map((v) => chip(v, i))}</td>
+                    {(["has", "count", "total"] as const).map((m) => (
+                      <td key={m} className="cb-make">
+                        <Tick
+                          isSelected={g.makes.includes(m)}
+                          isDisabled={m === "total" && !measure}
+                          onChange={(on) =>
+                            setDraft(
+                              draft.map((x, j) =>
+                                j === i
+                                  ? {
+                                      ...x,
+                                      makes: (["has", "count", "total"] as const).filter((k) =>
+                                        k === m ? on : x.makes.includes(k),
+                                      ),
+                                    }
+                                  : x,
+                              ),
+                            )
+                          }
+                        >
+                          <span className="sr-only">{`${g.name}: ${m === "total" && measure ? c.makes.total({ measure }) : m === "total" ? c.makes.noTotal : c.makes[m]}`}</span>
+                        </Tick>
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
@@ -391,17 +489,49 @@ function GroupsDialog({
           </div>
           {left.length > 0 && (
             <div className="cb-left">
-              <span className="cb-sub">{c.left}</span> {left.map((v) => chip(v, null))}
+              <div className="cb-row">
+                <span className="cb-sub">{c.leftTitle({ n: left.length })}</span>
+                <span className="wiz-from">{c.leftHint}</span>
+                <Button
+                  className="button button-small"
+                  isDisabled={picked.length === 0}
+                  onPress={() => {
+                    const first = picked[0] ?? "";
+                    setDraft([...draft, { name: titleCase(first), values: picked, makes: firstMakes }]);
+                    setPicked([]);
+                  }}
+                >
+                  {c.makeGroup}
+                </Button>
+              </div>
+              <div className="cb-left-list">
+                {left.map((v) => (
+                  <Tick
+                    key={v}
+                    isSelected={picked.includes(v)}
+                    onChange={(on) => setPicked(on ? [...picked, v] : picked.filter((x) => x !== v))}
+                  >
+                    <span className="mono">{v}</span>{" "}
+                    <span className="cb-chip-n">{num(counts.get(v) ?? 0)}</span>
+                  </Tick>
+                ))}
+              </div>
             </div>
           )}
           <div className="cb-row">
-            <AddButton onPress={() => setDraft([...draft, { name: c.newGroup, values: [] }])}>
+            <AddButton
+              onPress={() => setDraft([...draft, { name: c.newGroup, values: [], makes: firstMakes }])}
+            >
               {c.newGroup}
             </AddButton>
             <span className="dlg-grow" />
             <Button
               className="button button-small"
-              onPress={() => setDraft(values.map((v) => ({ name: titleCase(v.value), values: [v.value] })))}
+              onPress={() =>
+                setDraft(
+                  values.map((v) => ({ name: titleCase(v.value), values: [v.value], makes: firstMakes })),
+                )
+              }
             >
               {c.perValue}
             </Button>
@@ -409,7 +539,7 @@ function GroupsDialog({
           <DialogFoot>
             <Button
               className="button button-primary"
-              onPress={() => onDone(draft.filter((g) => g.values.length))}
+              onPress={() => onDone(draft.filter((g) => g.values.length && g.makes.length))}
             >
               {c.done}
             </Button>
@@ -538,6 +668,27 @@ function WithColumn({ text, column }: { text: string; column: string }) {
       {text.slice(at + column.length)}
     </>
   );
+}
+
+/** A field name from a group's or column's name, as the server makes it (wizard/combine.py slug). */
+export function slug(text: string): string {
+  const s = text
+    .toLowerCase()
+    .replace(/[^0-9a-z]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return s && /^[a-z]/.test(s) ? s : `f_${s}`;
+}
+
+/** What a group makes, in a few words: "yes/no, how many, total TotalArea". */
+function makesText(g: Group, measure: string | null): string {
+  return g.makes
+    .filter((m) => m !== "total" || measure)
+    .map((m) => (m === "total" ? c.makes.total({ measure: measure ?? "" }) : c.makes[m]))
+    .join(", ");
+}
+
+function groupFieldCount(groups: Group[], measure: string | null): number {
+  return groups.reduce((n, g) => n + g.makes.filter((m) => m !== "total" || measure).length, 0);
 }
 
 function titleCase(v: string): string {

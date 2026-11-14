@@ -4431,10 +4431,21 @@ export interface components {
              */
             about: string;
             /**
-             * Groups
-             * @description A yes/no field per group.
+             * Measure
+             * @description A number column groups total (TotalArea: a garage's square feet). None: none.
              */
-            groups: components["schemas"]["CombineGroup"][];
+            measure: string | null;
+            /**
+             * Rows
+             * @description Also how many rows each parcel has, in all (row_count).
+             * @default false
+             */
+            rows: boolean;
+            /**
+             * Groups
+             * @description Fields per group of values.
+             */
+            groups: components["schemas"]["CombineGroup-Output"][];
             /**
              * Measures
              * @description Number column -> how a parcel's rows make one: largest, smallest...
@@ -4456,7 +4467,7 @@ export interface components {
             /** About */
             about?: string | null;
             /** Groups */
-            groups?: components["schemas"]["CombineGroup"][] | null;
+            groups?: components["schemas"]["CombineGroup-Input"][] | null;
             /** Main */
             main?: string[] | null;
             /** Main On */
@@ -4465,15 +4476,24 @@ export interface components {
             measures?: {
                 [key: string]: "max" | "min" | "sum" | "mean" | "count";
             } | null;
+            /**
+             * Measure
+             * @description The column groups total; "": none; null: as set.
+             */
+            measure?: string | null;
+            /** Rows On */
+            rows_on?: boolean | null;
         };
         /**
          * CombineGroup
-         * @description Values of the "about" column that mean the same thing for a model: a yes/no field each (has_<name>).
+         * @description Values of the "about" column that mean the same thing for a model (a garage, finished or not), and the fields
+         *     the group makes: whether a parcel has any (has_garage), how many rows it has (garage_count), the total of the
+         *     file's measure over them (garage_totalarea).
          */
-        CombineGroup: {
+        "CombineGroup-Input": {
             /**
              * Name
-             * @description As shown: 'Open water'. Its field is has_open_water.
+             * @description As shown: 'Open water'. Its fields are named from it.
              */
             name: string;
             /**
@@ -4481,6 +4501,34 @@ export interface components {
              * @description The values in it, as compared: capitals, extra spaces ignored.
              */
             values: string[];
+            /**
+             * Makes
+             * @description Its fields: yes/no, count, total.
+             */
+            makes?: ("has" | "count" | "total")[];
+        };
+        /**
+         * CombineGroup
+         * @description Values of the "about" column that mean the same thing for a model (a garage, finished or not), and the fields
+         *     the group makes: whether a parcel has any (has_garage), how many rows it has (garage_count), the total of the
+         *     file's measure over them (garage_totalarea).
+         */
+        "CombineGroup-Output": {
+            /**
+             * Name
+             * @description As shown: 'Open water'. Its fields are named from it.
+             */
+            name: string;
+            /**
+             * Values
+             * @description The values in it, as compared: capitals, extra spaces ignored.
+             */
+            values: string[];
+            /**
+             * Makes
+             * @description Its fields: yes/no, count, total.
+             */
+            makes: ("has" | "count" | "total")[];
         };
         /**
          * CombinePreview
@@ -4500,12 +4548,27 @@ export interface components {
              */
             values: components["schemas"]["oakbox__wizard__combine__ValueCount"][];
             /** Groups */
-            groups: components["schemas"]["CombineGroup"][];
+            groups: components["schemas"]["CombineGroup-Output"][];
             /**
              * Group Parcels
              * @description Parcels in each group (a parcel can be in several).
              */
             group_parcels: number[];
+            /**
+             * Numbers
+             * @description The file's number columns: what groups can total (the measure).
+             */
+            numbers: string[];
+            /**
+             * Measure
+             * @description The column groups total: as set, or the suggestion (an area).
+             */
+            measure: string | null;
+            /**
+             * Rows On
+             * @description Also how many rows each parcel has.
+             */
+            rows_on: boolean;
             /**
              * None
              * @description Parcels in no group (no value, or only values left out).
@@ -4543,7 +4606,7 @@ export interface components {
             /** About */
             about: string;
             /** Groups */
-            groups: components["schemas"]["CombineGroup"][];
+            groups: components["schemas"]["CombineGroup-Input"][];
             /**
              * Measures
              * @description Number columns kept, how.
@@ -4556,6 +4619,17 @@ export interface components {
              * @description The order for the main value; None: not made.
              */
             main?: string[] | null;
+            /**
+             * Measure
+             * @description The number column groups total (an area).
+             */
+            measure?: string | null;
+            /**
+             * Rows
+             * @description Also how many rows each parcel has.
+             * @default false
+             */
+            rows: boolean;
         };
         /**
          * Condition

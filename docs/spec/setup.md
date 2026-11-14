@@ -837,7 +837,14 @@ the field steps, checks, guesses, assumptions and Review carry over.
     the smallest, else the largest); and, ticked, **the main value**, a category (`main_amenity`): the first value
     in an order the user sets that the parcel has (**Set the order…**: ⤒ ↑ ↓, with how many parcels each is the main
     one for). A line shows what the first example ID becomes; the footer "259,105 rows → 224,882 parcels · 36
-    fields". Save closes the dialog at once; the file's row says "Combining each parcel's rows" until it's done. OpenAVMKit can't reshape a file, so OAK box writes `<name>.combined.parquet` beside the original in
+    fields". **Groups that measure** (2026-11-14, sub-areas of buildings: Lee County's
+    Subareas, 888,093 rows for 329,820 parcels, 95 kinds): **Measured in** a number column (suggested: one named
+    like an area; or nothing), and each group makes any of **yes/no** (`has_pool`), **how many** rows
+    (`garage_count`) and **total** of the measure over its rows (`garage_totalarea`; 0 for none). With more than 40
+    values it starts with no groups: **Edit groups…** lists the values in no group, most parcels first, to tick and
+    **Make a group of them** (a new group totals the measure, or is a yes/no without one). **How many rows** in all
+    (`row_count`) is a number per parcel too; a file with more than four number columns shows only the ticked ones
+    until asked. No weights yet (`PctBase`). Save closes the dialog at once; the file's row says "Combining each parcel's rows" until it's done. OpenAVMKit can't reshape a file, so OAK box writes `<name>.combined.parquet` beside the original in
     `in/` (made again when the original or the set-up changes: its key is in the file's metadata), and the project
     loads that; the fields are the user's own (Your own fields, land). Keeping the first row or dropping repeats
     goes back to the original. The ID check reads "30,112 repeated IDs, rows combined" (the original's repeats).

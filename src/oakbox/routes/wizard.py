@@ -61,6 +61,8 @@ class CombineAsk(BaseModel):
     main: list[str] | None = None
     main_on: bool | None = None
     measures: dict[str, datafiles.CombineHow] | None = None
+    measure: str | None = Field(default=None, description='The column groups total; "": none; null: as set.')
+    rows_on: bool | None = None
 
 
 class CombineSet(BaseModel):
@@ -68,6 +70,8 @@ class CombineSet(BaseModel):
     groups: list[datafiles.CombineGroup]
     measures: dict[str, datafiles.CombineHow] = Field(default_factory=dict, description="Number columns kept, how.")
     main: list[str] | None = Field(default=None, description="The order for the main value; None: not made.")
+    measure: str | None = Field(default=None, description="The number column groups total (an area).")
+    rows: bool = Field(default=False, description="Also how many rows each parcel has.")
 
 
 class WizardSaleId(BaseModel):
@@ -298,6 +302,8 @@ def wizard_combine_preview(project_id: str, name: str, body: CombineAsk) -> comb
             main=body.main,
             main_on=body.main_on,
             measures=body.measures,
+            measure=body.measure,
+            rows_on=body.rows_on,
         )
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
@@ -308,7 +314,9 @@ def wizard_combine(project_id: str, name: str, body: CombineSet) -> wizard.Wizar
     """Combine a parcel file's rows into one per parcel (or change how): its fields become the user's own."""
     return _change(
         project_id,
-        lambda p, d: combine.set_combine(p, d, name, body.about, body.groups, body.measures, body.main),
+        lambda p, d: combine.set_combine(
+            p, d, name, body.about, body.groups, body.measures, body.main, body.measure, body.rows
+        ),
     )
 
 

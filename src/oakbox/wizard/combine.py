@@ -15,6 +15,7 @@ import json
 import re
 import threading
 from collections.abc import Iterable
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,8 @@ from oakbox.datafiles import BaseModel, Combine, CombineGroup, CombineHow, DataF
 from oakbox.projects import CustomField, Project
 
 NONE = {"", "NULL", "NONE", "NAN", "N/A", "NA", "-"}
+FEW_NUMBERS = 4  # a file with this many number columns or fewer: each suggested as a number per parcel
+AREA = re.compile(r"area|sq_?ft|sqft|size|_sf$", re.IGNORECASE)  # a number column a group's total is likely of
 MAX_VALUES = 500  # a column with more different values isn't what rows are about
 META = b"oakbox_combine"
 
@@ -48,18 +51,50 @@ def main_field(about: str) -> str:
     return f"main_{slug(about)}"
 
 
+def count_field(name: str) -> str:
+    return f"{slug(name)}_count"
+
+
+def total_field(name: str, measure: str) -> str:
+    return f"{slug(name)}_{slug(measure)}"
+
+
+ROWS_FIELD = "row_count"
+
+
+def group_fields(g: CombineGroup, measure: str | None) -> list[str]:
+    """The fields a group makes, in order: yes/no, how many, total (only with a measure)."""
+    out = []
+    if "has" in g.makes:
+        out.append(group_field(g.name))
+    if "count" in g.makes:
+        out.append(count_field(g.name))
+    if "total" in g.makes and measure:
+        out.append(total_field(g.name, measure))
+    return out
+
+
 def fields_of(c: Combine) -> list[tuple[str, str]]:
     """The fields a combined file has, beside its ID: (name, category or number)."""
-    out = [(group_field(g.name), "number") for g in c.groups if g.values]
+    out = [(f, "number") for g in c.groups if g.values for f in group_fields(g, c.measure)]
     out += [(slug(col), "number") for col in c.measures]
+    if c.rows:
+        out.append((ROWS_FIELD, "number"))
     if c.main:
         out.append((main_field(c.about), "category"))
     return out
 
 
+FEW_VALUES = 40  # up to this many values, a group per value to start; more, none (the user picks)
+
+
 def suggest_groups(values: Iterable[str]) -> list[CombineGroup]:
-    """To start: a group per value, its field named after it. Values that mean the same are put together by hand
+    """To start: a group per value, its field named after it (a few values: amenities); with many (95 kinds of
+    sub-area) none, the user makes the groups that matter. Values that mean the same are put together by hand
     (Edit groups…): no guessing from the values' words, which only ever fit one county's codes."""
+    values = list(values)
+    if len(values) > FEW_VALUES:
+        return []
     out: list[CombineGroup] = []
     fields: set[str] = set()
     for v in values:
@@ -96,30 +131,39 @@ def _read(in_dir: Path, f: DataFile, source: str, columns: list[str]) -> Any:
 
 
 def build(ids: Any, about: Any, numbers: dict[str, Any], c: Combine) -> Any:
-    """One row per ID (in the order they first appear): ids and about as text, numbers as numbers, row by row."""
+    """One row per ID (in the order they first appear): ids and about as text, numbers (the measures' columns and
+    the groups' measure) as written, row by row."""
     import pandas
 
     pd: Any = pandas  # typed loosely: this is all frames and series
 
+    def number(col: str) -> Any:
+        return pd.to_numeric(pd.Series(numbers[col], dtype=object), errors="coerce").to_numpy()
+
     df = pd.DataFrame({"id": ids, "about": about.map(lambda v: norm(str(v)))})
-    keep = df["id"] != ""
-    df = df[keep]
+    if c.measure:
+        df["m"] = number(c.measure)
+    for col in c.measures:
+        df[f"x:{col}"] = number(col)
+    df = df[df["id"] != ""]
     parcels = pd.Index(df["id"].drop_duplicates())
     out = pd.DataFrame(index=parcels)
-    to_group = {v: group_field(g.name) for g in c.groups for v in g.values}
-    grouped = df.assign(field=df["about"].map(to_group)).dropna(subset=["field"])
     for g in c.groups:
         if not g.values:
             continue
-        name = group_field(g.name)
-        has = set(grouped.loc[grouped["field"] == name, "id"])
-        out[name] = parcels.isin(has).astype("int8")
+        rows = df[df["about"].isin(set(g.values))]
+        per = rows.groupby("id")
+        if "has" in g.makes:
+            out[group_field(g.name)] = parcels.isin(set(rows["id"])).astype("int8")
+        if "count" in g.makes:
+            out[count_field(g.name)] = per.size().reindex(parcels).fillna(0).astype("int64")
+        if "total" in g.makes and c.measure:
+            out[total_field(g.name, c.measure)] = per["m"].sum().reindex(parcels).fillna(0.0).astype("float64")
     for col, how in c.measures.items():
-        x = pd.to_numeric(
-            pd.Series(numbers[col], dtype=object)[keep.to_numpy()].reset_index(drop=True), errors="coerce"
-        )
-        per = x.groupby(df["id"].reset_index(drop=True)).agg("count" if how == "count" else how)
+        per = df.groupby("id")[f"x:{col}"].agg("count" if how == "count" else how)
         out[slug(col)] = per.reindex(parcels).astype("float64")
+    if c.rows:
+        out[ROWS_FIELD] = df.groupby("id").size().reindex(parcels).astype("int64")
     if c.main:
         rank = {v: i for i, v in enumerate(c.main)}
         r = df.assign(rank=df["about"].map(rank)).dropna(subset=["rank"]).sort_values("rank", kind="stable")
@@ -179,8 +223,10 @@ def _write(in_dir: Path, f: DataFile, c: Combine, id_column: str, target: Path, 
 
     from oakbox.atomic import replace_with
 
-    raw = _read(in_dir, f, c.source, [id_column, c.about, *c.measures])
-    out = build(raw[id_column], raw[c.about], {m: raw[m] for m in c.measures}, c)
+    numbers: list[str] = list(dict.fromkeys([*c.measures, *([c.measure] if c.measure else [])]))
+    wanted: list[str] = list(dict.fromkeys([id_column, c.about, *numbers]))
+    raw = _read(in_dir, f, c.source, wanted)
+    out = build(raw[id_column], raw[c.about], {m: raw[m] for m in numbers}, c)
     out.index.name = id_column
     table = pa.Table.from_pandas(out.reset_index(), preserve_index=False)
     table = table.replace_schema_metadata({**(table.schema.metadata or {}), META: key.encode()})
@@ -210,6 +256,9 @@ class CombinePreview(BaseModel):
     values: list[ValueCount] = Field(description="The about column's values, as compared, most parcels first.")
     groups: list[CombineGroup]
     group_parcels: list[int] = Field(description="Parcels in each group (a parcel can be in several).")
+    numbers: list[str] = Field(description="The file's number columns: what groups can total (the measure).")
+    measure: str | None = Field(description="The column groups total: as set, or the suggestion (an area).")
+    rows_on: bool = Field(description="Also how many rows each parcel has.")
     none: int = Field(description="Parcels in no group (no value, or only values left out).")
     measures: list[MeasureView]
     main: list[str] = Field(description="The order for the main value: as set, or most parcels first.")
@@ -229,11 +278,10 @@ def preview(
     main: list[str] | None = None,
     main_on: bool | None = None,
     measures: dict[str, CombineHow] | None = None,
+    measure: str | None = None,
+    rows_on: bool | None = None,
 ) -> CombinePreview:
-    import pandas
-
-    pd: Any = pandas  # typed loosely: this is all frames and series
-
+    """measure: None, as set (or suggested); "": none."""
     from oakbox.wizard.files import Files
 
     files = Files(project, in_dir)
@@ -247,20 +295,22 @@ def preview(
     text_cols = [c.name for c in cols if c.name != id_col and c.type not in ("number", "date")]
     num_cols = [c.name for c in cols if c.name != id_col and c.type == "number"]
     source = set_.source if set_ else f.filename
-    ids = pd.Series(files.ids(name, f.match, source=True), dtype=object)
-    abouts = _abouts(files, name, ids, text_cols)
+    from oakbox.wizard.files import file_stamp, steps_key
+
+    # The heavy part (every row read and its value compared), kept per file and column: a change of groups only
+    # counts again.
+    key = (file_stamp(in_dir / source), f.layer, id_col, steps_key(f.clean.get(f.match, [])))
+    abouts = list(_abouts_of(*key, tuple(text_cols)))
     about = about or (set_.about if set_ else None) or (abouts[0] if abouts else None)
-    present = ids != ""
-    rows, parcels = len(ids), int(ids[present].nunique())
+    base = _prepared(*key, about, tuple(num_cols)) if about else _prepared(*key, None, ())
+    rows, parcels = base.rows, base.parcels
     if about is None:
         return CombinePreview(
-            abouts=abouts, about=None, values=[], groups=[], group_parcels=[], none=parcels, measures=[], main=[],
-            main_on=False, main_parcels=[], rows=rows, parcels=parcels, fields=0,
+            abouts=abouts, about=None, values=[], groups=[], group_parcels=[], numbers=num_cols, measure=None,
+            rows_on=False, none=parcels, measures=[], main=[], main_on=False, main_parcels=[], rows=rows,
+            parcels=parcels, fields=0,
         )  # fmt: skip
-    raw = _read(in_dir, f, source, [about, *num_cols])
-    vals = raw[about].map(lambda v: norm(str(v)))
-    df = pd.DataFrame({"id": ids, "v": vals})[present & (vals != "")]
-    per_value = df.drop_duplicates().groupby("v")["id"].nunique().sort_values(ascending=False, kind="stable")
+    df, per_value = base.df, base.per_value
     values = [ValueCount(value=str(v), parcels=int(n)) for v, n in per_value.items()]
     if groups is None:
         groups = set_.groups if set_ and set_.about == about else suggest_groups(per_value.index)
@@ -281,38 +331,102 @@ def preview(
     chosen = measures if measures is not None else (set_.measures if set_ else None)
     mviews = []
     for col in num_cols:
-        x = pd.to_numeric(raw[col], errors="coerce")
-        filled = int(ids[present & x.notna()].nunique())
+        filled = base.filled.get(col, 0)
         if filled == 0:
             continue
         how = (chosen or {}).get(col) or default_how(col)
-        used = col in chosen if chosen is not None else True
+        # Suggested: every number column of a file with a few (an amenity's lengths and distances); of one with
+        # many (a building's year, number, floor...) none.
+        used = col in chosen if chosen is not None else len(num_cols) <= FEW_NUMBERS
         mviews.append(MeasureView(column=col, parcels=filled, how=how, used=used))
-    n_fields = sum(1 for g in groups if g.values) + sum(1 for m in mviews if m.used) + (1 if main_on else 0)
+    if measure is None:
+        measure = set_.measure if set_ else next((c for c in num_cols if AREA.search(c)), None)
+    measure = measure or None
+    if measure is not None and measure not in num_cols:
+        raise ValueError(f"{name} has no number column {measure}.")
+    if rows_on is None:
+        rows_on = bool(set_ and set_.rows)
+    n_fields = (
+        sum(len(group_fields(g, measure)) for g in groups if g.values)
+        + sum(1 for m in mviews if m.used)
+        + (1 if rows_on else 0)
+        + (1 if main_on else 0)
+    )
     return CombinePreview(
         abouts=abouts, about=about, values=values, groups=list(groups), group_parcels=group_parcels, none=none,
-        measures=mviews, main=order, main_on=main_on, main_parcels=main_parcels, rows=rows, parcels=parcels,
-        fields=n_fields,
+        numbers=num_cols, measure=measure, rows_on=rows_on, measures=mviews, main=order, main_on=main_on,
+        main_parcels=main_parcels, rows=rows, parcels=parcels, fields=n_fields,
     )  # fmt: skip
 
 
-def _abouts(files: Any, name: str, ids: Any, text_cols: list[str]) -> list[str]:
+@dataclass(frozen=True)
+class _Prepared:
+    rows: int
+    parcels: int
+    df: Any  # id, v (the about column's value, as compared): rows with both
+    per_value: Any  # value -> parcels, most first
+    filled: dict[str, int]  # number column -> parcels with a number in it
+
+
+def _ids_of(stamp: tuple[str, float, int], layer: str | None, id_col: str, steps: str) -> Any:
+    import pandas
+
+    from oakbox.wizard.files import cleaned_ids
+
+    return pandas.Series(cleaned_ids(stamp, layer, id_col, steps), dtype=object)
+
+
+@lru_cache(maxsize=8)
+def _prepared(
+    stamp: tuple[str, float, int], layer: str | None, id_col: str, steps: str, about: str | None, nums: tuple
+) -> _Prepared:
+    import pandas
+
+    from oakbox.wizard.files import values_of
+
+    pd: Any = pandas  # typed loosely: this is all frames and series
+
+    ids = _ids_of(stamp, layer, id_col, steps)
+    present = ids != ""
+    rows, parcels = len(ids), int(ids[present].nunique())
+    if about is None:
+        return _Prepared(rows, parcels, None, None, {})
+    raw = pd.Series(values_of(stamp, layer, about, raw=True), dtype=object)
+    # Each distinct value compared once (norm), not every row's.
+    codes, uniques = pd.factorize(raw)
+    normed = pd.Series([norm(str(u)) for u in uniques], dtype=object)
+    vals = pd.Series(normed.to_numpy()[codes], dtype=object) if len(uniques) else raw
+    keep = present & (vals != "")
+    df = pd.DataFrame({"id": ids[keep], "v": vals[keep]})
+    per_value = df.drop_duplicates().groupby("v")["id"].nunique().sort_values(ascending=False, kind="stable")
+    filled = {}
+    for col in nums:
+        x = pd.to_numeric(pd.Series(values_of(stamp, layer, col), dtype=object), errors="coerce")
+        filled[col] = int(ids[present & x.notna()].nunique())
+    return _Prepared(rows, parcels, df, per_value, filled)
+
+
+@lru_cache(maxsize=8)
+def _abouts_of(stamp: tuple[str, float, int], layer: str | None, id_col: str, steps: str, text_cols: tuple) -> tuple:
     """Text columns that say what each of an ID's rows is about: different on each of its rows, few values in all.
     The ones that tell an ID's rows apart best first."""
     import pandas
 
+    from oakbox.wizard.files import values_of
+
     pd: Any = pandas  # typed loosely: this is all frames and series
 
+    ids = _ids_of(stamp, layer, id_col, steps)
     scored = []
     for col in text_cols:
-        v = pd.Series(files.values(name, col, source=True), dtype=object)
+        v = pd.Series(values_of(stamp, layer, col), dtype=object)
         distinct = v.nunique()
         if distinct < 2 or distinct > MAX_VALUES:
             continue
         pairs = pd.DataFrame({"id": ids, "v": v})[ids != ""]
         repeats = int(pairs.duplicated().sum())  # an ID with the same value twice: not what tells its rows apart
         scored.append((repeats, distinct, col))
-    return [c for _r, _d, c in sorted(scored)]
+    return tuple(c for _r, _d, c in sorted(scored))
 
 
 # ---------- saving ----------
@@ -326,6 +440,8 @@ def set_combine(
     groups: list[CombineGroup],
     measures: dict[str, CombineHow],
     main: list[str] | None,
+    measure: str | None = None,
+    rows: bool = False,
 ) -> None:
     """Combine a parcel file's rows (or change how): the combined file made, the project loading it, and its fields
     the user's own (Your own fields: land), there to use."""
@@ -336,16 +452,21 @@ def set_combine(
     if f.holds != "parcels" or name == project.wizard.base:
         raise ValueError("Only a file of more parcel details can have its rows combined.")
     columns = {c.name for c in files.columns(name, source=True)}
-    for col in [about, *measures]:
+    for col in [about, *measures, *([measure] if measure else [])]:
         if col not in columns:
             raise ValueError(f"{name} has no column {col}.")
-    groups = [g for g in groups if g.values and g.name.strip()]
-    names = [group_field(g.name) for g in groups]
-    if len(set(names)) != len(names):
-        raise ValueError("Two groups have the same name.")
+    groups = [g for g in groups if g.values and g.name.strip() and g.makes]
     source = f.combine.source if f.combine else f.filename
+    made = Combine(
+        source=source, about=about, measure=measure or None, rows=rows, groups=groups, measures=measures,
+        main=main or None,
+    )  # fmt: skip
+    names = [n for n, _k in fields_of(made)]
+    if len(set(names)) != len(names):
+        dup = next(n for n in names if names.count(n) > 1)
+        raise ValueError(f"Two fields would both be {dup}: rename a group.")
     _drop_fields(project, f)
-    f.combine = Combine(source=source, about=about, groups=groups, measures=measures, main=main or None)
+    f.combine = made
     f.filename = combined_name(source)
     f.dupes, f.dupes_sort, f.dupes_desc, f.dupes_by = None, None, False, []
     ensure(in_dir, f)

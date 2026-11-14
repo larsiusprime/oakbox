@@ -50,9 +50,11 @@ export type Change =
       kind: "combine";
       name: string;
       about: string;
-      groups: { name: string; values: string[] }[];
+      groups: { name: string; values: string[]; makes: ("has" | "count" | "total")[] }[];
       measures: Record<string, CombineHow>;
       main: string[] | null;
+      measure: string | null;
+      rows: boolean;
     }
   | { kind: "reconcile"; name: string; file_steps: CleanStep[]; base_steps: CleanStep[] }
   | {

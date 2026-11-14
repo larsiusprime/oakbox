@@ -11137,13 +11137,31 @@
       "title": "About",
       "description": "The column that says what each row is about (Amenity)."
      },
+     "measure": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Measure",
+      "description": "A number column groups total (TotalArea: a garage's square feet). None: none."
+     },
+     "rows": {
+      "type": "boolean",
+      "title": "Rows",
+      "description": "Also how many rows each parcel has, in all (row_count).",
+      "default": false
+     },
      "groups": {
       "items": {
-       "$ref": "#/components/schemas/CombineGroup"
+       "$ref": "#/components/schemas/CombineGroup-Output"
       },
       "type": "array",
       "title": "Groups",
-      "description": "A yes/no field per group."
+      "description": "Fields per group of values."
      },
      "measures": {
       "additionalProperties": {
@@ -11180,6 +11198,8 @@
     "required": [
      "source",
      "about",
+     "measure",
+     "rows",
      "groups",
      "measures",
      "main"
@@ -11204,7 +11224,7 @@
       "anyOf": [
        {
         "items": {
-         "$ref": "#/components/schemas/CombineGroup"
+         "$ref": "#/components/schemas/CombineGroup-Input"
         },
         "type": "array"
        },
@@ -11259,18 +11279,41 @@
        }
       ],
       "title": "Measures"
+     },
+     "measure": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Measure",
+      "description": "The column groups total; \"\": none; null: as set."
+     },
+     "rows_on": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rows On"
      }
     },
     "type": "object",
     "title": "CombineAsk",
     "description": "What to preview; leave a value out for what's set (or suggested)."
    },
-   "CombineGroup": {
+   "CombineGroup-Input": {
     "properties": {
      "name": {
       "type": "string",
       "title": "Name",
-      "description": "As shown: 'Open water'. Its field is has_open_water."
+      "description": "As shown: 'Open water'. Its fields are named from it."
      },
      "values": {
       "items": {
@@ -11279,6 +11322,19 @@
       "type": "array",
       "title": "Values",
       "description": "The values in it, as compared: capitals, extra spaces ignored."
+     },
+     "makes": {
+      "items": {
+       "type": "string",
+       "enum": [
+        "has",
+        "count",
+        "total"
+       ]
+      },
+      "type": "array",
+      "title": "Makes",
+      "description": "Its fields: yes/no, count, total."
      }
     },
     "type": "object",
@@ -11287,7 +11343,45 @@
      "values"
     ],
     "title": "CombineGroup",
-    "description": "Values of the \"about\" column that mean the same thing for a model: a yes/no field each (has_<name>)."
+    "description": "Values of the \"about\" column that mean the same thing for a model (a garage, finished or not), and the fields\nthe group makes: whether a parcel has any (has_garage), how many rows it has (garage_count), the total of the\nfile's measure over them (garage_totalarea)."
+   },
+   "CombineGroup-Output": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "As shown: 'Open water'. Its fields are named from it."
+     },
+     "values": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Values",
+      "description": "The values in it, as compared: capitals, extra spaces ignored."
+     },
+     "makes": {
+      "items": {
+       "type": "string",
+       "enum": [
+        "has",
+        "count",
+        "total"
+       ]
+      },
+      "type": "array",
+      "title": "Makes",
+      "description": "Its fields: yes/no, count, total."
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "values",
+     "makes"
+    ],
+    "title": "CombineGroup",
+    "description": "Values of the \"about\" column that mean the same thing for a model (a garage, finished or not), and the fields\nthe group makes: whether a parcel has any (has_garage), how many rows it has (garage_count), the total of the\nfile's measure over them (garage_totalarea)."
    },
    "CombinePreview": {
     "properties": {
@@ -11320,7 +11414,7 @@
      },
      "groups": {
       "items": {
-       "$ref": "#/components/schemas/CombineGroup"
+       "$ref": "#/components/schemas/CombineGroup-Output"
       },
       "type": "array",
       "title": "Groups"
@@ -11332,6 +11426,31 @@
       "type": "array",
       "title": "Group Parcels",
       "description": "Parcels in each group (a parcel can be in several)."
+     },
+     "numbers": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Numbers",
+      "description": "The file's number columns: what groups can total (the measure)."
+     },
+     "measure": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Measure",
+      "description": "The column groups total: as set, or the suggestion (an area)."
+     },
+     "rows_on": {
+      "type": "boolean",
+      "title": "Rows On",
+      "description": "Also how many rows each parcel has."
      },
      "none": {
       "type": "integer",
@@ -11387,6 +11506,9 @@
      "values",
      "groups",
      "group_parcels",
+     "numbers",
+     "measure",
+     "rows_on",
      "none",
      "measures",
      "main",
@@ -11407,7 +11529,7 @@
      },
      "groups": {
       "items": {
-       "$ref": "#/components/schemas/CombineGroup"
+       "$ref": "#/components/schemas/CombineGroup-Input"
       },
       "type": "array",
       "title": "Groups"
@@ -11441,6 +11563,24 @@
       ],
       "title": "Main",
       "description": "The order for the main value; None: not made."
+     },
+     "measure": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Measure",
+      "description": "The number column groups total (an area)."
+     },
+     "rows": {
+      "type": "boolean",
+      "title": "Rows",
+      "description": "Also how many rows each parcel has.",
+      "default": false
      }
     },
     "type": "object",

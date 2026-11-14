@@ -9541,3 +9541,22 @@ th.vt-map {
   font-size: 0.9rem;
   color: var(--text);
 }
+.cb-groupline {
+  margin: 0;
+  padding-left: calc(1.6 * var(--sp));
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+.cb-make {
+  text-align: center;
+}
+.cb-left-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 calc(0.9 * var(--sp));
+  max-height: 9rem;
+  overflow-y: auto;
+  padding: calc(0.25 * var(--sp)) calc(0.4 * var(--sp));
+  border: 1px solid var(--frame);
+  font-size: 0.85rem;
+}

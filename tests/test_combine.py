@@ -113,3 +113,32 @@ def test_the_combined_file_is_made_again_when_the_original_changes(client, pid):
     client.get(f"/api/projects/{pid}/wizard")
     combined = pd.read_parquet(projects.inputs_dir(pid) / "amenities.combined.parquet").set_index("PROP_ID")
     assert combined.loc[IDS[3], "has_golf_course"] == 1
+
+
+def test_groups_make_yes_no_how_many_and_totals_of_the_measure():
+    """Sub-areas of buildings: a garage counted and its area totalled, a pool a yes/no, a porch the total area."""
+    ids = pd.Series(["1", "1", "1", "1", "2", "3"], dtype=object)
+    about = pd.Series(["FINISHED GARAGE", "DETACHED GARAGE", "POOL RESIDENTIAL", "SCREEN PORCH", "SCREEN PORCH", "X"])
+    area = pd.Series(["450", "300", "364", "729", "200", "10"], dtype=object)
+    c = Combine(
+        source="s.csv",
+        about="Description",
+        measure="TotalArea",
+        rows=True,
+        groups=[
+            CombineGroup(name="Garage", values=["FINISHED GARAGE", "DETACHED GARAGE"], makes=["count", "total"]),
+            CombineGroup(name="Pool", values=["POOL RESIDENTIAL"], makes=["has"]),
+            CombineGroup(name="Outdoor living", values=["SCREEN PORCH"], makes=["total"]),
+        ],
+    )
+    out = combine.build(ids, about, {"TotalArea": area}, c)
+    assert out["garage_count"].tolist() == [2, 0, 0] and out["garage_totalarea"].tolist() == [750, 0, 0]
+    assert out["has_pool"].tolist() == [1, 0, 0] and out["outdoor_living_totalarea"].tolist() == [729, 200, 0]
+    assert out["row_count"].tolist() == [4, 1, 1]
+    assert [f for f, _k in combine.fields_of(c)] == [
+        "garage_count", "garage_totalarea", "has_pool", "outdoor_living_totalarea", "row_count",
+    ]  # fmt: skip
+
+
+def test_many_values_start_with_no_groups():
+    assert combine.suggest_groups([f"V{i}" for i in range(combine.FEW_VALUES + 1)]) == []
