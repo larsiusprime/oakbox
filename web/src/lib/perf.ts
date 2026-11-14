@@ -3,14 +3,15 @@
  * answer took), the time the window itself was busy, and the time it was doing neither (waiting between them).
  *
  * A click (or Enter or Space) starts it; it settles once no request is out for a moment and the screen is drawn with
- * the last answer. The next click ends one still open ("cut short").
+ * the last answer. A click that comes while one is still waiting for answers starts its own; the one before still
+ * settles when its answers come (and its record says another click came meanwhile).
  *
  * Imported first in main.tsx: it wraps window.fetch before anything keeps a reference to it (openapi-fetch does, when
  * its client is made). */
 
 export const SLOW_CLICK = 2000; // ms: a click taking longer to settle is written to the log
 const QUIET = 300; // ms with no request out before a click is taken as settled
-const LONGEST = 180_000; // ms: one still open after this is let go, unreported
+const LONGEST = 900_000; // ms: one still open after this is let go, unreported
 
 /** SLOW_CLICK, or what localStorage's oakbox.slowClickMs says instead (to see what quicker clicks spend time on). */
 function slowClick(): number {
@@ -32,6 +33,7 @@ type Click = {
   out: number;
   lastPaint: number;
   done: boolean;
+  overlapped: boolean; // another click came while it was still waiting for answers
   quiet?: ReturnType<typeof setTimeout>;
 };
 
@@ -84,12 +86,12 @@ function paint(f: () => void) {
   requestAnimationFrame(() => requestAnimationFrame(f));
 }
 
-function finish(c: Click, cutShort: boolean) {
+function finish(c: Click) {
   if (c.done) return;
   c.done = true;
   if (c.quiet) clearTimeout(c.quiet);
   if (click === c) click = null;
-  const end = cutShort ? performance.now() : c.lastPaint;
+  const end = c.lastPaint;
   const took = end - c.t0;
   if (took < slowClick() || took > LONGEST) return;
   const busy = supportsLongTasks ? covered(longTasks, c.t0, end) : null;
@@ -101,7 +103,7 @@ function finish(c: Click, cutShort: boolean) {
     requests: c.requests,
     busy: busy === null ? null : busy / 1000,
     neither: (took - either) / 1000,
-    cut_short: cutShort,
+    cut_short: c.overlapped,
   };
   void fetch0("/api/log/slow-click", {
     method: "POST",
@@ -114,13 +116,18 @@ function settleLater(c: Click) {
   if (c.done) return;
   if (c.quiet) clearTimeout(c.quiet);
   c.quiet = setTimeout(() => {
-    if (c.out === 0) finish(c, false);
+    if (c.out === 0) finish(c);
   }, QUIET);
 }
 
 function start(e: Event) {
   if (!e.isTrusted) return; // a click the page made itself (a button opening its list) is part of the one before
-  if (click) finish(click, true);
+  // One still waiting for answers stays open, and settles when they come; one only waiting the quiet moment out
+  // has settled.
+  if (click) {
+    if (click.out > 0) click.overlapped = true;
+    else finish(click);
+  }
   const c: Click = {
     what: whatWas(e.target),
     page: location.pathname + location.hash,
@@ -130,6 +137,7 @@ function start(e: Event) {
     out: 0,
     lastPaint: 0,
     done: false,
+    overlapped: false,
   };
   click = c;
   paint(() => {

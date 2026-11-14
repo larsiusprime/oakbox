@@ -188,7 +188,13 @@ def _library(filename: str) -> str:
 
 def _idle(frame: FrameType) -> bool:
     f = frame.f_code.co_filename
-    return f.endswith(_IDLE_FILES) or (f.endswith("base_events.py") and frame.f_code.co_name == "_run_once")
+    name = frame.f_code.co_name
+    return (
+        f.endswith(_IDLE_FILES)
+        or (f.endswith("base_events.py") and name == "_run_once")
+        # Windows: the event loop waiting on its completion port
+        or (f.endswith("windows_events.py") and name in ("_poll", "select", "_wait_for_handle"))
+    )
 
 
 def _look() -> None:

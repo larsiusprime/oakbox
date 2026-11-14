@@ -5,9 +5,9 @@ steps, samples of each side, and a suggestion of steps that match more of them.
 from __future__ import annotations
 
 import random
-from collections import Counter
+from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
@@ -112,6 +112,68 @@ def describe_steps(steps: list[CleanStep]) -> str:
     return " and ".join(out)
 
 
+def _side(files: Files, f: DataFile, field: str) -> tuple[tuple[str, float, int], str | None, str] | None:
+    """What a file's ID field is read from: its file as it stands, its layer, the column."""
+    spec = f.load.get(field)
+    if spec is None or f.name not in files.preview:
+        return None
+    return file_stamp(files.in_dir / f.filename), f.layer, spec[0]
+
+
+def _cleaned(uniques: Any, steps: list[CleanStep]) -> Any:
+    """clean_value on every distinct ID at once, in Arrow (the steps a suggestion tries: trim, zeros, remove, upper);
+    blanks stay blank."""
+    import pyarrow as pa
+    import pyarrow.compute as pc
+
+    s = uniques
+    blank = pc.equal(pc.utf8_trim_whitespace(s), "")  # pyright: ignore[reportAttributeAccessIssue]
+    for st in steps:
+        if st.kind == "zeros":
+            s = pc.utf8_ltrim(s, characters="0")  # pyright: ignore[reportAttributeAccessIssue]
+        elif st.kind == "remove":
+            for c in st.text:
+                s = pc.replace_substring(s, pattern=c, replacement="")  # pyright: ignore[reportAttributeAccessIssue]
+        elif st.kind == "trim":
+            s = pc.utf8_trim_whitespace(s)  # pyright: ignore[reportAttributeAccessIssue]
+        elif st.kind == "upper":
+            s = pc.utf8_upper(s)  # pyright: ignore[reportAttributeAccessIssue]
+    return pc.if_else(blank, pa.scalar("", pa.string()), s)  # pyright: ignore[reportAttributeAccessIssue]
+
+
+@lru_cache(maxsize=16)
+def _match_table(base: tuple, file: tuple) -> Any:
+    """How many of the file's rows find an ID on the base side, for each pair of clean-ups tried (_TRIES): a
+    len(_TRIES) x len(_TRIES) table, base tries down, file tries across. Worked out on the distinct IDs, in Arrow."""
+    import numpy as np
+    import pyarrow as pa
+    import pyarrow.compute as pc
+
+    def distinct(side: tuple) -> tuple[Any, Any]:
+        enc = pa.array(values_of(*side, raw=True), type=pa.string()).dictionary_encode()
+        counts = np.bincount(enc.indices.to_numpy(zero_copy_only=False), minlength=len(enc.dictionary))
+        return enc.dictionary, counts
+
+    b_uniques, _ = distinct(base)
+    f_uniques, f_counts = distinct(file)
+    cleaned = [_cleaned(b_uniques, t) for t in _TRIES] + [_cleaned(f_uniques, t) for t in _TRIES]
+    # One numbering for every cleaned ID on both sides, so "in the base set" is an array lookup.
+    enc = pa.chunked_array(cleaned).combine_chunks().dictionary_encode()
+    allcodes = enc.indices.to_numpy(zero_copy_only=False)
+    blanks = np.flatnonzero(pc.equal(enc.dictionary, "").to_numpy(zero_copy_only=False))  # pyright: ignore[reportAttributeAccessIssue]
+    n = len(_TRIES)
+    nb, nf = len(b_uniques), len(f_uniques)
+    table = np.zeros((n, n), dtype=np.int64)
+    for b in range(n):
+        has = np.zeros(len(enc.dictionary), dtype=bool)
+        has[allcodes[b * nb : (b + 1) * nb]] = True
+        has[blanks] = False
+        for f in range(n):
+            at = n * nb + f * nf
+            table[b, f] = int(f_counts[has[allcodes[at : at + nf]]].sum())
+    return table
+
+
 def suggest_match(
     files: Files, entry: DataFile, base: DataFile, field: Match, now: float, kind: str = "sales"
 ) -> Suggestion | None:
@@ -119,12 +181,14 @@ def suggest_match(
     total = len(files.ids(entry.name, field))
     if not total:
         return None
-    base_sets = [{v for v in files.ids(base.name, field, t) if v} for t in _TRIES]
-    file_counts = [Counter(v for v in files.ids(entry.name, field, t) if v) for t in _TRIES]
+    b_side, f_side = _side(files, base, field), _side(files, entry, field)
+    if b_side is None or f_side is None:
+        return None
+    table = _match_table(b_side, f_side)
     best: tuple[float, int, int, int] | None = None
-    for b, bset in enumerate(base_sets):
-        for f, counts in enumerate(file_counts):
-            share = sum(n for v, n in counts.items() if v in bset) / total
+    for b in range(len(_TRIES)):
+        for f in range(len(_TRIES)):
+            share = int(table[b, f]) / total
             score = (share, -(len(_TRIES[b]) + len(_TRIES[f])), b, f)
             if best is None or score[:2] > best[:2]:
                 best = score

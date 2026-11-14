@@ -93,7 +93,7 @@ class SlowClick(BaseModel):
     requests: list[ClickRequest]
     busy: float | None
     neither: float | None  # seconds with no request out and the window not busy: waiting between them
-    cut_short: bool = False
+    cut_short: bool = False  # another click came while it was still waiting for answers
 
 
 def _openavmkit_version() -> str:
@@ -183,7 +183,7 @@ def create_app() -> FastAPI:
         """The window's own record of a click that took a while to settle (web/src/lib/perf.ts), into the log."""
         lines = [
             f"slow click: {click.what!r} on {click.page} took {click.took:.1f} s to settle"
-            + (" (cut short by the next click)" if click.cut_short else "")
+            + (" (another click came meanwhile)" if click.cut_short else "")
         ]
         spans = sorted((r.at, r.at + r.took) for r in click.requests)
         covered, end = 0.0, 0.0

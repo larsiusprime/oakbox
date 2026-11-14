@@ -115,7 +115,9 @@ so a slow click can be diagnosed from the log alone:
   it to `POST /api/log/slow-click`: `slow click: '<what>' on <page> took N s to settle`, the time the service was
   answering, the time the window was busy (long tasks: scripts and drawing; where the browser can say), the time it
   was neither, and each request with when it went out, how long it took and its answer. A project's id is left out of
-  the paths, and the query strings. A click made while one is still settling ends it ("cut short").
+  the paths, and the query strings. A click made while one is still waiting for answers starts its own; the
+  one before still settles when they come ("another click came meanwhile"). The event loop waiting for work (Windows'
+  completion port too) isn't counted as busy.
 
 **A large county is said before the long steps.** Bring in data's plan works out about how much memory the county
 needs (0.5 GB, plus 1 GB per 50,000 parcels, plus 0.6 GB per 50,000 for each extra fold worker: the test runs'
