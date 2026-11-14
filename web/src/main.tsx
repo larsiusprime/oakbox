@@ -1,5 +1,7 @@
 // First: in `npm run dev:wording` only, the live wording editor (empty in every other build).
 import "./wording/edit/install";
+// Then: timing each click to the screen settling (before anything keeps a reference to window.fetch).
+import "./lib/perf";
 import "@fontsource-variable/ibm-plex-sans/wght.css";
 import "@fontsource-variable/ibm-plex-sans/wght-italic.css";
 import "@fontsource/ibm-plex-mono/400.css";

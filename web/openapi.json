@@ -5,6 +5,43 @@
   "version": "1"
  },
  "paths": {
+  "/api/log/slow-click": {
+   "post": {
+    "summary": "Slow Click",
+    "description": "The window's own record of a click that took a while to settle (web/src/lib/perf.ts), into the log.",
+    "operationId": "slow_click_api_log_slow_click_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SlowClick"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/log": {
    "get": {
     "summary": "Log Info",
@@ -10819,6 +10856,40 @@
      "accepted"
     ],
     "title": "CleanView"
+   },
+   "ClickRequest": {
+    "properties": {
+     "method": {
+      "type": "string",
+      "title": "Method"
+     },
+     "path": {
+      "type": "string",
+      "title": "Path"
+     },
+     "at": {
+      "type": "number",
+      "title": "At"
+     },
+     "took": {
+      "type": "number",
+      "title": "Took"
+     },
+     "status": {
+      "type": "integer",
+      "title": "Status"
+     }
+    },
+    "type": "object",
+    "required": [
+     "method",
+     "path",
+     "at",
+     "took",
+     "status"
+    ],
+    "title": "ClickRequest",
+    "description": "One request a slow click made: when it went out (seconds after the click) and how long its answer took."
    },
    "CodRange": {
     "properties": {
@@ -24681,6 +24752,67 @@
      "skip"
     ],
     "title": "SkipBody"
+   },
+   "SlowClick": {
+    "properties": {
+     "what": {
+      "type": "string",
+      "title": "What"
+     },
+     "page": {
+      "type": "string",
+      "title": "Page"
+     },
+     "took": {
+      "type": "number",
+      "title": "Took"
+     },
+     "requests": {
+      "items": {
+       "$ref": "#/components/schemas/ClickRequest"
+      },
+      "type": "array",
+      "title": "Requests"
+     },
+     "busy": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Busy"
+     },
+     "neither": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Neither"
+     },
+     "cut_short": {
+      "type": "boolean",
+      "title": "Cut Short",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "what",
+     "page",
+     "took",
+     "requests",
+     "busy",
+     "neither"
+    ],
+    "title": "SlowClick",
+    "description": "A click (or key) in the window that took a while to settle: what was clicked, on which page, from the click to\nthe screen drawn with every answer it asked for; the requests it made, and the time the window itself was busy\n(scripts and drawing; None where the browser can't say)."
    },
    "SmallChoice": {
     "properties": {

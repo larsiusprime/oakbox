@@ -8,6 +8,7 @@ for the TypeScript client.
 from __future__ import annotations
 
 import mimetypes
+import os
 import threading
 import time
 from collections.abc import AsyncIterator
@@ -19,7 +20,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from oakbox import __version__, applog
+from oakbox import __version__, applog, profiler
 from oakbox.datafiles import BaseModel
 from oakbox.errors import NotFound, NotReady
 from oakbox.routes import (
@@ -71,6 +72,30 @@ class LogInfo(BaseModel):
     file: str
 
 
+class ClickRequest(BaseModel):
+    """One request a slow click made: when it went out (seconds after the click) and how long its answer took."""
+
+    method: str
+    path: str
+    at: float
+    took: float
+    status: int
+
+
+class SlowClick(BaseModel):
+    """A click (or key) in the window that took a while to settle: what was clicked, on which page, from the click to
+    the screen drawn with every answer it asked for; the requests it made, and the time the window itself was busy
+    (scripts and drawing; None where the browser can't say)."""
+
+    what: str
+    page: str
+    took: float
+    requests: list[ClickRequest]
+    busy: float | None
+    neither: float | None  # seconds with no request out and the window not busy: waiting between them
+    cut_short: bool = False
+
+
 def _openavmkit_version() -> str:
     from importlib.metadata import PackageNotFoundError
     from importlib.metadata import version as package_version
@@ -96,7 +121,9 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     steps.stop_all()  # the service is shutting down: its runs end with it
 
 
-SLOW = 1.0  # seconds: a request taking longer is written to the log
+# Seconds: a request taking longer is written to the log, with where its time went (profiler). OAKBOX_SLOW changes
+# it, to see what quicker requests spend their time on.
+SLOW = float(os.environ.get("OAKBOX_SLOW", "1.0"))
 
 
 def create_app() -> FastAPI:
@@ -123,28 +150,57 @@ def create_app() -> FastAPI:
             {"detail": None, "failure": applog.failure(request.method, request.url.path, e)}, status_code=500
         )
 
-    # Slow requests are written to the log, with how long they took (and how many others were under way, as they
-    # share the computer): what a slow click spent its time on can be read there afterwards.
+    # Slow requests are written to the log, with how long they took, how many others were under way (they share the
+    # computer), and where their time went (profiler): what a slow click spent its time on can be read there afterwards.
     under_way = {"n": 0}
 
     @app.middleware("http")
     async def timed(request: Request, call_next):  # noqa: ANN001, ANN202 - Starlette's own types
+        api = request.url.path.startswith("/api/")
         start = time.perf_counter()
         under_way["n"] += 1
         others = under_way["n"] - 1
+        key = profiler.start(request.scope) if api else None
         try:
             return await call_next(request)
         finally:
             under_way["n"] -= 1
             took = time.perf_counter() - start
-            if took >= SLOW and request.url.path.startswith("/api/"):
+            looks = profiler.finish(key) if key is not None else None
+            if api and took >= SLOW:
+                where = profiler.report(looks, took) if looks else ""
                 applog.logger().info(
-                    "slow: %s %s took %.1f s (%d other requests under way)",
+                    "slow: %s %s took %.1f s (%d other requests under way)%s",
                     request.method,
                     request.url.path,
                     took,
                     others,
+                    "\n" + where if where else "",
                 )
+
+    @app.post("/api/log/slow-click")
+    def slow_click(click: SlowClick) -> None:
+        """The window's own record of a click that took a while to settle (web/src/lib/perf.ts), into the log."""
+        lines = [
+            f"slow click: {click.what!r} on {click.page} took {click.took:.1f} s to settle"
+            + (" (cut short by the next click)" if click.cut_short else "")
+        ]
+        spans = sorted((r.at, r.at + r.took) for r in click.requests)
+        covered, end = 0.0, 0.0
+        for a, b in spans:
+            if b > end:
+                covered += b - max(a, end)
+                end = b
+        busy = "" if click.busy is None else f", the window busy {click.busy:.1f} s"
+        lines.append(
+            f"  {len(click.requests)} requests, the service answering {covered:.1f} s of it{busy},"
+            f" {click.neither if click.neither is not None else max(0.0, click.took - covered):.1f} s neither"
+        )
+        lines += [
+            f"  +{r.at:5.1f} s  {r.took:5.1f} s  {r.method} {r.path} {r.status}"
+            for r in sorted(click.requests, key=lambda r: r.at)
+        ]
+        applog.logger().info("\n".join(lines))
 
     @app.get("/api/log")
     def log_info() -> LogInfo:
@@ -184,4 +240,6 @@ def create_app() -> FastAPI:
                 return FileResponse(candidate)
             return FileResponse(WEB_DIST / "index.html")
 
+    # Every route's work is known to be its request's, for a slow one's report of where its time went.
+    profiler.install()
     return app

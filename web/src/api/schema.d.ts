@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/log/slow-click": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Slow Click
+         * @description The window's own record of a click that took a while to settle (web/src/lib/perf.ts), into the log.
+         */
+        post: operations["slow_click_api_log_slow_click_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/log": {
         parameters: {
             query?: never;
@@ -4278,6 +4298,22 @@ export interface components {
             receipt: components["schemas"]["CleanReceipt"] | null;
             /** Accepted */
             accepted: boolean;
+        };
+        /**
+         * ClickRequest
+         * @description One request a slow click made: when it went out (seconds after the click) and how long its answer took.
+         */
+        ClickRequest: {
+            /** Method */
+            method: string;
+            /** Path */
+            path: string;
+            /** At */
+            at: number;
+            /** Took */
+            took: number;
+            /** Status */
+            status: number;
         };
         /** CodRange */
         CodRange: {
@@ -10491,6 +10527,31 @@ export interface components {
              */
             skip: boolean;
         };
+        /**
+         * SlowClick
+         * @description A click (or key) in the window that took a while to settle: what was clicked, on which page, from the click to
+         *     the screen drawn with every answer it asked for; the requests it made, and the time the window itself was busy
+         *     (scripts and drawing; None where the browser can't say).
+         */
+        SlowClick: {
+            /** What */
+            what: string;
+            /** Page */
+            page: string;
+            /** Took */
+            took: number;
+            /** Requests */
+            requests: components["schemas"]["ClickRequest"][];
+            /** Busy */
+            busy: number | null;
+            /** Neither */
+            neither: number | null;
+            /**
+             * Cut Short
+             * @default false
+             */
+            cut_short: boolean;
+        };
         /** SmallChoice */
         SmallChoice: {
             /**
@@ -12621,6 +12682,39 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    slow_click_api_log_slow_click_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlowClick"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     log_info_api_log_get: {
         parameters: {
             query?: never;

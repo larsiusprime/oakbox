@@ -99,6 +99,24 @@ and a bar at the bottom right (`FailureBar`) shows the latest with **Copy detail
 message) and **Open the log folder**, until dismissed. **Help › Open the log folder** opens it any time
 (`GET /api/log` says where it is; `POST /api/log/open` opens it).
 
+**Where a slow click's time went** (2026-11-14; `profiler.py`, `web/src/lib/perf.ts`). Two records in the same log,
+so a slow click can be diagnosed from the log alone:
+- *Every request over a second* (`OAKBOX_SLOW` changes it): `slow: <method> <path> took N s (k other requests under
+  way)`, and where its time went. A sampling profiler looks at every thread's stack every 10 ms while a request is
+  under way (`OAKBOX_PROFILE=0` stops it; it costs within the noise of a run to run). Whatever runs on a worker thread
+  for a request (anyio's `to_thread.run_sync`, wrapped) marks that thread as the request's while it runs, so each look
+  is put down to the right request even with several under way. The report: the deepest frames in OAK box's and
+  OpenAVMKit's own code with the path of calls up to the route and the library each was inside (pandas, pyarrow, ...);
+  the functions that took most, counting what they call; the service's own thread (the event loop, shared by every
+  request: reading them, turning answers into JSON); the share not seen working (waiting on the disk, another
+  process, a lock); and the other requests working at the same time.
+- *Every click that takes over 2 s to settle* (localStorage `oakbox.slowClickMs` changes it): the window times each
+  click (or Enter, Space) to the screen drawn with the last answer it asked for (no request out for 300 ms), and posts
+  it to `POST /api/log/slow-click`: `slow click: '<what>' on <page> took N s to settle`, the time the service was
+  answering, the time the window was busy (long tasks: scripts and drawing; where the browser can say), the time it
+  was neither, and each request with when it went out, how long it took and its answer. A project's id is left out of
+  the paths, and the query strings. A click made while one is still settling ends it ("cut short").
+
 **A large county is said before the long steps.** Bring in data's plan works out about how much memory the county
 needs (0.5 GB, plus 1 GB per 50,000 parcels, plus 0.6 GB per 50,000 for each extra fold worker: the test runs'
 figures) against what the computer leaves OAK box (its memory less 5.5 GB for Windows and the usual programs), and
