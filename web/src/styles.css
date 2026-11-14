@@ -7807,6 +7807,22 @@ div.map-wait-ask small {
   border-radius: 50%;
   animation: bi-pulse 1.2s ease-in-out infinite;
 }
+/* A button that's only a symbol (−, ×, a tool's icon): the dot on its corner, not beside the symbol, which it would
+   push off centre. */
+:is(.remove-x, .close-x, .tool-button)[data-busy] {
+  position: relative;
+}
+:is(.remove-x, .close-x, .tool-button)[data-busy]::after {
+  position: absolute;
+  top: -0.25em;
+  right: -0.25em;
+  margin: 0;
+  width: 0.5em;
+  height: 0.5em;
+  background: var(--primary-bottom);
+  box-shadow: 0 0 0 1.5px var(--paper);
+  pointer-events: none;
+}
 @media (prefers-reduced-motion: reduce) {
   [data-busy]::after {
     animation: none;
