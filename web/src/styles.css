@@ -3642,7 +3642,7 @@ ul.mg-checks {
   color: var(--muted);
 }
 .mp-popover {
-  width: 26rem;
+  width: 34rem;
   max-width: 92vw;
 }
 .mp-body {
@@ -3661,17 +3661,40 @@ ul.mg-checks {
 .mp-grow {
   flex: 1;
 }
+/* A column, not a grid: a scrolled grid squeezed its rows to the control height, so a value on two lines ran into
+   the next. Each value on its own row, as many lines as it needs; its count at the right. */
 .mp-list {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: max(calc(0.15 * var(--sp)), min(0.15rem, var(--gap-min)));
   max-height: 18rem;
   overflow-y: auto;
 }
+.mp-list > .tick {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  padding: calc(0.2 * var(--sp)) 0;
+  line-height: 1.3;
+}
+.mp-list > .tick > .tick-box {
+  margin-top: 0.12rem;
+}
+.mp-list > .tick > span:last-child {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+}
 .mp-value {
   font-size: 0.85rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .mp-n {
-  margin-left: calc(0.4 * var(--sp));
+  margin-left: auto;
+  padding-left: calc(0.6 * var(--sp));
+  white-space: nowrap;
   color: var(--muted);
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
