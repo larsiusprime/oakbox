@@ -6,6 +6,7 @@ import os
 import tempfile
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 _lock = threading.Lock()
@@ -21,6 +22,28 @@ def save_text(path: Path, text: str) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="") as f:
             f.write(text)
+        with _lock:
+            for attempt in range(10):
+                try:
+                    os.replace(tmp, path)
+                    return
+                except PermissionError:
+                    if attempt == 9:
+                        raise
+                    time.sleep(0.05)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def replace_with(path: Path, write: Callable[[Path], None]) -> None:
+    """Have write make the file at a temporary path beside the target, then put it in place in one step (as
+    save_text, for files written by a library: Parquet)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    os.close(fd)
+    tmp = Path(name)
+    try:
+        write(tmp)
         with _lock:
             for attempt in range(10):
                 try:

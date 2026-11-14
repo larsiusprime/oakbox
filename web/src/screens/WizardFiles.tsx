@@ -31,6 +31,7 @@ import { WarnChip } from "../components/WarnChip";
 import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../wording";
 import { AddFile } from "./AddFile";
+import { CombineOptions, useCombine } from "./Combine";
 import { describeSteps, ReconcileDialog, ReconcilePanel } from "./Reconcile";
 import { CondosLink } from "./Units";
 import { type Mutate, stopFileChoice } from "./wizardChange";
@@ -309,7 +310,13 @@ function DupesDialog({
         }),
       ),
   });
-  const [policy, setPolicy] = useState<"first" | "all" | null>(r?.policy ?? null);
+  const [policy, setPolicy] = useState<"first" | "all" | "combine" | null>(
+    r?.combined ? "combine" : (r?.policy ?? null),
+  );
+  // Rows that each say something (one per amenity): combined into one per parcel, a parcel file joined to the
+  // universe only (Combine.tsx).
+  const canCombine = file.holds === "parcels" && !file.base;
+  const comb = useCombine(projectId, file.name, canCombine && policy === "combine");
   // The order each ID's rows are kept in: the file's columns, level by level (ties keep the file's order).
   const [levels, setLevels] = useState<Level[]>(() =>
     (r?.by ?? []).map((k) => ({ column: k.column, desc: k.desc })),
@@ -319,6 +326,8 @@ function DupesDialog({
   const hasRepeats = r.extra > 0;
   const hasBlanks = r.blank > 0;
   const kept = policy === "all" ? r.singles : policy === "first" ? r.distinct : null;
+  const combined = policy === "combine" ? comb.preview : undefined;
+  const combineBody = policy === "combine" ? comb.saved() : null;
   const columns = file.columns.filter((c) => c.type !== "geometry").map((c) => c.name);
   const numeric = new Set(file.columns.filter((c) => c.type === "number").map((c) => c.name));
   const shown = examples.data ? keptFirst(examples.data, levels, numeric, policy === "first") : null;
@@ -364,7 +373,7 @@ function DupesDialog({
               <Radios
                 className="field radios wiz-act"
                 value={policy}
-                onChange={(v) => setPolicy(v as "first" | "all")}
+                onChange={(v) => setPolicy(v as "first" | "all" | "combine")}
               >
                 <Label className="wiz-act-label">{d.what}</Label>
                 <Radio value="first" className="radio">
@@ -427,6 +436,22 @@ function DupesDialog({
                     {examples.data && <p className="wiz-from">{d.keptNote}</p>}
                   </div>
                 )}
+                {canCombine && (
+                  <Radio value="combine" className="radio">
+                    <span className="radio-dot" aria-hidden="true" />
+                    {t.wizard.combine.choice}
+                  </Radio>
+                )}
+                {canCombine && policy === "combine" && (
+                  <CombineOptions
+                    projectId={projectId}
+                    name={file.name}
+                    s={comb}
+                    example={
+                      examples.data ? { columns: examples.data.columns, rows: examples.data.rows } : null
+                    }
+                  />
+                )}
                 <Radio value="all" className="radio">
                   <span className="radio-dot" aria-hidden="true" />
                   {d.all}
@@ -444,23 +469,50 @@ function DupesDialog({
               </Tick>
             </DialogSection>
           )}
-          <DialogFoot result={kept !== null && d.result({ rows: r.rows, kept })}>
+          <DialogFoot
+            result={
+              combined
+                ? t.wizard.combine.result({
+                    rows: combined.rows,
+                    parcels: combined.parcels,
+                    fields: combined.fields,
+                  })
+                : kept !== null && d.result({ rows: r.rows, kept })
+            }
+          >
             <Button
               className="button button-primary"
-              isDisabled={!((hasRepeats && policy !== null) || (hasBlanks && blankOk !== r.blank_ok))}
+              isDisabled={
+                policy === "combine"
+                  ? combineBody === null || comb.pending
+                  : !((hasRepeats && policy !== null) || (hasBlanks && blankOk !== r.blank_ok))
+              }
               onPress={() =>
-                change(
-                  {
-                    kind: "file",
-                    name: file.name,
-                    ...(hasRepeats && policy ? { dupes: policy } : {}),
-                    ...(hasRepeats && policy === "first"
-                      ? { dupes_by: levels.map((l) => ({ ...l, numeric: false })) }
-                      : {}),
-                    ...(hasBlanks ? { blank_ok: blankOk } : {}),
-                  },
-                  { onSuccess: close },
-                )
+                policy === "combine" && combineBody
+                  ? change(
+                      { kind: "combine", name: file.name, ...combineBody },
+                      {
+                        onSuccess: () =>
+                          hasBlanks && blankOk !== r.blank_ok
+                            ? change(
+                                { kind: "file", name: file.name, blank_ok: blankOk },
+                                { onSuccess: close },
+                              )
+                            : close(),
+                      },
+                    )
+                  : change(
+                      {
+                        kind: "file",
+                        name: file.name,
+                        ...(hasRepeats && (policy === "first" || policy === "all") ? { dupes: policy } : {}),
+                        ...(hasRepeats && policy === "first"
+                          ? { dupes_by: levels.map((l) => ({ ...l, numeric: false })) }
+                          : {}),
+                        ...(hasBlanks ? { blank_ok: blankOk } : {}),
+                      },
+                      { onSuccess: close },
+                    )
               }
             >
               {w.save}

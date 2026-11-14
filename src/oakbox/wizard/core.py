@@ -789,7 +789,8 @@ def repeat_rows(project: Project, in_dir: Path, name: str, limit: int = 5) -> Re
     spec = entry.load.get(field)
     if spec is None or name not in files.preview:
         raise ValueError(f"{name} has no ID column yet.")
-    values = files.ids(name, field)
+    src = entry.combine is not None  # combined: its original's rows, as they are
+    values = files.ids(name, field, source=src)
     counts: dict[str, int] = {}
     for v in values:
         if v:
@@ -797,12 +798,13 @@ def repeat_rows(project: Project, in_dir: Path, name: str, limit: int = 5) -> Re
     # A few of the most repeated, then shown sorted by the ID, each ID's rows together.
     ids = [v for v, n in sorted(counts.items(), key=lambda kv: -kv[1]) if n > 1][:limit]
     ids.sort(key=cells.natural_key)
-    loaded = [s[0] for s in entry.load.values()]
+    have = [c.name for c in files.columns(name, source=src)]
+    loaded = [s[0] for s in entry.load.values() if s[0] in have]
     shown = [spec[0], *[c for c in loaded if c != spec[0]]][:8]
-    rest = [c.name for c in files.columns(name) if c.name not in shown]
+    rest = [c for c in have if c not in shown]
     shown = (shown + rest)[:8]
     picked = [i for i, v in enumerate(values) if v in set(ids)]
-    columns = {c: files.values(name, c) for c in shown}
+    columns = {c: files.values(name, c, source=src) for c in shown}
     rows = [[columns[c][i] for c in shown] for i in sorted(picked, key=lambda i: ids.index(values[i]))]
     rows = rows[:40]
     return RepeatRows(columns=shown, rows=rows, bands=cells.alternating(r[0] for r in rows))
@@ -920,6 +922,11 @@ def set_file(
     if entry.holds in ROWS and "key" in entry.load:
         propose_rows(project, in_dir, entry)
     if dupes is not None:  # the duplicates dialog: what to do with repeated IDs
+        if entry.combine is not None:  # was combined: back to its rows as they are
+            from oakbox.wizard.combine import uncombine
+
+            uncombine(project, in_dir, entry)
+            files = Files(project, in_dir)
         if dupes_sort is not None and dupes_sort not in entry.load:
             raise ValueError(f"Sort by a field {name} loads; {dupes_sort} isn't one.")
         entry.dupes, entry.dupes_sort, entry.dupes_desc = dupes, dupes_sort, dupes_desc

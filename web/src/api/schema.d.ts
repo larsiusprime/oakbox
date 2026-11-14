@@ -687,6 +687,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/files/{name}/combine/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Wizard Combine Preview
+         * @description What combining a parcel file's rows into one per parcel would make: its groups, numbers and main value, with
+         *     how many parcels each (F3d duplicates dialog); nothing is saved.
+         */
+        post: operations["wizard_combine_preview_api_projects__project_id__wizard_files__name__combine_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/files/{name}/combine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard Combine
+         * @description Combine a parcel file's rows into one per parcel (or change how): its fields become the user's own.
+         */
+        put: operations["wizard_combine_api_projects__project_id__wizard_files__name__combine_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/files/{name}/reconcile": {
         parameters: {
             query?: never;
@@ -4365,12 +4406,156 @@ export interface components {
              * Values
              * @description Most common first; blank last. At most `limit`.
              */
-            values: components["schemas"]["ValueCount"][];
+            values: components["schemas"]["oakbox__wizard__rules__ValueCount"][];
             /**
              * More
              * @description Values not listed (search to narrow).
              */
             more: number;
+        };
+        /**
+         * Combine
+         * @description A parcel file whose rows each say something different about the parcel (one row per amenity): combined
+         *     into one row per parcel by OAK box, into a file of its own beside the original (wizard/combine.py), which is
+         *     what the project loads (the entry's filename) while this is set.
+         */
+        Combine: {
+            /**
+             * Source
+             * @description The original file, in in/.
+             */
+            source: string;
+            /**
+             * About
+             * @description The column that says what each row is about (Amenity).
+             */
+            about: string;
+            /**
+             * Groups
+             * @description A yes/no field per group.
+             */
+            groups: components["schemas"]["CombineGroup"][];
+            /**
+             * Measures
+             * @description Number column -> how a parcel's rows make one: largest, smallest...
+             */
+            measures: {
+                [key: string]: "max" | "min" | "sum" | "mean" | "count";
+            };
+            /**
+             * Main
+             * @description A category field, the main one of a parcel's values: the first of these it has. None: none.
+             */
+            main: string[] | null;
+        };
+        /**
+         * CombineAsk
+         * @description What to preview; leave a value out for what's set (or suggested).
+         */
+        CombineAsk: {
+            /** About */
+            about?: string | null;
+            /** Groups */
+            groups?: components["schemas"]["CombineGroup"][] | null;
+            /** Main */
+            main?: string[] | null;
+            /** Main On */
+            main_on?: boolean | null;
+            /** Measures */
+            measures?: {
+                [key: string]: "max" | "min" | "sum" | "mean" | "count";
+            } | null;
+        };
+        /**
+         * CombineGroup
+         * @description Values of the "about" column that mean the same thing for a model: a yes/no field each (has_<name>).
+         */
+        CombineGroup: {
+            /**
+             * Name
+             * @description As shown: 'Open water'. Its field is has_open_water.
+             */
+            name: string;
+            /**
+             * Values
+             * @description The values in it, as compared: capitals, extra spaces ignored.
+             */
+            values: string[];
+        };
+        /**
+         * CombinePreview
+         * @description What combining a file's rows would make, for the dialog: as set, or as suggested.
+         */
+        CombinePreview: {
+            /**
+             * Abouts
+             * @description Columns that could say what rows are about, the likeliest first.
+             */
+            abouts: string[];
+            /** About */
+            about: string | null;
+            /**
+             * Values
+             * @description The about column's values, as compared, most parcels first.
+             */
+            values: components["schemas"]["oakbox__wizard__combine__ValueCount"][];
+            /** Groups */
+            groups: components["schemas"]["CombineGroup"][];
+            /**
+             * Group Parcels
+             * @description Parcels in each group (a parcel can be in several).
+             */
+            group_parcels: number[];
+            /**
+             * None
+             * @description Parcels in no group (no value, or only values left out).
+             */
+            none: number;
+            /** Measures */
+            measures: components["schemas"]["MeasureView"][];
+            /**
+             * Main
+             * @description The order for the main value: as set, or most parcels first.
+             */
+            main: string[];
+            /**
+             * Main On
+             * @description The main value is made.
+             */
+            main_on: boolean;
+            /**
+             * Main Parcels
+             * @description Parcels each value would be the main one for.
+             */
+            main_parcels: number[];
+            /** Rows */
+            rows: number;
+            /** Parcels */
+            parcels: number;
+            /**
+             * Fields
+             * @description Fields it makes: groups, numbers kept, and the main value if made.
+             */
+            fields: number;
+        };
+        /** CombineSet */
+        CombineSet: {
+            /** About */
+            about: string;
+            /** Groups */
+            groups: components["schemas"]["CombineGroup"][];
+            /**
+             * Measures
+             * @description Number columns kept, how.
+             */
+            measures?: {
+                [key: string]: "max" | "min" | "sum" | "mean" | "count";
+            };
+            /**
+             * Main
+             * @description The order for the main value; None: not made.
+             */
+            main?: string[] | null;
         };
         /**
          * Condition
@@ -4610,6 +4795,8 @@ export interface components {
              * @description Keeping the first row of each ID: the file's columns its rows are sorted by first, in order (the building card, then the area, largest first). None: the file's own order.
              */
             dupes_by: components["schemas"]["SortKey-Output"][];
+            /** @description Its rows combined into one per parcel (filename is then the combined file). */
+            combine: components["schemas"]["Combine"] | null;
             /**
              * Blank Ok
              * @description The rows with no ID have been acknowledged as dropped (F3d).
@@ -7010,6 +7197,27 @@ export interface components {
              * @default
              */
             note: string;
+        };
+        /** MeasureView */
+        MeasureView: {
+            /** Column */
+            column: string;
+            /**
+             * Parcels
+             * @description Parcels with a number in it, on any of their rows.
+             */
+            parcels: number;
+            /**
+             * How
+             * @description As set, or the suggestion.
+             * @enum {string}
+             */
+            how: "max" | "min" | "sum" | "mean" | "count";
+            /**
+             * Used
+             * @description In the combined file (as set; suggested: every number column).
+             */
+            used: boolean;
         };
         /** Member */
         Member: {
@@ -9653,6 +9861,12 @@ export interface components {
              * @description The rows with no ID have been acknowledged.
              */
             blank_ok: boolean;
+            /**
+             * Combined
+             * @description Its rows are combined into one per parcel (these: the original's).
+             * @default false
+             */
+            combined: boolean;
         };
         /** ReportPatch */
         ReportPatch: {
@@ -10058,7 +10272,7 @@ export interface components {
              * @description Per column tested, its values, most common first.
              */
             values: {
-                [key: string]: components["schemas"]["ValueCount"][];
+                [key: string]: components["schemas"]["oakbox__wizard__rules__ValueCount"][];
             };
             /**
              * More
@@ -11651,16 +11865,6 @@ export interface components {
              */
             type_price: number | null;
         };
-        /** ValueCount */
-        ValueCount: {
-            /**
-             * Value
-             * @description "" for blank.
-             */
-            value: string;
-            /** Count */
-            count: number;
-        };
         /** ValueN */
         ValueN: {
             /** Value */
@@ -12654,6 +12858,13 @@ export interface components {
              */
             sales: number;
         };
+        /** ValueCount */
+        oakbox__wizard__combine__ValueCount: {
+            /** Value */
+            value: string;
+            /** Parcels */
+            parcels: number;
+        };
         /** LocationField */
         oakbox__wizard__models__LocationField: {
             /** Name */
@@ -12665,6 +12876,16 @@ export interface components {
             check: components["schemas"]["Check"];
             /** Distinct */
             distinct: number | null;
+        };
+        /** ValueCount */
+        oakbox__wizard__rules__ValueCount: {
+            /**
+             * Value
+             * @description "" for blank.
+             */
+            value: string;
+            /** Count */
+            count: number;
         };
         /** YearCount */
         oakbox__wizard__rules__YearCount: {
@@ -13808,6 +14029,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RepeatRows"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_combine_preview_api_projects__project_id__wizard_files__name__combine_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CombineAsk"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CombinePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_combine_api_projects__project_id__wizard_files__name__combine_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CombineSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
                 };
             };
             /** @description Validation Error */

@@ -106,8 +106,18 @@ class Files:
         self.project = project
         self.in_dir = in_dir
         self.preview: dict[str, fields.FileColumns] = {}
+        self.source_preview: dict[str, fields.FileColumns] = {}  # a combined file's original (wizard/combine.py)
         self.problem: dict[str, str] = {}
         for f in project.files:
+            if f.combine is not None:
+                from oakbox.wizard.combine import ensure
+
+                try:
+                    ensure(in_dir, f)
+                    self.source_preview[f.name] = _preview(file_stamp(in_dir / f.combine.source), f.layer)
+                except Exception as e:  # noqa: BLE001 - shows on its row
+                    self.problem[f.name] = f"Couldn't combine {f.combine.source}'s rows: {e}"
+                    continue
             path = in_dir / f.filename
             if not path.is_file():
                 self.problem[f.name] = f"{f.filename} is missing from the project folder."
@@ -123,25 +133,30 @@ class Files:
             raise NotFound(name)
         return entry
 
-    def columns(self, name: str) -> list[Column]:
-        p = self.preview.get(name)
+    def _path(self, f: DataFile, source: bool) -> Path:
+        """A file as loaded; with source, a combined file's original (its rows as they are)."""
+        return self.in_dir / (f.combine.source if source and f.combine is not None else f.filename)
+
+    def columns(self, name: str, source: bool = False) -> list[Column]:
+        p = self.source_preview.get(name) if source and name in self.source_preview else self.preview.get(name)
         return [c for c in p.columns if c.type != "geometry"] if p else []
 
     def column(self, name: str, column: str) -> Column | None:
         return next((c for c in self.columns(name) if c.name == column), None)
 
-    def values(self, name: str, column: str) -> tuple[str, ...]:
+    def values(self, name: str, column: str, source: bool = False) -> tuple[str, ...]:
         f = self.entry(name)
-        return values_of(file_stamp(self.in_dir / f.filename), f.layer, column)
+        return values_of(file_stamp(self._path(f, source)), f.layer, column)
 
-    def ids(self, name: str, field: str, steps: list[CleanStep] | None = None) -> tuple[str, ...]:
-        """A file's ID field as it joins: cleaned by its steps (or the given ones, for a preview)."""
+    def ids(self, name: str, field: str, steps: list[CleanStep] | None = None, source: bool = False) -> tuple[str, ...]:
+        """A file's ID field as it joins: cleaned by its steps (or the given ones, for a preview). With source, a
+        combined file's original's (its repeats, for the duplicates dialog)."""
         f = self.entry(name)
         spec = f.load.get(field)
         if spec is None or name not in self.preview:
             return ()
         use = f.clean.get(field, []) if steps is None else steps
-        return cleaned_ids(file_stamp(self.in_dir / f.filename), f.layer, spec[0], steps_key(use))
+        return cleaned_ids(file_stamp(self._path(f, source)), f.layer, spec[0], steps_key(use))
 
     def parcel_ids(self, name: str) -> list[str]:
         """A file's rows' parcel IDs (key), whatever ID it joins on: a second or third ID looked up in the parcel

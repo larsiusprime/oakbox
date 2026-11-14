@@ -1493,6 +1493,124 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/files/{name}/combine/preview": {
+   "post": {
+    "summary": "Wizard Combine Preview",
+    "description": "What combining a parcel file's rows into one per parcel would make: its groups, numbers and main value, with\nhow many parcels each (F3d duplicates dialog); nothing is saved.",
+    "operationId": "wizard_combine_preview_api_projects__project_id__wizard_files__name__combine_preview_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CombineAsk"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CombinePreview"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/files/{name}/combine": {
+   "put": {
+    "summary": "Wizard Combine",
+    "description": "Combine a parcel file's rows into one per parcel (or change how): its fields become the user's own.",
+    "operationId": "wizard_combine_api_projects__project_id__wizard_files__name__combine_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CombineSet"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/files/{name}/reconcile": {
    "post": {
     "summary": "Wizard Reconcile Preview",
@@ -10983,7 +11101,7 @@
      },
      "values": {
       "items": {
-       "$ref": "#/components/schemas/ValueCount"
+       "$ref": "#/components/schemas/oakbox__wizard__rules__ValueCount"
       },
       "type": "array",
       "title": "Values",
@@ -11006,6 +11124,331 @@
      "more"
     ],
     "title": "ColumnValues"
+   },
+   "Combine": {
+    "properties": {
+     "source": {
+      "type": "string",
+      "title": "Source",
+      "description": "The original file, in in/."
+     },
+     "about": {
+      "type": "string",
+      "title": "About",
+      "description": "The column that says what each row is about (Amenity)."
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/CombineGroup"
+      },
+      "type": "array",
+      "title": "Groups",
+      "description": "A yes/no field per group."
+     },
+     "measures": {
+      "additionalProperties": {
+       "type": "string",
+       "enum": [
+        "max",
+        "min",
+        "sum",
+        "mean",
+        "count"
+       ]
+      },
+      "type": "object",
+      "title": "Measures",
+      "description": "Number column -> how a parcel's rows make one: largest, smallest..."
+     },
+     "main": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Main",
+      "description": "A category field, the main one of a parcel's values: the first of these it has. None: none."
+     }
+    },
+    "type": "object",
+    "required": [
+     "source",
+     "about",
+     "groups",
+     "measures",
+     "main"
+    ],
+    "title": "Combine",
+    "description": "A parcel file whose rows each say something different about the parcel (one row per amenity): combined\ninto one row per parcel by OAK box, into a file of its own beside the original (wizard/combine.py), which is\nwhat the project loads (the entry's filename) while this is set."
+   },
+   "CombineAsk": {
+    "properties": {
+     "about": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "About"
+     },
+     "groups": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/CombineGroup"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Groups"
+     },
+     "main": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Main"
+     },
+     "main_on": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Main On"
+     },
+     "measures": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "string",
+         "enum": [
+          "max",
+          "min",
+          "sum",
+          "mean",
+          "count"
+         ]
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Measures"
+     }
+    },
+    "type": "object",
+    "title": "CombineAsk",
+    "description": "What to preview; leave a value out for what's set (or suggested)."
+   },
+   "CombineGroup": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "As shown: 'Open water'. Its field is has_open_water."
+     },
+     "values": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Values",
+      "description": "The values in it, as compared: capitals, extra spaces ignored."
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "values"
+    ],
+    "title": "CombineGroup",
+    "description": "Values of the \"about\" column that mean the same thing for a model: a yes/no field each (has_<name>)."
+   },
+   "CombinePreview": {
+    "properties": {
+     "abouts": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Abouts",
+      "description": "Columns that could say what rows are about, the likeliest first."
+     },
+     "about": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "About"
+     },
+     "values": {
+      "items": {
+       "$ref": "#/components/schemas/oakbox__wizard__combine__ValueCount"
+      },
+      "type": "array",
+      "title": "Values",
+      "description": "The about column's values, as compared, most parcels first."
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/CombineGroup"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "group_parcels": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Group Parcels",
+      "description": "Parcels in each group (a parcel can be in several)."
+     },
+     "none": {
+      "type": "integer",
+      "title": "None",
+      "description": "Parcels in no group (no value, or only values left out)."
+     },
+     "measures": {
+      "items": {
+       "$ref": "#/components/schemas/MeasureView"
+      },
+      "type": "array",
+      "title": "Measures"
+     },
+     "main": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Main",
+      "description": "The order for the main value: as set, or most parcels first."
+     },
+     "main_on": {
+      "type": "boolean",
+      "title": "Main On",
+      "description": "The main value is made."
+     },
+     "main_parcels": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Main Parcels",
+      "description": "Parcels each value would be the main one for."
+     },
+     "rows": {
+      "type": "integer",
+      "title": "Rows"
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     },
+     "fields": {
+      "type": "integer",
+      "title": "Fields",
+      "description": "Fields it makes: groups, numbers kept, and the main value if made."
+     }
+    },
+    "type": "object",
+    "required": [
+     "abouts",
+     "about",
+     "values",
+     "groups",
+     "group_parcels",
+     "none",
+     "measures",
+     "main",
+     "main_on",
+     "main_parcels",
+     "rows",
+     "parcels",
+     "fields"
+    ],
+    "title": "CombinePreview",
+    "description": "What combining a file's rows would make, for the dialog: as set, or as suggested."
+   },
+   "CombineSet": {
+    "properties": {
+     "about": {
+      "type": "string",
+      "title": "About"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/CombineGroup"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "measures": {
+      "additionalProperties": {
+       "type": "string",
+       "enum": [
+        "max",
+        "min",
+        "sum",
+        "mean",
+        "count"
+       ]
+      },
+      "type": "object",
+      "title": "Measures",
+      "description": "Number columns kept, how."
+     },
+     "main": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Main",
+      "description": "The order for the main value; None: not made."
+     }
+    },
+    "type": "object",
+    "required": [
+     "about",
+     "groups"
+    ],
+    "title": "CombineSet"
    },
    "Condition-Input": {
     "properties": {
@@ -11496,6 +11939,17 @@
       "title": "Dupes By",
       "description": "Keeping the first row of each ID: the file's columns its rows are sorted by first, in order (the building card, then the area, largest first). None: the file's own order."
      },
+     "combine": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Combine"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Its rows combined into one per parcel (filename is then the combined file)."
+     },
      "blank_ok": {
       "type": "boolean",
       "title": "Blank Ok",
@@ -11622,6 +12076,7 @@
      "dupes_sort",
      "dupes_desc",
      "dupes_by",
+     "combine",
      "blank_ok",
      "units",
      "holds",
@@ -16640,6 +17095,44 @@
      "action"
     ],
     "title": "MarkBody"
+   },
+   "MeasureView": {
+    "properties": {
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels",
+      "description": "Parcels with a number in it, on any of their rows."
+     },
+     "how": {
+      "type": "string",
+      "enum": [
+       "max",
+       "min",
+       "sum",
+       "mean",
+       "count"
+      ],
+      "title": "How",
+      "description": "As set, or the suggestion."
+     },
+     "used": {
+      "type": "boolean",
+      "title": "Used",
+      "description": "In the combined file (as set; suggested: every number column)."
+     }
+    },
+    "type": "object",
+    "required": [
+     "column",
+     "parcels",
+     "how",
+     "used"
+    ],
+    "title": "MeasureView"
    },
    "Member": {
     "properties": {
@@ -22630,6 +23123,12 @@
       "type": "boolean",
       "title": "Blank Ok",
       "description": "The rows with no ID have been acknowledged."
+     },
+     "combined": {
+      "type": "boolean",
+      "title": "Combined",
+      "description": "Its rows are combined into one per parcel (these: the original's).",
+      "default": false
      }
     },
     "type": "object",
@@ -22645,7 +23144,8 @@
      "sort",
      "descending",
      "by",
-     "blank_ok"
+     "blank_ok",
+     "combined"
     ],
     "title": "Repeats",
     "description": "What a file's ID column holds, for the duplicates notice and dialog (F3d)."
@@ -23635,7 +24135,7 @@
      "values": {
       "additionalProperties": {
        "items": {
-        "$ref": "#/components/schemas/ValueCount"
+        "$ref": "#/components/schemas/oakbox__wizard__rules__ValueCount"
        },
        "type": "array"
       },
@@ -27192,25 +27692,6 @@
     "title": "ValueBand",
     "description": "Sales of parcels whose value, as read, falls in a band: one row per value when there are few."
    },
-   "ValueCount": {
-    "properties": {
-     "value": {
-      "type": "string",
-      "title": "Value",
-      "description": "\"\" for blank."
-     },
-     "count": {
-      "type": "integer",
-      "title": "Count"
-     }
-    },
-    "type": "object",
-    "required": [
-     "value",
-     "count"
-    ],
-    "title": "ValueCount"
-   },
    "ValueN": {
     "properties": {
      "value": {
@@ -29549,6 +30030,24 @@
     ],
     "title": "GroupSetup"
    },
+   "oakbox__wizard__combine__ValueCount": {
+    "properties": {
+     "value": {
+      "type": "string",
+      "title": "Value"
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     }
+    },
+    "type": "object",
+    "required": [
+     "value",
+     "parcels"
+    ],
+    "title": "ValueCount"
+   },
    "oakbox__wizard__models__LocationField": {
     "properties": {
      "name": {
@@ -29587,6 +30086,25 @@
      "distinct"
     ],
     "title": "LocationField"
+   },
+   "oakbox__wizard__rules__ValueCount": {
+    "properties": {
+     "value": {
+      "type": "string",
+      "title": "Value",
+      "description": "\"\" for blank."
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     }
+    },
+    "type": "object",
+    "required": [
+     "value",
+     "count"
+    ],
+    "title": "ValueCount"
    },
    "oakbox__wizard__rules__YearCount": {
     "properties": {

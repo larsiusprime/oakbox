@@ -17,6 +17,8 @@ import type { UnitsChange } from "./Units";
 import type { ValuesChange } from "./ValueSets";
 
 export type AreaUnit = NonNullable<WizardField["area_unit"]>;
+export type CombineHow = "max" | "min" | "sum" | "mean" | "count";
+
 type Holds = "parcels" | "sales" | "sale_rows" | "parcel_rows" | "unused" | "permits";
 
 // ---------- Changes ----------
@@ -44,6 +46,14 @@ export type Change =
       added?: boolean;
     }
   | { kind: "saleId"; column: string | null; make: boolean }
+  | {
+      kind: "combine";
+      name: string;
+      about: string;
+      groups: { name: string; values: string[] }[];
+      measures: Record<string, CombineHow>;
+      main: string[] | null;
+    }
   | { kind: "reconcile"; name: string; file_steps: CleanStep[]; base_steps: CleanStep[] }
   | {
       kind: "field";
@@ -144,6 +154,15 @@ export function useChange(projectId: string, { quiet = false }: { quiet?: boolea
           await api.PUT("/api/projects/{project_id}/wizard/files/{name}/reconcile", {
             params: { path: { project_id, name: c.name } },
             body: { file_steps: c.file_steps, base_steps: c.base_steps },
+          }),
+        );
+      }
+      if (c.kind === "combine") {
+        const { kind: _, name, ...body } = c;
+        return unwrap(
+          await api.PUT("/api/projects/{project_id}/wizard/files/{name}/combine", {
+            params: { path: { project_id, name } },
+            body,
           }),
         );
       }

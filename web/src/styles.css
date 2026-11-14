@@ -9423,3 +9423,99 @@ th.vt-map {
   filter: grayscale(0.6);
   pointer-events: none;
 }
+
+/* ---------- Combining a file's rows into one per parcel (Combine.tsx; the duplicates dialog's third way) ---------- */
+.cb-opts {
+  display: grid;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
+}
+.cb-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)))
+    max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
+  min-width: 0;
+}
+.cb-label {
+  color: var(--muted);
+}
+.cb-sub {
+  font-size: 0.88rem;
+}
+.cb-measure {
+  padding-left: calc(1.6 * var(--sp));
+}
+.cb-measure .mono {
+  display: inline-block;
+  min-width: 11rem;
+}
+.cb-top,
+.cb-note {
+  font-size: 0.82rem;
+}
+.cb-note {
+  margin: 0;
+}
+.cb-becomes {
+  margin: 0;
+  padding: calc(0.3 * var(--sp)) calc(0.5 * var(--sp));
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 2px;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+.cb-groups,
+.cb-order {
+  max-height: 22rem;
+  overflow-y: auto;
+  border: 1px solid var(--frame);
+}
+.cb-gname .input {
+  width: 13rem;
+  max-width: 100%;
+}
+.cb-gn {
+  white-space: nowrap;
+}
+.cb-gvals {
+  white-space: normal;
+}
+.cb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  margin: 1px 2px;
+  padding: 0 0.4em;
+  border: 1px solid var(--manila-edge);
+  border-radius: 3px;
+  background: var(--manila);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  max-width: 100%;
+}
+.cb-chip-n {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.cb-left {
+  font-size: 0.88rem;
+}
+.cb-moves {
+  white-space: nowrap;
+}
+.cb-moves .tool-plain {
+  padding: 0 0.25em;
+}
+.cb-bar-cell {
+  width: 9rem;
+}
+.cb-bar {
+  display: block;
+  height: 0.5rem;
+  border-radius: 1px;
+  background: var(--primary-bottom);
+  opacity: 0.45;
+}

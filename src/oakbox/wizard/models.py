@@ -60,6 +60,9 @@ class Repeats(BaseModel):
     descending: bool
     by: list[SortKey] = Field(default_factory=list, description="The columns rows are sorted by, in order.")
     blank_ok: bool = Field(description="The rows with no ID have been acknowledged.")
+    combined: bool = Field(
+        default=False, description="Its rows are combined into one per parcel (these: the original's)."
+    )
 
 
 class RepeatRows(BaseModel):

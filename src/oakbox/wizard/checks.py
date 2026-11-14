@@ -113,8 +113,10 @@ def _rows_found(values: tuple[str, ...], known: frozenset[str]) -> int:
 
 
 def _repeats_of(files: Files, name: str, field: str) -> Repeats:
+    """A file's repeated IDs; a combined file's, its original's (what the duplicates dialog decides on)."""
     entry = files.entry(name)
-    rows, present, distinct, repeated, singles = _tally(files.ids(name, field))
+    combined = entry.combine is not None
+    rows, present, distinct, repeated, singles = _tally(files.ids(name, field, source=combined))
     extra = present - distinct
     return Repeats(
         rows=rows,
@@ -129,6 +131,7 @@ def _repeats_of(files: Files, name: str, field: str) -> Repeats:
         descending=entry.dupes_desc,
         by=entry.dupes_by,
         blank_ok=entry.blank_ok,
+        combined=combined,
     )
 
 
@@ -153,7 +156,9 @@ def check_ids(files: Files, name: str, holds: Holds | None, base: str | None) ->
     # One row each is expected of a parcel file (per parcel) and of more sales details (per sale).
     # (A parcel ID repeats in details on a made sale ID: a parcel sold more than once.)
     one_each = holds in ("parcels", "parcel_rows") or (more_sales and not made)
-    if r.extra and one_each and (r.few or r.policy):
+    if r.combined:
+        issues.append(Issue(text=f"{counted(r.repeated, 'repeated ID')}, rows combined", resolved=True))
+    elif r.extra and one_each and (r.few or r.policy):
         repeated = counted(r.repeated, "repeated ID")
         if r.policy is None:  # nothing chosen yet (OpenAVMKit would keep the first)
             issues.append(Issue(text=repeated, resolved=False, todo=f"{repeated} to decide"))
@@ -233,10 +238,10 @@ def check_ids(files: Files, name: str, holds: Holds | None, base: str | None) ->
         parcels = parcel_ids(files, base, match) | (unit_ids(files) if match == "key" and f.units is None else set())
         found = len(present & parcels)
         share = found / len(present) if present else 0.0
-    if r.extra and not r.few and r.policy is None:
+    if r.extra and not r.few and r.policy is None and not r.combined:
         text = f"{counted(r.repeated, 'repeated ID')} ({counted(r.extra, 'extra row')}): choose what to do"
         return Check(ok=False, text=text, issues=issues, share=share), flagged
-    kept = r.singles if r.policy == "all" else r.distinct
+    kept = r.singles if r.policy == "all" and not r.combined else r.distinct
     tick = "" if open_issues else "✓ "
     if name == base:
         text = f"{tick}{kept:,} parcels" + ("" if issues else ", all different")

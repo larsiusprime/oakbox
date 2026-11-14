@@ -12,7 +12,7 @@ from oakbox import datafiles, enrichments, mapdata, names, projects, wizard
 from oakbox.datafiles import BaseModel, CleanStep
 from oakbox.errors import NotFound
 from oakbox.routes.common import editing, file_entry, load_project, wizard_view
-from oakbox.wizard import as_sold, sales_only
+from oakbox.wizard import as_sold, combine, sales_only
 
 router = APIRouter()
 
@@ -51,6 +51,23 @@ class WizardReconcilePreview(WizardReconcile):
     view: wizard.SampleView = "unmatched"
     seed: int = Field(default=0, description="Change it for new samples.")
     suggest: bool = Field(default=False, description="Also try a few common clean-ups (slower).")
+
+
+class CombineAsk(BaseModel):
+    """What to preview; leave a value out for what's set (or suggested)."""
+
+    about: str | None = None
+    groups: list[datafiles.CombineGroup] | None = None
+    main: list[str] | None = None
+    main_on: bool | None = None
+    measures: dict[str, datafiles.CombineHow] | None = None
+
+
+class CombineSet(BaseModel):
+    about: str
+    groups: list[datafiles.CombineGroup]
+    measures: dict[str, datafiles.CombineHow] = Field(default_factory=dict, description="Number columns kept, how.")
+    main: list[str] | None = Field(default=None, description="The order for the main value; None: not made.")
 
 
 class WizardSaleId(BaseModel):
@@ -262,6 +279,36 @@ def wizard_repeats(project_id: str, name: str) -> wizard.RepeatRows:
         return wizard.repeat_rows(project, projects.inputs_dir(project_id), name)
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
+
+
+@router.post("/api/projects/{project_id}/wizard/files/{name}/combine/preview")
+def wizard_combine_preview(project_id: str, name: str, body: CombineAsk) -> combine.CombinePreview:
+    """What combining a parcel file's rows into one per parcel would make: its groups, numbers and main value, with
+    how many parcels each (F3d duplicates dialog); nothing is saved."""
+    project = load_project(project_id)
+    file_entry(project, name)
+    try:
+        return combine.preview(
+            project,
+            projects.inputs_dir(project_id),
+            name,
+            about=body.about,
+            groups=body.groups,
+            main=body.main,
+            main_on=body.main_on,
+            measures=body.measures,
+        )
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
+
+
+@router.put("/api/projects/{project_id}/wizard/files/{name}/combine")
+def wizard_combine(project_id: str, name: str, body: CombineSet) -> wizard.Wizard:
+    """Combine a parcel file's rows into one per parcel (or change how): its fields become the user's own."""
+    return _change(
+        project_id,
+        lambda p, d: combine.set_combine(p, d, name, body.about, body.groups, body.measures, body.main),
+    )
 
 
 @router.post("/api/projects/{project_id}/wizard/files/{name}/reconcile")

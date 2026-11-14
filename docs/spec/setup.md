@@ -826,7 +826,21 @@ the field steps, checks, guesses, assumptions and Review carry over.
   - **The check is two lines:** the result ("219,381 parcels"), then the issues, each with ⚠ or ✅, then Resolve….
   - **Resolve…** opens the duplicates dialog: every row of a few repeated IDs side by side, then keep the first (sorted
     by a loaded field, ascending or descending) or drop every repeated row, with the result ("2,000 rows → 1,995
-    parcels"). Combining rows (`agg`) comes later. Written as the file's `dupes`.
+    parcels"). Written as the file's `dupes`.
+  - **Combine each parcel's rows into one** (2026-11-14; a file of more parcel details only; `wizard/combine.py`,
+    `Combine.tsx`), for a file whose rows each say something different about the parcel (one row per amenity: Lee
+    County's parcel amenities, 259,105 rows for 224,882 parcels). **Each row is about** a column (guessed: the text
+    column whose values don't repeat within an ID, fewest values first); its values, capitals and spaces ignored, in
+    **groups**, a yes/no field each (`has_open_water`, 1/0), suggested from the values' words (water, canal, golf,
+    rail...; **Edit groups…**: rename, move a value to another group, a group of its own, or out; one field per value
+    instead); each **number column** one number per parcel (largest, smallest, total, average, how many; a distance
+    the smallest, else the largest); and, ticked, **the main value**, a category (`main_amenity`): the first value
+    in an order the user sets that the parcel has (**Set the order…**: ⤒ ↑ ↓, with how many parcels each is the main
+    one for). A line shows what the first example ID becomes; the footer "259,105 rows → 224,882 parcels · 15
+    fields". OpenAVMKit can't reshape a file, so OAK box writes `<name>.combined.parquet` beside the original in
+    `in/` (made again when the original or the set-up changes: its key is in the file's metadata), and the project
+    loads that; the fields are the user's own (Your own fields, land). Keeping the first row or dropping repeats
+    goes back to the original. The ID check reads "30,112 repeated IDs, rows combined" (the original's repeats).
   - **Blank IDs** block until confirmed (❌): a row with no ID can't be joined, and OpenAVMKit drops rows with no `key`
     when it joins the parcel files. The dialog explains it and has a tick box, "Drop the 442 rows with no ID"; ticked,
     it's ✅. In a sales file it's a warning, acknowledged the same way.

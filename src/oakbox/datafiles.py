@@ -441,6 +441,33 @@ class Permits(BaseModel):
     effective_age: bool = Field(default=True, description="Major renovations reset the effective year built.")
 
 
+CombineHow = Literal["max", "min", "sum", "mean", "count"]
+
+
+class CombineGroup(BaseModel):
+    """Values of the "about" column that mean the same thing for a model: a yes/no field each (has_<name>)."""
+
+    name: str = Field(description="As shown: 'Open water'. Its field is has_open_water.")
+    values: list[str] = Field(description="The values in it, as compared: capitals, extra spaces ignored.")
+
+
+class Combine(BaseModel):
+    """A parcel file whose rows each say something different about the parcel (one row per amenity): combined
+    into one row per parcel by OAK box, into a file of its own beside the original (wizard/combine.py), which is
+    what the project loads (the entry's filename) while this is set."""
+
+    source: str = Field(description="The original file, in in/.")
+    about: str = Field(description="The column that says what each row is about (Amenity).")
+    groups: list[CombineGroup] = Field(default_factory=list, description="A yes/no field per group.")
+    measures: dict[str, CombineHow] = Field(
+        default_factory=dict, description="Number column -> how a parcel's rows make one: largest, smallest..."
+    )
+    main: list[str] | None = Field(
+        default=None,
+        description="A category field, the main one of a parcel's values: the first of these it has. None: none.",
+    )
+
+
 class SortKey(BaseModel):
     """One level of the order repeated rows are kept in: a column of the file, and which way."""
 
@@ -496,6 +523,9 @@ class DataFile(BaseModel):
         default_factory=list,
         description="Keeping the first row of each ID: the file's columns its rows are sorted by first, in order "
         "(the building card, then the area, largest first). None: the file's own order.",
+    )
+    combine: Combine | None = Field(
+        default=None, description="Its rows combined into one per parcel (filename is then the combined file)."
     )
     blank_ok: bool = Field(default=False, description="The rows with no ID have been acknowledged as dropped (F3d).")
     units: Units | None = Field(
