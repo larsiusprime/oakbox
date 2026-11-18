@@ -404,6 +404,7 @@ function GroupsDialog({
         >
           {draft.map((g, i) =>
             i === from ? null : (
+              // biome-ignore lint/suspicious/noArrayIndexKey: a group is its place in the list (its name is edited)
               <MenuItem key={`g${i}`} id={String(i)} className="choice-item">
                 {g.name}
               </MenuItem>
