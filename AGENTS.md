@@ -22,7 +22,7 @@ encode character…`). Every time you touch I/O:
   so the run reads it as the previews do.
 - **Every Python process OAK box starts runs in UTF-8 mode** (`-X utf8`, `PYTHONUTF8=1`, `PYTHONIOENCODING=utf-8`:
   `steps.child_env()`), so OpenAVMKit's own reads, writes and prints are UTF-8 too. The launchers
-  (`Oakbox.cmd`, `oakbox.sh`, `run.bat`) start it with `-X utf8`. A new launcher or subprocess does the same.
+  (`OAK box.exe`, `oakbox.sh`, `run.bat`) start it with `-X utf8`. A new launcher or subprocess does the same.
 - **Printing:** `pythonw` has no console (`sys.stdout` is `None`); a console may not be UTF-8. The app reconfigures
   its streams to UTF-8; don't print where it can fail a run.
 - **Also Windows:** paths with spaces and non-ASCII letters (`C:\Users\José\Documents\OAK box`), `\` separators

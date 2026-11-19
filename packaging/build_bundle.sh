@@ -6,7 +6,7 @@
 # Output: dist/oakbox-<plat>/ plus a .zip (Windows) or .tar.gz (Linux)
 #   python/        standalone CPython 3.11 (python-build-standalone)
 #   site-packages  every dependency for that platform, from uv.lock
-#   Oakbox.cmd     (Windows) / oakbox.sh (Linux) launcher
+#   OAK box.exe    (Windows: packaging/launcher, built here with MinGW) / oakbox.sh (Linux) launcher
 #   smoke.cmd|sh   end-to-end test (oakbox/smoke.py): the engine on Petersburg's data, then the app service
 #
 # No freezing: the interpreter and wheels are shipped as-is (see SPEC §6).
@@ -79,11 +79,17 @@ rm -rf "$OUT"/sample/*/.cache  # the downloads make.py keeps; what it made is in
 python3 packaging/strip_bundle.py "$OUT" "$PLATFORM"
 
 if [ "$PLATFORM" = windows ]; then
-  cat > "$OUT/Oakbox.cmd" <<'CMD'
-@echo off
-rem Start Oakbox. pythonw.exe runs it without a console window; -X utf8: text is UTF-8, not the code page.
-start "" "%~dp0python\pythonw.exe" -X utf8 -m oakbox
-CMD
+  # OAK box.exe: starts python\pythonw.exe -X utf8 -m oakbox beside it, with OAK box's icon and version (the
+  # Start menu's and the desktop's shortcut, and the portable bundle's double-click). Built with MinGW
+  # (gcc-mingw-w64-x86-64); needs nothing but Windows' own libraries.
+  VERSION=$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)
+  NUMS=$(echo "$VERSION" | sed -E 's/[^0-9.].*//; s/\./,/g'),0
+  NUMS=$(echo "$NUMS" | cut -d, -f1-4)
+  x86_64-w64-mingw32-windres "-DVERSION=$NUMS" "-DVERSION_STR=\\\"$VERSION\\\"" \
+    packaging/launcher/launcher.rc -O coff -o dist/launcher.res
+  x86_64-w64-mingw32-gcc -O2 -Wall -Wextra -Werror -municode -mwindows -s \
+    -o "$OUT/OAK box.exe" packaging/launcher/launcher.c dist/launcher.res
+  rm -f dist/launcher.res
   cat > "$OUT/smoke.cmd" <<'CMD'
 @echo off
 rem End-to-end test through the app service: download the sample county and run steps 1-4.

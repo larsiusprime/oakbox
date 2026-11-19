@@ -20,7 +20,7 @@ day).
    - **Windows:** extract to a short path such as `C:\oak`. Long paths can hit Windows' 260-character limit.
    - **Linux:** `tar -xzf oakbox-linux-x86_64.tar.gz`
 3. Start OAK box.
-   - **Windows:** double-click `Oakbox.cmd`.
+   - **Windows:** double-click `OAK box.exe`.
    - **Linux:** run `./oakbox-linux-x86_64/oakbox.sh`.
 
    It opens a native window (Qt on Linux). Where Qt can't open one (it needs the desktop's usual display libraries), it opens a browser window instead.

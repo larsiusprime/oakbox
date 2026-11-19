@@ -134,7 +134,7 @@ CI) puts projects, settings and engines in one folder.
 ## Packaging
 
 `packaging/build_bundle.sh <windows|linux>` builds a bundle on Linux: a standalone CPython 3.11, every wheel from
-`uv.lock` for that platform, the built page, a launcher (`Oakbox.cmd`, `oakbox.sh`) and `smoke.cmd`/`smoke.sh`
+`uv.lock` for that platform, the built page, a launcher (`OAK box.exe`, a small C program in `packaging/launcher` built with MinGW; `oakbox.sh`) and `smoke.cmd`/`smoke.sh`
 (`oakbox/smoke.py`). Nothing is frozen. `packaging/oakbox.iss` makes the Windows installer. CI
 (`.github/workflows/bundles.yml`) runs the checks, the native menus on both platforms, and builds and smoke-tests
 both bundles; a `v*` tag publishes a release. docs/RUNNING.md has the commands.

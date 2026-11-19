@@ -136,6 +136,9 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
+      - name: MinGW, for OAK box.exe (the Windows launcher, packaging/launcher)
+        if: matrix.platform == 'windows'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gcc-mingw-w64-x86-64
       - run: packaging/build_bundle.sh ${{ matrix.platform }}
       - name: Delete older bundle artifacts (the storage quota fits only a few)
         uses: actions/github-script@v7
@@ -261,11 +264,18 @@ jobs:
           if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\OAK box\OAK box.lnk")) { throw "no Start menu entry" }
           # The app service from the installed copy answers, with the installer's version.
           $env:OAKBOX_HOME = "$env:RUNNER_TEMP\oakhome"
-          $p = Start-Process "$dir\python\python.exe" -PassThru -ArgumentList '-X', 'utf8', '-m', 'oakbox', '--no-window', '--port', '8799'
+          # Started as the Start menu starts it: OAK box.exe, which runs pythonw (no console) and ends it as it ends.
+          $lnk = (New-Object -ComObject WScript.Shell).CreateShortcut("$env:APPDATA\Microsoft\Windows\Start Menu\Programs\OAK box\OAK box.lnk")
+          if ($lnk.TargetPath -ne "$dir\OAK box.exe") { throw "the Start menu starts $($lnk.TargetPath), not OAK box.exe" }
+          $p = Start-Process "$dir\OAK box.exe" -PassThru -ArgumentList '--no-window', '--port', '8799'
           $v = $null
           foreach ($i in 1..90) { try { $v = Invoke-RestMethod http://127.0.0.1:8799/api/version; break } catch { Start-Sleep 1 } }
+          $py = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($p.Id)" | Where-Object Name -eq 'pythonw.exe'
           Stop-Process -Id $p.Id -Force
           if (-not $v) { throw "the installed app didn't start" }
+          if (-not $py) { throw "OAK box.exe didn't run pythonw.exe" }
+          Start-Sleep 3
+          if (Get-Process -Id $py.ProcessId -ErrorAction SilentlyContinue) { throw "ending OAK box.exe left its Python running" }
           "OAK box $($v.version), OpenAVMKit $($v.openavmkit)"
           Start-Process "$dir\unins000.exe" -Wait -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'
           Start-Sleep 3

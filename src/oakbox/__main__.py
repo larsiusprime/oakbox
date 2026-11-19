@@ -60,6 +60,15 @@ def main() -> None:
     for stream in (sys.stdout, sys.stderr):
         if stream is not None and hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+    if sys.platform == "win32":
+        # The app's own ID, as the Start menu's shortcut has it (packaging/oakbox.iss): the taskbar groups the window
+        # as OAK box, with its icon, not as Python's.
+        try:
+            import ctypes
+
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("OAKbox.OAKbox")
+        except Exception:  # noqa: BLE001 - only the taskbar's grouping
+            pass
     parser = argparse.ArgumentParser(prog="oakbox")
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument("--browser", action="store_true", help="open in a browser instead of a window")

@@ -76,14 +76,15 @@ Source: "{#Bundle}\*"; DestDir: "{app}"; Components: main; Flags: ignoreversion 
 Source: "oakbox.ico"; DestDir: "{app}"; Components: main; Flags: ignoreversion
 
 [Icons]
-; pythonw.exe: no console window. -X utf8: text is UTF-8, not the code page (as Oakbox.cmd).
-Name: "{group}\OAK box"; Filename: "{app}\python\pythonw.exe"; Parameters: "-X utf8 -m oakbox"; WorkingDir: "{app}"; IconFilename: "{app}\oakbox.ico"
-Name: "{autodesktop}\OAK box"; Filename: "{app}\python\pythonw.exe"; Parameters: "-X utf8 -m oakbox"; WorkingDir: "{app}"; IconFilename: "{app}\oakbox.ico"; Tasks: desktopicon
+; OAK box.exe (packaging/launcher): runs python\pythonw.exe -X utf8 -m oakbox beside it, with no console window.
+; The app's own ID, which its window takes too (__main__.py), so the taskbar shows its icon, and a pinned one is OAK box.
+Name: "{group}\OAK box"; Filename: "{app}\OAK box.exe"; WorkingDir: "{app}"; AppUserModelID: "OAKbox.OAKbox"
+Name: "{autodesktop}\OAK box"; Filename: "{app}\OAK box.exe"; WorkingDir: "{app}"; AppUserModelID: "OAKbox.OAKbox"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\python\python.exe"; Parameters: "-X utf8 -m oakbox.engines install xgboost"; WorkingDir: "{app}"; StatusMsg: "Downloading XGBoost ({#xgboostDownload} MB)…"; Components: xgboost; Flags: runhidden waituntilterminated
 Filename: "{app}\python\python.exe"; Parameters: "-X utf8 -m oakbox.engines install catboost"; WorkingDir: "{app}"; StatusMsg: "Downloading CatBoost ({#catboostDownload} MB)…"; Components: catboost; Flags: runhidden waituntilterminated
-Filename: "{app}\python\pythonw.exe"; Parameters: "-X utf8 -m oakbox"; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,OAK box}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\OAK box.exe"; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,OAK box}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 ; What Python wrote beside the code (compiled caches), so the folder goes entirely; and the engines it downloaded.
