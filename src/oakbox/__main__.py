@@ -399,7 +399,9 @@ def _start_failed(error: BaseException) -> None:
             where = path
         except OSError:
             pass
-    print(tb, file=sys.stderr or sys.__stderr__ or open(os.devnull, "w"))  # noqa: SIM115 - pythonw has no stderr
+    stream = sys.stderr or sys.__stderr__
+    if stream is not None:  # pythonw has none
+        print(tb, file=stream)
     if sys.platform == "win32":
         try:
             import ctypes
