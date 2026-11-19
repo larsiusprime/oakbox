@@ -123,6 +123,9 @@ def _window(url: str, selftest: bool = False) -> bool:
         picker = _Picker()
         window = webview.create_window("OAK box", url, width=1280, height=860, min_size=(960, 640), js_api=picker)
     except Exception:  # noqa: BLE001 - no usable native window toolkit
+        from oakbox import applog
+
+        applog.logger().exception("No window toolkit; OAK box opens in a browser instead")
         return False
     if window is None:
         return False
@@ -164,6 +167,9 @@ def _window(url: str, selftest: bool = False) -> bool:
     except Exception:  # noqa: BLE001 - the toolkit failed to start; fall back to a browser
         if selftest:
             raise
+        from oakbox import applog
+
+        applog.logger().exception("The window couldn't open; OAK box opens in a browser instead")
         return False
     from oakbox import steps
 
@@ -363,12 +369,51 @@ def _selftest_menus(window: Any, picker: _Picker, url: str, failures: list[str])
         window.destroy()
 
 
+def _start_failed(error: BaseException) -> None:
+    """OAK box couldn't start: say why. The installed app runs under pythonw (no console), so an error that isn't
+    shown is a click that does nothing: it's written to the log (or, if even that fails, a file in the temp folder)
+    and, on Windows, shown in a message box with where the log is."""
+    import traceback
+
+    tb = "".join(traceback.format_exception(type(error), error, error.__traceback__))
+    where = ""
+    try:
+        from oakbox import applog
+
+        applog.logger().error("OAK box couldn't start:\n%s", tb.rstrip())
+        where = str(applog.log_file())
+    except Exception:  # noqa: BLE001 - the log itself failed: the temp folder instead
+        try:
+            path = os.path.join(tempfile.gettempdir(), "oakbox-start-failed.log")
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(tb)
+            where = path
+        except OSError:
+            pass
+    print(tb, file=sys.stderr or sys.__stderr__ or open(os.devnull, "w"))  # noqa: SIM115 - pythonw has no stderr
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            what = f"{type(error).__name__}: {error}"
+            text = f"OAK box couldn't start.\n\n{what}\n\nDetails are in {where or 'the console'}."
+            ctypes.windll.user32.MessageBoxW(None, text, "OAK box", 0x10)  # MB_ICONERROR
+        except Exception:  # noqa: BLE001 - nothing more can be done
+            pass
+
+
 if __name__ == "__main__":
-    from oakbox.net import use_system_certificates
+    try:
+        from oakbox.net import use_system_certificates
 
-    use_system_certificates()
-    from oakbox import engines
+        use_system_certificates()
+        from oakbox import engines
 
-    engines.tidy()
-    engines.activate()
-    main()
+        engines.tidy()
+        engines.activate()
+        main()
+    except SystemExit:
+        raise
+    except BaseException as e:  # noqa: BLE001 - shown, not lost (pythonw has no console)
+        _start_failed(e)
+        sys.exit(1)
