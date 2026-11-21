@@ -413,7 +413,18 @@ def _start_failed(error: BaseException) -> None:
             pass
 
 
+def _no_console() -> None:
+    """pythonw (the installed app: OAK box.exe) has no console: sys.stdout and sys.stderr are None, and a library
+    that writes to them or asks them a question fails. uvicorn's log formatter asks sys.stdout.isatty() as it's set
+    up, which ended the app before it served a page (0.0.0: a click did nothing). With no console, they're the null
+    device: written to, kept nowhere (errors go to OAK box's log, applog)."""
+    for name in ("stdout", "stderr"):
+        if getattr(sys, name) is None:
+            setattr(sys, name, open(os.devnull, "w", encoding="utf-8"))  # noqa: SIM115 - for the life of the process
+
+
 if __name__ == "__main__":
+    _no_console()
     try:
         from oakbox.net import use_system_certificates
 

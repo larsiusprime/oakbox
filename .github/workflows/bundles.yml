@@ -272,7 +272,11 @@ jobs:
           foreach ($i in 1..90) { try { $v = Invoke-RestMethod http://127.0.0.1:8799/api/version; break } catch { Start-Sleep 1 } }
           $py = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($p.Id)" | Where-Object Name -eq 'pythonw.exe'
           Stop-Process -Id $p.Id -Force
-          if (-not $v) { throw "the installed app didn't start" }
+          if (-not $v) {
+            $log = "$env:OAKBOX_HOME\.oakbox\logs\oakbox.log"
+            if (Test-Path $log) { Get-Content $log -Tail 60 } else { "(no log at $log)" }
+            throw "the installed app didn't start"
+          }
           if (-not $py) { throw "OAK box.exe didn't run pythonw.exe" }
           Start-Sleep 3
           if (Get-Process -Id $py.ProcessId -ErrorAction SilentlyContinue) { throw "ending OAK box.exe left its Python running" }
